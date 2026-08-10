@@ -116,7 +116,7 @@ function advanceRound(parts: FrameParts): boolean {
 /** Everyone who is due to arrive, arrives. */
 function spawnDue(parts: FrameParts, elapsed: number): void {
   for (const spawn of parts.director.advance(elapsed)) {
-    parts.enemies.spawn(spawn.kind, spawn.x);
+    parts.enemies.spawn(spawn.kind, spawn.path, spawn.entry);
   }
 }
 

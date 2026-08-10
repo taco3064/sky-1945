@@ -12,6 +12,12 @@
  * bigger hardware.
  */
 
+/** A point in the field's coordinates. */
+export interface Point {
+  x: number;
+  y: number;
+}
+
 export const FIELD_WIDTH = 540;
 export const FIELD_HEIGHT = 960;
 
