@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- No favicon yet — the Vite template's was its own logo, and a wrong
+         icon is worse than none. The empty data: URI is not decoration: drop
+         this line and the browser falls back to guessing /favicon.ico, which
+         404s into the console on every load. Replace it when there is art. -->
+    <link rel="icon" href="data:," />
+    <!--
+      viewport-fit=cover is what makes env(safe-area-inset-*) report real
+      numbers — without it the insets are 0 and the notch clips the field.
+      user-scalable=no because a pinch-zoom during a bullet pattern is never
+      what the player meant.
+    -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
+    />
+    <title>sky-1945</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
