@@ -561,9 +561,16 @@ describe('createWorld · lives', () => {
     world.subscribeGameOver(onGameOver);
     world.start();
 
-    // The heading is re-sent each time, because kill() clears it — a fresh
-    // aircraft does not inherit the last one's input.
-    for (let attempt = 0; attempt < 14; attempt += 1) {
+    /*
+     * The heading is re-sent each time, because kill() clears it — a fresh
+     * aircraft does not inherit the last one's input.
+     *
+     * Long enough to cover more than one round of waves. A round now runs its
+     * waves and then a boss, and the boss cannot reach an aircraft pinned to the
+     * top edge — so the contacts that spend lives only happen while mobs are
+     * descending, and there has to be time for the next round's to arrive.
+     */
+    for (let attempt = 0; attempt < 30; attempt += 1) {
       world.setPlayerDirection(0, -1);
       runFrames(4000);
     }
@@ -572,7 +579,25 @@ describe('createWorld · lives', () => {
 
     expect(spent).toContain(STARTING_LIVES - 1);
     expect(spent.at(-1)).toBe(0);
-    expect(Math.min(...spent)).toBe(0);
+    expect(onGameOver).toHaveBeenCalledOnce();
+
+    /*
+     * The run is over, and the engine still has to hold the line on its own.
+     *
+     * Whoever is watching stops the world when it hears about the game ending,
+     * but nothing here has, so the aircraft is still flying and can still be hit.
+     * Back down into the boss's fire: a fourth contact must not take the count
+     * negative or announce a second game over.
+     *
+     * Downward rather than up, because by now the aircraft is pinned against the
+     * top edge where the boss — which sits lower — cannot reach it.
+     */
+    world.setPlayerDirection(0, 1);
+    runFrames(12_000);
+
+    const after = onLives.mock.calls.map(([remaining]) => remaining as number);
+
+    expect(Math.min(...after)).toBe(0);
     expect(onGameOver).toHaveBeenCalledOnce();
   });
 });

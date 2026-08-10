@@ -123,6 +123,7 @@ describe('stepFrame · a quiet frame', () => {
         advance: vi.fn(() => [{
           kind: 'small' as const,
           path: 'dive' as const,
+          edge: 'top' as const,
           entry: { x: 100, y: -40 },
         }]),
       },
@@ -130,7 +131,12 @@ describe('stepFrame · a quiet frame', () => {
 
     stepFrame(parts, 1 / 60);
 
-    expect(parts.enemies.spawn).toHaveBeenCalledWith('small', 'dive', { x: 100, y: -40 });
+    expect(parts.enemies.spawn).toHaveBeenCalledWith({
+      kind: 'small',
+      path: 'dive',
+      edge: 'top',
+      entry: { x: 100, y: -40 },
+    });
   });
 });
 

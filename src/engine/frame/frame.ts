@@ -165,7 +165,7 @@ function advancePhase(parts: FrameParts) {
 /** Everyone who is due to arrive, arrives. */
 function spawnDue(parts: FrameParts, elapsed: number): void {
   for (const spawn of parts.director.advance(elapsed)) {
-    parts.enemies.spawn(spawn.kind, spawn.path, spawn.entry);
+    parts.enemies.spawn(spawn);
   }
 }
 
