@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createWorld } from './world';
+import { bossHpFor } from '../boss';
 import { STARTING_LIVES } from '../combat';
 import { FIELD_HEIGHT, FIELD_WIDTH } from '../field';
 import type { EntityRecord, Transform, World } from './world';
@@ -498,19 +499,42 @@ describe('createWorld · rounds', () => {
     expect(onRound).toHaveBeenCalledWith(1);
   });
 
-  // A round ends when its last wave has been sent *and* the field is clear —
-  // not on a timer, so a player who kills nothing still has to wait for the
-  // slowest craft to fly past.
-  it('advances once the last wave has cleared the field', () => {
-    world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
+  // The waves end when the last one has been sent *and* the field is clear —
+  // not on a timer, so a player who kills nothing still waits for the slowest
+  // craft to fly past. What that no longer does is end the round: it summons
+  // the boss, and the round runs until the boss dies.
+  //
+  // Full power so the fight resolves inside the run: the player sits in the
+  // centre firing continuously, which is exactly under where the boss settles.
+  it('summons the boss when the waves clear, then advances once it dies', () => {
+    world = createWorld({ speedMultiplier: 1, powerMultiplier: 3 });
 
     const onRound = vi.fn();
+    const onBoss = vi.fn();
 
     world.subscribeRound(onRound);
+    world.subscribeBoss(onBoss);
     world.start();
-    runFrames(45000);
+    runFrames(60000);
 
+    const summoned = onBoss.mock.calls.map(([boss]) => boss).filter(Boolean);
+
+    expect(summoned.length).toBeGreaterThan(0);
+    expect(summoned[0].maxHp).toBe(bossHpFor(1));
     expect(onRound.mock.calls.at(-1)?.[0]).toBeGreaterThan(1);
+  });
+
+  it('has no boss before the waves are done', () => {
+    world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
+
+    const onBoss = vi.fn();
+
+    world.subscribeBoss(onBoss);
+    world.start();
+    runFrames(2000);
+
+    expect(onBoss).toHaveBeenCalledWith(null);
+    expect(onBoss.mock.calls.every(([boss]) => boss === null)).toBe(true);
   });
 });
 
@@ -537,9 +561,16 @@ describe('createWorld · lives', () => {
     world.subscribeGameOver(onGameOver);
     world.start();
 
-    // The heading is re-sent each time, because kill() clears it — a fresh
-    // aircraft does not inherit the last one's input.
-    for (let attempt = 0; attempt < 14; attempt += 1) {
+    /*
+     * The heading is re-sent each time, because kill() clears it — a fresh
+     * aircraft does not inherit the last one's input.
+     *
+     * Long enough to cover more than one round of waves. A round now runs its
+     * waves and then a boss, and the boss cannot reach an aircraft pinned to the
+     * top edge — so the contacts that spend lives only happen while mobs are
+     * descending, and there has to be time for the next round's to arrive.
+     */
+    for (let attempt = 0; attempt < 30; attempt += 1) {
       world.setPlayerDirection(0, -1);
       runFrames(4000);
     }
@@ -548,7 +579,25 @@ describe('createWorld · lives', () => {
 
     expect(spent).toContain(STARTING_LIVES - 1);
     expect(spent.at(-1)).toBe(0);
-    expect(Math.min(...spent)).toBe(0);
+    expect(onGameOver).toHaveBeenCalledOnce();
+
+    /*
+     * The run is over, and the engine still has to hold the line on its own.
+     *
+     * Whoever is watching stops the world when it hears about the game ending,
+     * but nothing here has, so the aircraft is still flying and can still be hit.
+     * Back down into the boss's fire: a fourth contact must not take the count
+     * negative or announce a second game over.
+     *
+     * Downward rather than up, because by now the aircraft is pinned against the
+     * top edge where the boss — which sits lower — cannot reach it.
+     */
+    world.setPlayerDirection(0, 1);
+    runFrames(12_000);
+
+    const after = onLives.mock.calls.map(([remaining]) => remaining as number);
+
+    expect(Math.min(...after)).toBe(0);
     expect(onGameOver).toHaveBeenCalledOnce();
   });
 });
@@ -570,5 +619,82 @@ describe('createWorld · a fresh aircraft does not inherit the last one', () => 
     // Whether or not it has died by now, it is not still climbing under an
     // input nobody gave it.
     expect(Math.abs(at().y - settled)).toBeLessThan(FIELD_HEIGHT / 2);
+  });
+});
+
+describe('createWorld · a new subscriber is placed immediately', () => {
+  /*
+   * The transform channel used to be push-only, so anything that mounted between
+   * two frames was drawn at the field's origin until the next one arrived.
+   *
+   * Invisible for a bullet — 16ms at 6×10 units. Not invisible for the boss's
+   * beam, which is 88×1000: the whole column flashed at the top-left corner
+   * before snapping under the boss, and if the run ended on that frame it simply
+   * stayed there. Reported from play as "the beam looks wrong".
+   */
+  it('tells a fresh subscriber where the entity already is', () => {
+    world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
+    world.start();
+    runFrames(400);
+
+    const onFrame = vi.fn();
+
+    world.subscribe(world.playerId, onFrame);
+
+    expect(onFrame).toHaveBeenCalledTimes(1);
+
+    expect(onFrame.mock.calls[0][0]).toMatchObject({
+      x: expect.any(Number),
+      y: expect.any(Number),
+    });
+  });
+
+  it('places every enemy on the field, not just the player', () => {
+    world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
+    world.start();
+    runFrames(400);
+
+    let roster: EntityRecord[] = [];
+
+    world.subscribeRoster((entities) => {
+      roster = entities;
+    });
+
+    const enemy = roster.find(({ kind }) => kind.startsWith('enemy-'));
+    const onFrame = vi.fn();
+
+    world.subscribe(enemy?.id as number, onFrame);
+
+    expect(onFrame).toHaveBeenCalledTimes(1);
+  });
+
+  // Nothing to say about an id that is not on the field — a burst that has faded,
+  // or a bullet removed on the frame its component mounted.
+  it('says nothing about an entity that is gone', () => {
+    world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
+    world.start();
+    runFrames(400);
+
+    const onFrame = vi.fn();
+
+    world.subscribe(999_999, onFrame);
+
+    expect(onFrame).not.toHaveBeenCalled();
+  });
+
+  it('holds nothing once disposed', () => {
+    world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
+    world.start();
+    runFrames(400);
+
+    const id = world.playerId;
+
+    world.dispose();
+
+    const onFrame = vi.fn();
+
+    world.subscribe(id, onFrame);
+
+    expect(onFrame).not.toHaveBeenCalled();
   });
 });

@@ -1,0 +1,91 @@
+/*
+ * BOSS HEALTH BAR — across the top of the field, inside the HUD layer.
+ *
+ * It sits in the HUD rather than the field, so it does not scale with the play
+ * area: a bar that shrank on a phone would be the first thing to become
+ * unreadable, and it is the one number the fight is measured by.
+ *
+ * Violet, because that is the boss's own energy colour. Red is every other
+ * enemy on screen, and a red bar would read as the player's own damage.
+ */
+
+.wrap {
+  position: absolute;
+  top: 2.6rem;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 68%;
+  transform: translateX(-50%);
+}
+
+.track {
+  width: 100%;
+  height: 8px;
+  background: rgb(20 10 18 / 85%);
+  border: 1px solid #7d3f68;
+  border-radius: 1px;
+  box-shadow: 0 0 8px rgb(0 0 0 / 60%);
+}
+
+.fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6a2fa0 0%, #c07dff 55%, #f0d4ff 100%);
+
+  /*
+   * Short, and only on width. Damage arrives in bursts of ten shots a second,
+   * and an un-eased bar looks like it is stuttering rather than dropping. Long
+   * enough to read as motion, short enough that the bar is never lying about
+   * the present by more than a frame or two.
+   */
+  transition: width 0.09s linear;
+}
+
+/* The last quarter. Hotter, so "nearly dead" is visible without reading a
+   number — the player is watching the field, not the HUD. */
+.track[data-low] .fill {
+  background: linear-gradient(90deg, #ff5c8a 0%, #ffb37a 100%);
+}
+
+.track[data-low] {
+  border-color: #ff5c8a;
+}
+
+/*
+ * The beam's instruction, not its name.
+ *
+ * Appears for the 1.4s of the wind-up and says what to do with it. The only
+ * word the game puts on screen during play, which is what makes it carry
+ * weight — anything more here and the player starts reading instead of flying.
+ */
+.warning {
+  margin-top: 0.35rem;
+  color: #f0d4ff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-shadow: 0 0 10px #c07dff;
+  animation: urge 0.35s ease-in-out infinite alternate;
+}
+
+@keyframes urge {
+  from {
+    opacity: 0.55;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill {
+    transition: none;
+  }
+
+  .warning {
+    animation: none;
+    opacity: 1;
+  }
+}

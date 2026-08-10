@@ -1,17 +1,23 @@
 import { useEffect } from 'react';
 
+import { Beam } from '~app/components/Beam';
+import { Boss } from '~app/components/Boss';
+import type { BossMove, BossPose } from '~app/components/Boss';
 import { Bullet } from '~app/components/Bullet';
 import { Burst } from '~app/components/Burst';
 import { Enemy } from '~app/components/Enemy';
 import type { EnemyVariant } from '~app/components/Enemy';
 import { Fighter } from '~app/components/Fighter';
+import { HealthBar } from '~app/components/HealthBar';
 import { LifeIcon } from '~app/components/LifeIcon';
 import { TouchStick } from '~app/components/TouchStick';
 import { GameProvider } from '~app/contexts/GameContext';
+import type { BossSnapshot } from '~app/engine/boss';
 import type { CombatSnapshot } from '~app/engine/combat';
 import type { EntityKind, EntityRecord, World } from '~app/engine/world';
 import { useEntityRoster } from '~app/hooks/useEntityRoster';
 import { useGameRound } from '~app/hooks/useGameRound';
+import { useHitPoints } from '~app/hooks/useHitPoints';
 import { useLives } from '~app/hooks/useLives';
 import { usePlayerCombat } from '~app/hooks/usePlayerCombat';
 import { usePlayerInput } from '~app/hooks/usePlayerInput';
@@ -30,8 +36,14 @@ function variantFor(kind: EntityKind): EnemyVariant {
   return VARIANTS[kind];
 }
 
-/** Which component draws a roster entry. */
-function draw(entity: EntityRecord, combat: CombatSnapshot) {
+/**
+ * Which component draws a roster entry.
+ *
+ * The boss takes a third argument the others do not need: it is the one thing on
+ * the field whose *state* is drawn as well as its position, because every attack
+ * has to be announced before it lands.
+ */
+function draw(entity: EntityRecord, combat: CombatSnapshot, boss: BossSnapshot | null) {
   if (entity.kind === 'player') {
     return (
       <Fighter
@@ -46,6 +58,21 @@ function draw(entity: EntityRecord, combat: CombatSnapshot) {
   if (entity.kind === 'player-bullet' || entity.kind === 'enemy-bullet') {
     return (
       <Bullet key={entity.id} id={entity.id} hostile={entity.kind === 'enemy-bullet'} />
+    );
+  }
+
+  if (entity.kind === 'enemy-beam') {
+    return <Beam key={entity.id} id={entity.id} />;
+  }
+
+  if (entity.kind === 'enemy-boss') {
+    return (
+      <Boss
+        key={entity.id}
+        id={entity.id}
+        pose={(boss?.stance ?? 'entering') as BossPose}
+        move={boss?.attack as BossMove | undefined}
+      />
     );
   }
 
@@ -88,6 +115,7 @@ export function Field({ world, phase, onPause, onQuit, onGameOver }: FieldProps)
   const entities = useEntityRoster(world);
   const combat = usePlayerCombat(world);
   const round = useGameRound(world);
+  const boss = useHitPoints(world);
   const lives = useLives(world, onGameOver);
 
   useEffect(() => {
@@ -102,7 +130,7 @@ export function Field({ world, phase, onPause, onQuit, onGameOver }: FieldProps)
     <GameProvider world={world}>
       <div ref={viewport} className={styles.viewport}>
         <div className={styles.field}>
-          {entities.map((entity) => draw(entity, combat))}
+          {entities.map((entity) => draw(entity, combat, boss))}
         </div>
 
         <div className={styles.hud}>
@@ -111,6 +139,14 @@ export function Field({ world, phase, onPause, onQuit, onGameOver }: FieldProps)
           </div>
 
           <p className={styles.round}>{`ROUND ${round}`}</p>
+
+          {boss && (
+            <HealthBar
+              hp={boss.hp}
+              maxHp={boss.maxHp}
+              aiming={boss.stance === 'winding' && boss.attack === 'beam'}
+            />
+          )}
 
           {phase !== 'gameover' && (
             <button

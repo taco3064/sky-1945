@@ -1,9 +1,11 @@
 import { Engine } from 'matter-js';
 import type { Body } from 'matter-js';
 
+import { createBossField } from '../boss';
+import type { BossSnapshot } from '../boss';
 import { createBulletField } from '../bullets';
 import { createChannel, createKeyedChannel } from '../channel';
-import type { Channel } from '../channel';
+import type { Channel, KeyedChannel } from '../channel';
 import { STARTING_LIVES } from '../combat';
 import type { CombatSnapshot } from '../combat';
 import { createCollisionWatch } from '../collisions';
@@ -51,6 +53,8 @@ export type EntityKind
     | 'enemy-small'
     | 'enemy-medium'
     | 'enemy-large'
+    | 'enemy-boss'
+    | 'enemy-beam'
     | 'burst';
 
 export interface EntityRecord {
@@ -77,6 +81,7 @@ export type RosterListener = (entities: EntityRecord[]) => void;
 export type CombatListener = (snapshot: CombatSnapshot) => void;
 export type RoundListener = (round: number) => void;
 export type LivesListener = (remaining: number) => void;
+export type BossListener = (boss: BossSnapshot | null) => void;
 export type GameOverListener = () => void;
 
 export interface WorldOptions {
@@ -114,6 +119,15 @@ export interface World {
   subscribeLives: (onChange: LivesListener) => () => void;
   /** Fires when the last life is gone. */
   subscribeGameOver: (onGameOver: GameOverListener) => () => void;
+  /**
+   * Watch the boss: its hit points, its stance, and null when there is none.
+   *
+   * The one place the engine hands its hit points upstairs. A trash mob's stay
+   * down here because nothing draws them — the player reads "it is still there".
+   * The boss has a bar, so React has to know the number, and this is the whole
+   * of that exception rather than a general HP channel.
+   */
+  subscribeBoss: (onChange: BossListener) => () => void;
   /** Point the player. Any vector; length is normalised away. */
   setPlayerDirection: (x: number, y: number) => void;
   /** Attempt a barrel roll. Ignored while one is already running. */
@@ -157,12 +171,86 @@ function rosterOf(parts: FrameParts): EntityRecord[] {
       id,
       kind: `enemy-${kind}`,
     })),
+    ...parts.boss.records().map(({ id, kind }): EntityRecord => ({
+      id,
+      kind: `enemy-${kind}`,
+    })),
     ...parts.effects.records().map(({ id, size, tone }): EntityRecord => ({
       id,
       kind: 'burst',
       burst: { size, tone },
     })),
   ];
+}
+
+/**
+ * Send every position on the field down the transform channel.
+ *
+ * Reads the parts rather than closing over them, like `rosterOf` above — which
+ * is what keeps it out here rather than inside the factory, where it was the
+ * fifteen lines that pushed `createWorld` past its budget.
+ */
+type FrameChannel = KeyedChannel<EntityId, Transform>;
+
+/** Every live position as of the last frame, so a new subscriber can be told. */
+type Latest = Map<EntityId, Transform>;
+
+function publishFrames(parts: FrameParts, frames: FrameChannel, latest: Latest): void {
+  // Rebuilt from scratch each frame, so it holds exactly what is alive — a map
+  // that only grew would keep every bullet ever fired.
+  latest.clear();
+
+  const at = (id: EntityId, transform: Transform): void => {
+    latest.set(id, transform);
+    frames.send(id, transform);
+  };
+
+  at(parts.pilot.id, transformOf(parts.pilot.body));
+
+  const moving = [
+    ...parts.bullets.bodies(),
+    ...parts.enemies.bodies(),
+    ...parts.boss.bodies(),
+  ];
+
+  for (const body of moving) {
+    at(body.id, transformOf(body));
+  }
+
+  // Bursts do not move, but a subscriber mounting after one began still has to
+  // hear a position from somewhere.
+  for (const { id, x, y } of parts.effects.placements()) {
+    at(id, { x, y, angle: 0 });
+  }
+}
+
+/**
+ * Subscribe to a transform and deliver the last one known straight away.
+ *
+ * The transform channel is push-only, and for most of the game that is
+ * invisible: a bullet mounts, waits 16ms, and is placed. It stopped being
+ * invisible with the boss's beam, which is 88×1000 units — for one frame the
+ * whole column sat at the field's origin instead of under the boss, and if the
+ * run ended on that frame it stayed there. Reported from play as "the beam looks
+ * wrong".
+ *
+ * Every other channel already opened with its current value (`openWith` below).
+ * This is that same fix for the one channel that did not, and it is why
+ * `publishFrames` now runs *after* the simulation step rather than before it —
+ * the position has to be recorded before the roster that mounts its component
+ * goes out.
+ */
+function openTransform(frames: FrameChannel, latest: Latest) {
+  return (id: EntityId, onFrame: FrameListener) => {
+    const stop = frames.subscribe(id, onFrame);
+    const known = latest.get(id);
+
+    if (known) {
+      onFrame(known);
+    }
+
+    return stop;
+  };
 }
 
 function transformOf(body: Body): Transform {
@@ -183,6 +271,7 @@ function assemble(engine: Engine, options: WorldOptions): FrameParts {
     effects: createEffectField(),
     collisions: createCollisionWatch(engine),
     director: createDirector(),
+    boss: createBossField(engine),
   };
 }
 
@@ -197,9 +286,11 @@ export function createWorld(options: WorldOptions): World {
     round: createChannel<number>(),
     lives: createChannel<number>(),
     gameOver: createChannel<void>(),
+    boss: createChannel<BossSnapshot | null>(),
   };
 
   const loop = { frame: null as number | null, previous: 0 };
+  const latest: Latest = new Map();
 
   let wasRolling = false;
   let lives = STARTING_LIVES;
@@ -229,20 +320,6 @@ export function createWorld(options: WorldOptions): World {
     channels.gameOver.send(undefined);
   };
 
-  const publishFrames = (): void => {
-    channels.frames.send(parts.pilot.id, transformOf(parts.pilot.body));
-
-    for (const body of [...parts.bullets.bodies(), ...parts.enemies.bodies()]) {
-      channels.frames.send(body.id, transformOf(body));
-    }
-
-    // Bursts do not move, but a subscriber mounting after one began still has
-    // to hear a position from somewhere.
-    for (const { id, x, y } of parts.effects.placements()) {
-      channels.frames.send(id, { x, y, angle: 0 });
-    }
-  };
-
   const publish = (result: FrameResult): void => {
     const combat = parts.pilot.snapshot();
 
@@ -259,6 +336,10 @@ export function createWorld(options: WorldOptions): World {
       channels.round.send(parts.director.round());
     }
 
+    if (result.bossChanged) {
+      channels.boss.send(parts.boss.snapshot());
+    }
+
     if (result.playerDied) {
       spendLife();
     }
@@ -272,8 +353,14 @@ export function createWorld(options: WorldOptions): World {
     const elapsed = clamp((now - loop.previous) / 1000, 0, MAX_STEP_SECONDS);
 
     loop.previous = now;
-    publishFrames();
-    publish(stepFrame(parts, elapsed));
+
+    // Simulate, then record where everything ended up, then announce what
+    // changed. In that order: a component mounted by the roster below has to be
+    // able to ask for a position that already exists.
+    const result = stepFrame(parts, elapsed);
+
+    publishFrames(parts, channels.frames, latest);
+    publish(result);
 
     loop.frame = requestAnimationFrame(step);
   };
@@ -302,7 +389,10 @@ export function createWorld(options: WorldOptions): World {
       parts.collisions.dispose();
       parts.bullets.clear();
       parts.enemies.clear();
+      parts.boss.clear();
       parts.effects.clear();
+
+      latest.clear();
 
       for (const channel of Object.values(channels)) {
         channel.clear();
@@ -311,7 +401,7 @@ export function createWorld(options: WorldOptions): World {
       Engine.clear(engine);
     },
 
-    subscribe: (id, onFrame) => channels.frames.subscribe(id, onFrame),
+    subscribe: openTransform(channels.frames, latest),
 
     subscribeRoster: openWith(channels.roster, () => rosterOf(parts)),
 
@@ -322,6 +412,8 @@ export function createWorld(options: WorldOptions): World {
     subscribeLives: openWith(channels.lives, () => lives),
 
     subscribeGameOver: (onGameOver) => channels.gameOver.subscribe(onGameOver),
+
+    subscribeBoss: openWith(channels.boss, parts.boss.snapshot),
 
     setPlayerDirection: (x, y) => parts.pilot.point(x, y),
 

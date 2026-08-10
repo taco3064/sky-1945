@@ -1,8 +1,9 @@
 import { Engine } from 'matter-js';
 
 import { boostsForRound } from '../boosts';
+import type { BossField } from '../boss';
 import type { BulletField } from '../bullets';
-import type { CollisionWatch } from '../collisions';
+import type { CollisionWatch, Hit } from '../collisions';
 import type { Director } from '../director';
 import type { EffectField } from '../effects';
 import type { EnemyField } from '../enemies';
@@ -27,6 +28,7 @@ export interface FrameParts {
   effects: EffectField;
   collisions: CollisionWatch;
   director: Director;
+  boss: BossField;
 }
 
 export interface FrameResult {
@@ -36,6 +38,15 @@ export interface FrameResult {
   playerDied: boolean;
   /** The round was cleared and the next one has begun. */
   roundAdvanced: boolean;
+  /**
+   * The boss's bar needs redrawing: it took damage, changed stance, arrived or
+   * died.
+   *
+   * A separate flag from `rosterChanged` because it answers a different
+   * question. The roster changes when something is born or dies, and the boss's
+   * hit points change while nothing is born or dies at all.
+   */
+  bossChanged: boolean;
 }
 
 /**
@@ -58,11 +69,34 @@ const COLLISION_PASSES = 4;
 
 /** How big a wreck each side leaves. */
 const ENEMY_WRECK = { size: 'small', tone: 'enemy' } as const;
+const BOSS_WRECK = { size: 'large', tone: 'enemy' } as const;
 const PLAYER_WRECK = { size: 'large', tone: 'ally' } as const;
 
 interface Resolution {
   rosterChanged: boolean;
   playerDied: boolean;
+  bossChanged: boolean;
+}
+
+/**
+ * Damage, delivered to whichever field owns the target.
+ *
+ * Asked in this order, and asked *before* the damage lands: the boss's own
+ * `owns` goes false the instant it dies, so a single call afterwards could not
+ * tell "the boss died" from "that id was never the boss".
+ */
+function applyDamage(parts: FrameParts, hit: Extract<Hit, { kind: 'enemy-damaged' }>) {
+  const isBoss = parts.boss.owns(hit.enemyId);
+
+  const wreck = isBoss
+    ? parts.boss.damage(hit.damage)
+    : parts.enemies.damage(hit.enemyId, hit.damage);
+
+  if (wreck) {
+    parts.effects.burst(wreck, isBoss ? BOSS_WRECK : ENEMY_WRECK);
+  }
+
+  return { isBoss };
 }
 
 /**
@@ -76,6 +110,7 @@ interface Resolution {
 function resolveHits(parts: FrameParts): Resolution {
   let rosterChanged = false;
   let playerDied = false;
+  let bossChanged = false;
 
   for (const hit of parts.collisions.drain()) {
     if (hit.kind === 'player-hit') {
@@ -90,33 +125,47 @@ function resolveHits(parts: FrameParts): Resolution {
 
     parts.bullets.remove(hit.bulletId);
 
-    const wreck = parts.enemies.damage(hit.enemyId, hit.damage);
-
-    if (wreck) {
-      parts.effects.burst(wreck, ENEMY_WRECK);
-    }
-
+    bossChanged = applyDamage(parts, hit).isBoss || bossChanged;
     rosterChanged = true;
   }
 
-  return { rosterChanged, playerDied };
+  return { rosterChanged, playerDied, bossChanged };
 }
 
-/** A round ends when its last wave has been sent and the field is clear. */
-function advanceRound(parts: FrameParts): boolean {
-  if (!parts.director.isDrained() || parts.enemies.count() > 0) {
-    return false;
+/**
+ * The end of a round, which is now two events rather than one.
+ *
+ * "Last wave sent and the field clear" used to mean the round was over. It now
+ * means the *waves* are over and the boss is due, and only the boss's death
+ * ends the round. Both are read from the director's phase rather than inferred
+ * from the field being empty, because the field is also empty on the frame
+ * between the last mob dying and the boss arriving.
+ */
+function advancePhase(parts: FrameParts) {
+  if (parts.director.phase() === 'boss') {
+    if (parts.boss.present()) {
+      return { roundAdvanced: false, bossChanged: false };
+    }
+
+    parts.director.nextRound();
+
+    return { roundAdvanced: true, bossChanged: true };
   }
 
-  parts.director.nextRound();
+  if (!parts.director.isDrained() || parts.enemies.count() > 0) {
+    return { roundAdvanced: false, bossChanged: false };
+  }
 
-  return true;
+  parts.director.beginBoss();
+  parts.boss.summon(parts.director.round());
+
+  return { roundAdvanced: false, bossChanged: true };
 }
 
 /** Everyone who is due to arrive, arrives. */
 function spawnDue(parts: FrameParts, elapsed: number): void {
   for (const spawn of parts.director.advance(elapsed)) {
-    parts.enemies.spawn(spawn.kind, spawn.path, spawn.entry);
+    parts.enemies.spawn(spawn);
   }
 }
 
@@ -130,9 +179,12 @@ function onePass(parts: FrameParts, elapsed: number): FrameResult {
     power: boosts.power.multiplier,
   });
 
+  const fromBoss = parts.boss.advance(elapsed, { power: boosts.power.multiplier });
+
   const fired = parts.bullets.add([
     ...parts.pilot.advance(elapsed),
     ...fromEnemies.shots,
+    ...fromBoss.shots,
   ]);
 
   const flew = parts.bullets.advance(elapsed);
@@ -143,15 +195,22 @@ function onePass(parts: FrameParts, elapsed: number): FrameResult {
   Engine.update(parts.engine, elapsed * 1000);
 
   const resolved = resolveHits(parts);
+  const phase = advancePhase(parts);
 
   return {
     rosterChanged: fired
       || flew
       || faded
       || fromEnemies.changed
-      || resolved.rosterChanged,
+      || resolved.rosterChanged
+      // The beam appearing and disappearing is a roster change: it is drawn
+      // from the roster like everything else on the field.
+      || fromBoss.changed
+      || phase.bossChanged
+      || resolved.bossChanged,
     playerDied: resolved.playerDied,
-    roundAdvanced: advanceRound(parts),
+    roundAdvanced: phase.roundAdvanced,
+    bossChanged: fromBoss.changed || resolved.bossChanged || phase.bossChanged,
   };
 }
 
@@ -170,6 +229,7 @@ export function stepFrame(parts: FrameParts, elapsed: number): FrameResult {
     rosterChanged: false,
     playerDied: false,
     roundAdvanced: false,
+    bossChanged: false,
   };
 
   for (let pass = 0; pass < COLLISION_PASSES; pass += 1) {
@@ -178,6 +238,7 @@ export function stepFrame(parts: FrameParts, elapsed: number): FrameResult {
     total.rosterChanged = total.rosterChanged || result.rosterChanged;
     total.playerDied = total.playerDied || result.playerDied;
     total.roundAdvanced = total.roundAdvanced || result.roundAdvanced;
+    total.bossChanged = total.bossChanged || result.bossChanged;
   }
 
   return total;

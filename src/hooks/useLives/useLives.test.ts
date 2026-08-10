@@ -18,6 +18,7 @@ function drivenWorld() {
     subscribeRoster: vi.fn(() => () => {}),
     subscribeCombat: vi.fn(() => () => {}),
     subscribeRound: vi.fn(() => () => {}),
+    subscribeBoss: vi.fn(() => () => {}),
     setPlayerDirection: vi.fn(),
     roll: vi.fn(),
     subscribeLives: vi.fn((onChange) => {

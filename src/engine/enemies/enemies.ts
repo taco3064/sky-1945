@@ -14,7 +14,7 @@ import type { Point } from '../field';
 import { shotsFor } from '../patterns';
 import type { BulletSpawn } from '../patterns';
 import { positionOn } from '../paths';
-import type { PathKind } from '../paths';
+import type { Edge, PathKind } from '../paths';
 
 /**
  * Every enemy on the field: how far along its path it is, when it fires, and
@@ -31,12 +31,30 @@ const CULL_MARGIN = 60;
 /** Down the screen, in the degrees `patterns` speaks. */
 const DOWNWARD = 90;
 
+/**
+ * One craft to put on the field.
+ *
+ * Defined here rather than by the director because this is the side that has to
+ * be able to fly it — the scheduler produces these, and a structurally identical
+ * type on that side would be the same contract written twice.
+ */
+export interface EnemySpec {
+  kind: EnemyKind;
+  /** Which shape it flies. */
+  path: PathKind;
+  /** Which edge it came in from, which sets its direction of travel. */
+  edge: Edge;
+  /** Where it entered, which its path measures from. */
+  entry: Point;
+}
+
 /** Per-enemy state the physics body has no place for. */
 interface Flight {
   kind: EnemyKind;
   /** Remaining hit points. Never leaves the engine — see EnemyStats.hp. */
   hp: number;
   path: PathKind;
+  edge: Edge;
   /** Where it came in, which its path measures from. */
   entry: Point;
   /** Distance covered along the path, in world units. */
@@ -81,8 +99,8 @@ export interface EnemyBoosts {
 }
 
 export interface EnemyField {
-  /** Put one on the field, entering at the point its path starts from. */
-  spawn: (kind: EnemyKind, path: PathKind, entry: Point) => void;
+  /** Put one on the field, entering where its edge and path say it starts. */
+  spawn: (spec: EnemySpec) => void;
   /**
    * Subtract hit points.
    *
@@ -175,7 +193,7 @@ export function createEnemyField(engine: Engine): EnemyField {
   };
 
   return {
-    spawn(kind, path, entry) {
+    spawn({ kind, path, edge, entry }) {
       const enemy = createEnemy(kind, entry.x, entry.y);
 
       live.set(enemy.id, enemy);
@@ -184,6 +202,7 @@ export function createEnemyField(engine: Engine): EnemyField {
         kind,
         hp: ENEMY_STATS[kind].hp,
         path,
+        edge,
         entry,
         travelled: 0,
         age: 0,
