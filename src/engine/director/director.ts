@@ -12,8 +12,14 @@ import type { PathKind } from '../paths';
  * small: "round 7 is harder" is a function of 7, not a seventh table.
  */
 
-/** Seconds between one wave and the next. */
-const WAVE_GAP = 5.5;
+/**
+ * Seconds between one wave and the next.
+ *
+ * Halved from 5.5 along with a doubling of the counts below: a round used to
+ * hand the player one clump at a time with room to breathe between them, which
+ * read as a queue rather than as pressure. Two waves now overlap on the field.
+ */
+const WAVE_GAP = 2.75;
 
 /**
  * The shape of a round, in order.
@@ -25,13 +31,27 @@ const WAVE_GAP = 5.5;
  */
 const WAVE_KINDS: EnemyKind[] = ['small', 'small', 'medium', 'large'];
 
-/** Concurrency ceilings, from the DOM-node cost of each silhouette. */
-const MAX_PER_WAVE: Record<EnemyKind, number> = { small: 8, medium: 4, large: 2 };
+/**
+ * Concurrency ceilings, from the DOM-node cost of each silhouette.
+ *
+ * Doubled with the counts. At the ceiling this is 16 small craft at three
+ * elements each, eight medium at five, and four heavies at six — around 130
+ * elements of aircraft before a single bullet, where the old ceiling was 62.
+ * #11 is where that gets measured on a phone; the numbers are a play decision
+ * and the measurement is a separate one.
+ */
+const MAX_PER_WAVE: Record<EnemyKind, number> = { small: 16, medium: 8, large: 4 };
 
-/** How many of a kind arrive in a given round. */
+/**
+ * How many of a kind arrive in a given round.
+ *
+ * Doubled throughout — base, growth and ceiling — so the shape of the curve is
+ * unchanged and only its scale moved. Halving `WAVE_GAP` at the same time is
+ * what makes it read as density rather than as a longer round.
+ */
 function countFor(kind: EnemyKind, round: number): number {
-  const base = { small: 4, medium: 2, large: 1 }[kind];
-  const growth = Math.floor((round - 1) / 2);
+  const base = { small: 8, medium: 4, large: 2 }[kind];
+  const growth = Math.floor((round - 1) / 2) * 2;
 
   return Math.min(base + growth, MAX_PER_WAVE[kind]);
 }

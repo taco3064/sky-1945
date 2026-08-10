@@ -38,7 +38,7 @@ describe('wavesForRound · the shape of a round', () => {
   it('stops growing at the concurrency ceiling for each kind', () => {
     const ceiling = wavesForRound(99);
 
-    expect(ceiling.map((wave) => wave.count)).toEqual([8, 8, 4, 2]);
+    expect(ceiling.map((wave) => wave.count)).toEqual([16, 16, 8, 4]);
   });
 
   it('never sends an empty wave', () => {
