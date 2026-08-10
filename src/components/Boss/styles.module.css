@@ -129,15 +129,26 @@
   box-shadow: 0 0 10px var(--energy);
 }
 
-/* The beam's aperture, at the nose. Dark until it is charging. */
+/*
+ * The beam's aperture, at the nose.
+ *
+ * `bottom` rather than `top`, and that is not a style choice. The craft is drawn
+ * nose-*up* and the engine publishes a 180° angle on every enemy body, so the
+ * whole mount is rotated: anything placed at the CSS bottom appears at the top of
+ * the screen, and vice versa. The nose is at `top: 0` in this file, which is the
+ * bottom of the screen once rotated — which is where it points at the player.
+ *
+ * It shipped at `top: 92%`, the tail, and so the aperture glowed out of the back
+ * of the boss.
+ */
 .muzzle {
-  top: 92%;
+  top: -2%;
   left: 44%;
   width: 12%;
   height: 8%;
   background: #120810;
-  border-radius: 0 0 50% 50%;
-  box-shadow: inset 0 2px 4px #000;
+  border-radius: 50% 50% 0 0;
+  box-shadow: inset 0 -2px 4px #000;
 }
 
 /* ------------------------------------------------------------------- tells */
@@ -188,11 +199,19 @@
  * that recognition is what makes the roll a decision rather than a reflex.
  */
 .charge {
-  top: 96%;
+  /*
+   * Hangs off the nose, which is the top of this file and the bottom of the
+   * screen — see `.muzzle`. Placed at `top: 96%` it charged up out of the boss's
+   * back, pointing at nothing.
+   */
+  bottom: 100%;
   left: 50%;
   width: 2px;
   height: 900px;
-  background: linear-gradient(180deg, var(--energy-hot) 0%, rgb(192 125 255 / 10%) 100%);
+
+  /* Bright at the nose, fading away down the column: the gradient runs with the
+     rotation, so it is written from the far end back. */
+  background: linear-gradient(180deg, rgb(192 125 255 / 10%) 0%, var(--energy-hot) 100%);
   opacity: 0;
   transform: translateX(-50%);
 }
