@@ -597,3 +597,79 @@ describe('createWorld · a fresh aircraft does not inherit the last one', () => 
   });
 });
 
+describe('createWorld · a new subscriber is placed immediately', () => {
+  /*
+   * The transform channel used to be push-only, so anything that mounted between
+   * two frames was drawn at the field's origin until the next one arrived.
+   *
+   * Invisible for a bullet — 16ms at 6×10 units. Not invisible for the boss's
+   * beam, which is 88×1000: the whole column flashed at the top-left corner
+   * before snapping under the boss, and if the run ended on that frame it simply
+   * stayed there. Reported from play as "the beam looks wrong".
+   */
+  it('tells a fresh subscriber where the entity already is', () => {
+    world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
+    world.start();
+    runFrames(400);
+
+    const onFrame = vi.fn();
+
+    world.subscribe(world.playerId, onFrame);
+
+    expect(onFrame).toHaveBeenCalledTimes(1);
+
+    expect(onFrame.mock.calls[0][0]).toMatchObject({
+      x: expect.any(Number),
+      y: expect.any(Number),
+    });
+  });
+
+  it('places every enemy on the field, not just the player', () => {
+    world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
+    world.start();
+    runFrames(400);
+
+    let roster: EntityRecord[] = [];
+
+    world.subscribeRoster((entities) => {
+      roster = entities;
+    });
+
+    const enemy = roster.find(({ kind }) => kind.startsWith('enemy-'));
+    const onFrame = vi.fn();
+
+    world.subscribe(enemy?.id as number, onFrame);
+
+    expect(onFrame).toHaveBeenCalledTimes(1);
+  });
+
+  // Nothing to say about an id that is not on the field — a burst that has faded,
+  // or a bullet removed on the frame its component mounted.
+  it('says nothing about an entity that is gone', () => {
+    world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
+    world.start();
+    runFrames(400);
+
+    const onFrame = vi.fn();
+
+    world.subscribe(999_999, onFrame);
+
+    expect(onFrame).not.toHaveBeenCalled();
+  });
+
+  it('holds nothing once disposed', () => {
+    world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
+    world.start();
+    runFrames(400);
+
+    const id = world.playerId;
+
+    world.dispose();
+
+    const onFrame = vi.fn();
+
+    world.subscribe(id, onFrame);
+
+    expect(onFrame).not.toHaveBeenCalled();
+  });
+});

@@ -192,8 +192,20 @@ function rosterOf(parts: FrameParts): EntityRecord[] {
  */
 type FrameChannel = KeyedChannel<EntityId, Transform>;
 
-function publishFrames(parts: FrameParts, frames: FrameChannel): void {
-  frames.send(parts.pilot.id, transformOf(parts.pilot.body));
+/** Every live position as of the last frame, so a new subscriber can be told. */
+type Latest = Map<EntityId, Transform>;
+
+function publishFrames(parts: FrameParts, frames: FrameChannel, latest: Latest): void {
+  // Rebuilt from scratch each frame, so it holds exactly what is alive — a map
+  // that only grew would keep every bullet ever fired.
+  latest.clear();
+
+  const at = (id: EntityId, transform: Transform): void => {
+    latest.set(id, transform);
+    frames.send(id, transform);
+  };
+
+  at(parts.pilot.id, transformOf(parts.pilot.body));
 
   const moving = [
     ...parts.bullets.bodies(),
@@ -202,14 +214,43 @@ function publishFrames(parts: FrameParts, frames: FrameChannel): void {
   ];
 
   for (const body of moving) {
-    frames.send(body.id, transformOf(body));
+    at(body.id, transformOf(body));
   }
 
   // Bursts do not move, but a subscriber mounting after one began still has to
   // hear a position from somewhere.
   for (const { id, x, y } of parts.effects.placements()) {
-    frames.send(id, { x, y, angle: 0 });
+    at(id, { x, y, angle: 0 });
   }
+}
+
+/**
+ * Subscribe to a transform and deliver the last one known straight away.
+ *
+ * The transform channel is push-only, and for most of the game that is
+ * invisible: a bullet mounts, waits 16ms, and is placed. It stopped being
+ * invisible with the boss's beam, which is 88×1000 units — for one frame the
+ * whole column sat at the field's origin instead of under the boss, and if the
+ * run ended on that frame it stayed there. Reported from play as "the beam looks
+ * wrong".
+ *
+ * Every other channel already opened with its current value (`openWith` below).
+ * This is that same fix for the one channel that did not, and it is why
+ * `publishFrames` now runs *after* the simulation step rather than before it —
+ * the position has to be recorded before the roster that mounts its component
+ * goes out.
+ */
+function openTransform(frames: FrameChannel, latest: Latest) {
+  return (id: EntityId, onFrame: FrameListener) => {
+    const stop = frames.subscribe(id, onFrame);
+    const known = latest.get(id);
+
+    if (known) {
+      onFrame(known);
+    }
+
+    return stop;
+  };
 }
 
 function transformOf(body: Body): Transform {
@@ -249,6 +290,7 @@ export function createWorld(options: WorldOptions): World {
   };
 
   const loop = { frame: null as number | null, previous: 0 };
+  const latest: Latest = new Map();
 
   let wasRolling = false;
   let lives = STARTING_LIVES;
@@ -311,8 +353,14 @@ export function createWorld(options: WorldOptions): World {
     const elapsed = clamp((now - loop.previous) / 1000, 0, MAX_STEP_SECONDS);
 
     loop.previous = now;
-    publishFrames(parts, channels.frames);
-    publish(stepFrame(parts, elapsed));
+
+    // Simulate, then record where everything ended up, then announce what
+    // changed. In that order: a component mounted by the roster below has to be
+    // able to ask for a position that already exists.
+    const result = stepFrame(parts, elapsed);
+
+    publishFrames(parts, channels.frames, latest);
+    publish(result);
 
     loop.frame = requestAnimationFrame(step);
   };
@@ -344,6 +392,8 @@ export function createWorld(options: WorldOptions): World {
       parts.boss.clear();
       parts.effects.clear();
 
+      latest.clear();
+
       for (const channel of Object.values(channels)) {
         channel.clear();
       }
@@ -351,7 +401,7 @@ export function createWorld(options: WorldOptions): World {
       Engine.clear(engine);
     },
 
-    subscribe: (id, onFrame) => channels.frames.subscribe(id, onFrame),
+    subscribe: openTransform(channels.frames, latest),
 
     subscribeRoster: openWith(channels.roster, () => rosterOf(parts)),
 
