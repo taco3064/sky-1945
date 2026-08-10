@@ -106,13 +106,17 @@ describe('stepFrame · a quiet frame', () => {
     const parts = stubParts([], {
       director: {
         ...stubParts().director,
-        advance: vi.fn(() => [{ kind: 'small' as const, x: 100 }]),
+        advance: vi.fn(() => [{
+          kind: 'small' as const,
+          path: 'dive' as const,
+          entry: { x: 100, y: -40 },
+        }]),
       },
     });
 
     stepFrame(parts, 1 / 60);
 
-    expect(parts.enemies.spawn).toHaveBeenCalledWith('small', 100);
+    expect(parts.enemies.spawn).toHaveBeenCalledWith('small', 'dive', { x: 100, y: -40 });
   });
 });
 

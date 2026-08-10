@@ -177,14 +177,16 @@ export interface EnemyStats {
   fireInterval: number;
   /** Which trajectory its fire takes. */
   pattern: PatternKind;
-  /** How far it drifts sideways, in world units. Zero flies straight. */
-  sway: number;
-  /** Sway cycles per second. */
-  swayRate: number;
 }
 
 /**
  * The three silhouettes, and what each one is for.
+ *
+ * Stats and trajectory are orthogonal: a kind decides how much it takes to
+ * kill, how fast it goes, what it fires and how hard. *Where* it flies is a
+ * path (`../paths`), assigned per wave — so any kind can arrive on any path.
+ * `sway` and `swayRate` used to live here, which was one path wearing an
+ * entity's clothes.
  *
  * Unlike the player, an enemy's hit circle nearly matches its drawing —
  * roughly a third of the sprite's width. The asymmetry is deliberate and is
@@ -203,8 +205,6 @@ export const ENEMY_STATS: Record<EnemyKind, EnemyStats> = {
     damage: 8,
     fireInterval: 1.1,
     pattern: 'straight',
-    sway: 0,
-    swayRate: 0,
   },
   medium: {
     hp: 60,
@@ -213,8 +213,6 @@ export const ENEMY_STATS: Record<EnemyKind, EnemyStats> = {
     damage: 10,
     fireInterval: 1.6,
     pattern: 'spread',
-    sway: 70,
-    swayRate: 0.35,
   },
   large: {
     hp: 160,
@@ -223,8 +221,6 @@ export const ENEMY_STATS: Record<EnemyKind, EnemyStats> = {
     damage: 12,
     fireInterval: 2.2,
     pattern: 'radial',
-    sway: 0,
-    swayRate: 0,
   },
 };
 

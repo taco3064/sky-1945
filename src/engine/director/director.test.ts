@@ -78,7 +78,7 @@ describe('createDirector · sending waves', () => {
 
   it('spreads a wave across the field, clear of both edges', () => {
     const director = createDirector();
-    const xs = director.advance(0).map((spawn) => spawn.x);
+    const xs = director.advance(0).map((spawn) => spawn.entry.x);
 
     expect(Math.min(...xs)).toBeGreaterThan(0);
     expect(Math.max(...xs)).toBeLessThan(FIELD_WIDTH);

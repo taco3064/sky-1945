@@ -10,18 +10,22 @@ import {
 } from '../entities';
 import type { EnemyKind } from '../entities';
 import { isOutside } from '../field';
+import type { Point } from '../field';
 import { shotsFor } from '../patterns';
 import type { BulletSpawn } from '../patterns';
+import { positionOn } from '../paths';
+import type { PathKind } from '../paths';
 
 /**
- * Every enemy on the field: how it moves, when it fires, and when it is gone.
+ * Every enemy on the field: how far along its path it is, when it fires, and
+ * when it is gone.
  *
- * Enemies cannot be killed yet — nothing collides with anything until #6.
- * They fly in, shoot, and leave through the bottom edge, which is enough to
- * judge wave rhythm and the difficulty curve on screen.
+ * Where a craft flies is not this module's business — it hands its entry point,
+ * distance covered and age to `../paths` and puts the body wherever that says.
+ * That split is what lets any silhouette arrive on any trajectory.
  */
 
-/** Enemies drift this far below the field before being culled. */
+/** Enemies drift this far outside the field before being culled. */
 const CULL_MARGIN = 60;
 
 /** Down the screen, in the degrees `patterns` speaks. */
@@ -32,9 +36,12 @@ interface Flight {
   kind: EnemyKind;
   /** Remaining hit points. Never leaves the engine — see EnemyStats.hp. */
   hp: number;
-  /** Where it entered, which its sway oscillates around. */
-  originX: number;
-  /** Seconds since it appeared — drives both sway and cadence. */
+  path: PathKind;
+  /** Where it came in, which its path measures from. */
+  entry: Point;
+  /** Distance covered along the path, in world units. */
+  travelled: number;
+  /** Seconds since it entered — what an oscillating path is a function of. */
   age: number;
   sinceShot: number;
 }
@@ -56,12 +63,6 @@ interface Step {
   shots: BulletSpawn[];
 }
 
-/** A point on the field. */
-interface Vector {
-  x: number;
-  y: number;
-}
-
 /** Nothing happened: still on the field, nothing fired. */
 const IDLE: Step = { gone: false, shots: [] };
 
@@ -80,8 +81,8 @@ export interface EnemyBoosts {
 }
 
 export interface EnemyField {
-  /** Put one on the field, entering above the top edge. */
-  spawn: (kind: EnemyKind, x: number) => void;
+  /** Put one on the field, entering at the point its path starts from. */
+  spawn: (kind: EnemyKind, path: PathKind, entry: Point) => void;
   /**
    * Subtract hit points.
    *
@@ -90,7 +91,7 @@ export interface EnemyField {
    * id is null too: a bullet can reach an enemy that left the field on the same
    * frame.
    */
-  damage: (id: number, amount: number) => Vector | null;
+  damage: (id: number, amount: number) => Point | null;
   /** Move everyone, fire what is due, cull what has left. */
   advance: (elapsed: number, boosts: EnemyBoosts) => EnemyAdvance;
   /** Live bodies, for publishing transforms. */
@@ -101,16 +102,6 @@ export interface EnemyField {
   count: () => number;
   /** Forget everyone. */
   clear: () => void;
-}
-
-function positionFor(flight: Flight, body: Body, distance: number): Vector {
-  const stats = ENEMY_STATS[flight.kind];
-
-  const offset = stats.sway === 0
-    ? 0
-    : Math.sin(flight.age * stats.swayRate * Math.PI * 2) * stats.sway;
-
-  return { x: flight.originX + offset, y: body.position.y + distance };
 }
 
 /**
@@ -138,16 +129,15 @@ export function createEnemyField(engine: Engine): EnemyField {
   const live = new Map<number, Body>();
   const flights = new Map<number, Flight>();
 
-  /** Sway is a function of age, so an enemy never drifts off course. */
-  /** One enemy, one frame: move, decide whether it is gone, fire if due. */
+  /** One enemy, one frame: move along its path, cull if gone, fire if due. */
   const advanceOne = (body: Body, tick: Tick): Step => {
     const flight = flights.get(body.id) as Flight;
     const stats = ENEMY_STATS[flight.kind];
-    const travel = stats.speed * tick.boosts.speed * tick.elapsed;
 
     flight.age += tick.elapsed;
+    flight.travelled += stats.speed * tick.boosts.speed * tick.elapsed;
 
-    const next = positionFor(flight, body, travel);
+    const next = positionOn(flight.path, flight);
 
     if (isOutside(next.x, next.y, CULL_MARGIN)) {
       return { gone: true, shots: [] };
@@ -156,7 +146,7 @@ export function createEnemyField(engine: Engine): EnemyField {
     Body.setPosition(body, next);
 
     // The cadence starts when the enemy reaches the field, not when it spawns
-    // above it — otherwise its first volley is already part-way charged on
+    // outside it — otherwise its first volley is already part-way charged on
     // arrival, and a bullet can appear from a craft nobody has seen yet.
     if (next.y <= 0) {
       return IDLE;
@@ -185,15 +175,17 @@ export function createEnemyField(engine: Engine): EnemyField {
   };
 
   return {
-    spawn(kind, x) {
-      const enemy = createEnemy(kind, x, -ENEMY_STATS[kind].radius);
+    spawn(kind, path, entry) {
+      const enemy = createEnemy(kind, entry.x, entry.y);
 
       live.set(enemy.id, enemy);
 
       flights.set(enemy.id, {
         kind,
         hp: ENEMY_STATS[kind].hp,
-        originX: x,
+        path,
+        entry,
+        travelled: 0,
         age: 0,
         sinceShot: 0,
       });
@@ -252,6 +244,10 @@ export function createEnemyField(engine: Engine): EnemyField {
     count: () => live.size,
 
     clear() {
+      for (const body of live.values()) {
+        Composite.remove(engine.world, body);
+      }
+
       live.clear();
       flights.clear();
     },

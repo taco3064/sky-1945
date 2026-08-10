@@ -1,5 +1,7 @@
 import type { EnemyKind } from '../entities';
-import { FIELD_WIDTH } from '../field';
+import type { Point } from '../field';
+import { entryFor, pathFor } from '../paths';
+import type { PathKind } from '../paths';
 
 /**
  * What arrives, and when.
@@ -34,17 +36,24 @@ function countFor(kind: EnemyKind, round: number): number {
   return Math.min(base + growth, MAX_PER_WAVE[kind]);
 }
 
-/** Spread a wave evenly across the field, clear of both edges. */
-function entryPoints(count: number): number[] {
-  const step = FIELD_WIDTH / (count + 1);
+/**
+ * Lanes for a wave, evenly spread and clear of both ends.
+ *
+ * A lane is 0–1 and the path decides what it means — so the director never has
+ * to know the coordinate system, or which paths come in from a side at all.
+ */
+function lanes(count: number): number[] {
+  const step = 1 / (count + 1);
 
   return Array.from({ length: count }, (_unused, index) => step * (index + 1));
 }
 
 export interface Spawn {
   kind: EnemyKind;
-  /** Where it enters, in world units. */
-  x: number;
+  /** Which trajectory it flies. One per wave, so a wave reads as one intent. */
+  path: PathKind;
+  /** Where it comes in, decided by the path from its lane. */
+  entry: Point;
 }
 
 export interface Wave {
@@ -88,8 +97,14 @@ export function createDirector(): Director {
 
       while (sent < waves.length && waves[sent].at <= clock) {
         const wave = waves[sent];
+        const path = pathFor(round, sent);
 
-        due.push(...entryPoints(wave.count).map((x): Spawn => ({ kind: wave.kind, x })));
+        due.push(...lanes(wave.count).map((lane): Spawn => ({
+          kind: wave.kind,
+          path,
+          entry: entryFor(path, lane),
+        })));
+
         sent += 1;
       }
 

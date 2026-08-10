@@ -27,19 +27,19 @@ function run(seconds: number, boosts = EVEN): void {
 
 describe('enemies · arriving', () => {
   it('enters above the top edge, so it flies in rather than appearing', () => {
-    field.spawn('small', 200);
+    field.spawn('small', 'dive', { x: 200, y: -40 });
 
     expect(field.bodies()[0].position.y).toBeLessThan(0);
   });
 
   it('is on the physics world, ready for #6 to collide with', () => {
-    field.spawn('medium', 200);
+    field.spawn('medium', 'dive', { x: 200, y: -40 });
 
     expect(engine.world.bodies).toHaveLength(1);
   });
 
   it('reports its kind, so the roster knows which silhouette to draw', () => {
-    field.spawn('large', 100);
+    field.spawn('large', 'dive', { x: 100, y: -40 });
 
     expect(field.records()).toEqual([{ id: field.bodies()[0].id, kind: 'large' }]);
   });
@@ -47,7 +47,7 @@ describe('enemies · arriving', () => {
 
 describe('enemies · movement', () => {
   it('flies down the field', () => {
-    field.spawn('small', 200);
+    field.spawn('small', 'dive', { x: 200, y: -40 });
 
     const before = field.bodies()[0].position.y;
 
@@ -56,33 +56,37 @@ describe('enemies · movement', () => {
     expect(field.bodies()[0].position.y).toBeGreaterThan(before);
   });
 
-  it('flies straight when its kind has no sway', () => {
-    field.spawn('small', 200);
+  it('flies straight on a dive', () => {
+    field.spawn('small', 'dive', { x: 200, y: -40 });
     run(1);
 
     expect(field.bodies()[0].position.x).toBe(200);
   });
 
-  // Sway is a function of age rather than an accumulation, so a swaying enemy
-  // oscillates around where it entered instead of drifting off course.
-  it('sways around its entry point when its kind does', () => {
-    field.spawn('medium', 200);
+  // Trajectory belongs to the path now, not to the kind — so the same
+  // silhouette flies straight or weaves depending only on what it was given.
+  it('follows the path it was given, not its kind', () => {
+    field.spawn('medium', 'weave', { x: 200, y: -40 });
     run(1);
 
-    const swung = field.bodies()[0].position.x;
+    expect(field.bodies()[0].position.x).not.toBe(200);
+  });
 
-    expect(swung).not.toBe(200);
-    expect(Math.abs(swung - 200)).toBeLessThanOrEqual(ENEMY_STATS.medium.sway);
+  it('flies any kind on any path', () => {
+    field.spawn('large', 'weave', { x: 200, y: -40 });
+    run(1);
+
+    expect(field.bodies()[0].position.x).not.toBe(200);
   });
 
   it('goes faster when the round says so', () => {
-    field.spawn('small', 100);
+    field.spawn('small', 'dive', { x: 100, y: -40 });
     run(0.5);
 
     const even = field.bodies()[0].position.y;
 
     field.clear();
-    field.spawn('small', 100);
+    field.spawn('small', 'dive', { x: 100, y: -40 });
     run(0.5, { speed: 3, power: 1 });
 
     expect(field.bodies()[0].position.y).toBeGreaterThan(even * 2);
@@ -91,7 +95,7 @@ describe('enemies · movement', () => {
 
 describe('enemies · leaving', () => {
   it('is culled once it passes the bottom edge', () => {
-    field.spawn('small', 200);
+    field.spawn('small', 'dive', { x: 200, y: -40 });
 
     let changed = false;
 
@@ -104,7 +108,7 @@ describe('enemies · leaving', () => {
   });
 
   it('takes its body out of the physics world with it', () => {
-    field.spawn('small', 200);
+    field.spawn('small', 'dive', { x: 200, y: -40 });
 
     for (let tick = 0; tick < 60 * 12; tick += 1) {
       field.advance(1 / 60, EVEN);
@@ -114,7 +118,7 @@ describe('enemies · leaving', () => {
   });
 
   it('reports no change on a frame where nobody left', () => {
-    field.spawn('small', 200);
+    field.spawn('small', 'dive', { x: 200, y: -40 });
 
     expect(field.advance(1 / 60, EVEN).changed).toBe(false);
   });
@@ -124,7 +128,7 @@ describe('enemies · firing', () => {
   // The cadence starts on arrival, so a craft cannot show up with its first
   // volley already charged.
   it('does not charge its cadence while still above the field', () => {
-    field.spawn('small', 200);
+    field.spawn('small', 'dive', { x: 200, y: -40 });
 
     // Long enough to have earned a shot, if it had been counting.
     field.advance(ENEMY_STATS.small.fireInterval, EVEN);
@@ -134,7 +138,7 @@ describe('enemies · firing', () => {
   });
 
   it('fires once it is on the field and the interval has passed', () => {
-    field.spawn('small', 200);
+    field.spawn('small', 'dive', { x: 200, y: -40 });
     run(1);
 
     let fired = 0;
@@ -147,7 +151,7 @@ describe('enemies · firing', () => {
   });
 
   it('fires the pattern its kind carries', () => {
-    field.spawn('large', 200);
+    field.spawn('large', 'dive', { x: 200, y: -40 });
     run(2);
 
     let volley: number[] = [];
@@ -162,7 +166,7 @@ describe('enemies · firing', () => {
   });
 
   it('hits harder when the round says so', () => {
-    field.spawn('small', 200);
+    field.spawn('small', 'dive', { x: 200, y: -40 });
     run(1);
 
     const collect = (power: number): number => {
@@ -181,7 +185,7 @@ describe('enemies · firing', () => {
   });
 
   it('aims its fire down the screen', () => {
-    field.spawn('small', 200);
+    field.spawn('small', 'dive', { x: 200, y: -40 });
     run(1);
 
     for (let tick = 0; tick < 60 * 3; tick += 1) {
@@ -199,8 +203,8 @@ describe('enemies · firing', () => {
 
 describe('enemies · clear', () => {
   it('forgets everyone', () => {
-    field.spawn('small', 100);
-    field.spawn('large', 300);
+    field.spawn('small', 'dive', { x: 100, y: -40 });
+    field.spawn('large', 'dive', { x: 300, y: -40 });
     field.clear();
 
     expect(field.count()).toBe(0);
@@ -210,7 +214,7 @@ describe('enemies · clear', () => {
 
 describe('enemies · the field stays inside its bounds', () => {
   it('never carries an enemy past the bottom without culling it', () => {
-    field.spawn('large', 270);
+    field.spawn('large', 'dive', { x: 270, y: -40 });
 
     for (let tick = 0; tick < 60 * 30; tick += 1) {
       field.advance(1 / 60, EVEN);
@@ -224,7 +228,7 @@ describe('enemies · the field stays inside its bounds', () => {
 
 describe('enemies · taking damage', () => {
   it('survives a hit that does not finish it', () => {
-    field.spawn('large', 200);
+    field.spawn('large', 'dive', { x: 200, y: -40 });
 
     const [enemy] = field.bodies();
 
@@ -233,7 +237,7 @@ describe('enemies · taking damage', () => {
   });
 
   it('reports where the wreck was when the hit kills it', () => {
-    field.spawn('small', 200);
+    field.spawn('small', 'dive', { x: 200, y: -40 });
 
     const [enemy] = field.bodies();
     const wreck = field.damage(enemy.id, ENEMY_STATS.small.hp);
@@ -243,7 +247,7 @@ describe('enemies · taking damage', () => {
   });
 
   it('takes the body out of the physics world with it', () => {
-    field.spawn('small', 200);
+    field.spawn('small', 'dive', { x: 200, y: -40 });
     field.damage(field.bodies()[0].id, 999);
 
     expect(engine.world.bodies).toHaveLength(0);
@@ -255,7 +259,7 @@ describe('enemies · taking damage', () => {
   });
 
   it('accumulates damage across hits', () => {
-    field.spawn('medium', 200);
+    field.spawn('medium', 'dive', { x: 200, y: -40 });
 
     const id = field.bodies()[0].id;
     const half = ENEMY_STATS.medium.hp / 2;
@@ -268,7 +272,7 @@ describe('enemies · taking damage', () => {
 describe('enemies · fire keeps up with the round', () => {
   /** Collect the first volley an enemy of this kind fires under these boosts. */
   function firstVolley(kind: 'small' | 'medium' | 'large', speed: number) {
-    field.spawn(kind, 200);
+    field.spawn(kind, 'dive', { x: 200, y: -40 });
 
     for (let tick = 0; tick < 60 * 20; tick += 1) {
       const { shots } = field.advance(1 / 60, { speed, power: 1 });
@@ -303,7 +307,7 @@ describe('enemies · fire keeps up with the round', () => {
   it('fires as many times on a fast pass as on a slow one', () => {
     const passes = (speed: number): number => {
       field.clear();
-      field.spawn('small', 200);
+      field.spawn('small', 'dive', { x: 200, y: -40 });
 
       let volleys = 0;
 
