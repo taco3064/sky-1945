@@ -44,13 +44,32 @@
   touch-action: none;
 }
 
+/*
+ * The HUD's frame: exactly where the field is drawn, but unscaled.
+ *
+ * Corner-anchored readouts belong to the *field's* corners, not the viewport's
+ * — the viewport is full width, so on a desktop the lives counter ended up
+ * against the browser edge with a wide black gap between it and the play area.
+ * Sizing this from --stage-scale puts it over the field; keeping the contents
+ * outside `.field` stops them shrinking with it.
+ */
+.hud {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  width: calc(540px * var(--stage-scale, 1));
+  height: calc(960px * var(--stage-scale, 1));
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
 /* Top-left: three aircraft read as "three left" faster than a numeral does,
    and the HUD has to be legible without being looked at. */
 .lives {
   position: absolute;
   top: 0.85rem;
   left: 0.85rem;
-  z-index: 2;
   display: flex;
   gap: 0.3rem;
   pointer-events: none;
@@ -61,7 +80,6 @@
   position: absolute;
   top: 0.9rem;
   left: 50%;
-  z-index: 2;
   margin: 0;
   font-size: 0.65rem;
   letter-spacing: 0.24em;
@@ -74,7 +92,9 @@
   position: absolute;
   top: 0.75rem;
   right: 0.75rem;
-  z-index: 2;
+
+  /* The one thing in the HUD that is touchable. */
+  pointer-events: auto;
   display: grid;
   place-items: center;
   width: 2.25rem;

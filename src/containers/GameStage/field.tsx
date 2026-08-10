@@ -105,28 +105,30 @@ export function Field({ world, phase, onPause, onQuit, onGameOver }: FieldProps)
           {entities.map((entity) => draw(entity, combat))}
         </div>
 
-        <div className={styles.lives}>
-          {Array.from({ length: lives }, (_unused, index) => <LifeIcon key={index} />)}
-        </div>
+        <div className={styles.hud}>
+          <div className={styles.lives}>
+            {Array.from({ length: lives }, (_unused, index) => <LifeIcon key={index} />)}
+          </div>
 
-        <p className={styles.round}>{`ROUND ${round}`}</p>
+          <p className={styles.round}>{`ROUND ${round}`}</p>
+
+          {phase !== 'gameover' && (
+            <button
+              type="button"
+              className={styles.pause}
+              aria-label={phase === 'paused' ? 'Resume' : 'Pause'}
+              onClick={onPause}
+            >
+              {phase === 'paused' ? '▶' : '❚❚'}
+            </button>
+          )}
+        </div>
 
         {/* Above the field so it catches every touch, including the margins
             a wide screen leaves either side of the play area. */}
         <div ref={surface} className={styles.surface} />
 
         <TouchStick ref={stick} />
-
-        {phase !== 'gameover' && (
-          <button
-            type="button"
-            className={styles.pause}
-            aria-label={phase === 'paused' ? 'Resume' : 'Pause'}
-            onClick={onPause}
-          >
-            {phase === 'paused' ? '▶' : '❚❚'}
-          </button>
-        )}
 
         {phase === 'paused' && (
           <div className={styles.overlay}>
