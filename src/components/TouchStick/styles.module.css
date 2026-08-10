@@ -1,0 +1,46 @@
+/*
+ * Positioned in screen pixels, not world units: it belongs to the hand, not
+ * to the field, so it must not scale with the stage.
+ *
+ * Every value comes from a custom property the input hook writes. Defaults
+ * here keep it parked and invisible before the first touch.
+ */
+
+.stick {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 112px;
+  height: 112px;
+  margin-top: -56px;
+  margin-left: -56px;
+  border: 1.5px solid rgb(110 231 255 / 35%);
+  border-radius: 50%;
+  opacity: 0;
+  transform: translate3d(var(--stick-x, -200px), var(--stick-y, -200px), 0);
+
+  /* The stick is a picture of the gesture, never a target for it — taps must
+     reach the surface underneath. */
+  pointer-events: none;
+
+  transition: opacity 120ms ease-out;
+}
+
+.knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  margin-top: -22px;
+  margin-left: -22px;
+  background: rgb(110 231 255 / 65%);
+  border-radius: 50%;
+  transform: translate3d(var(--knob-x, 0), var(--knob-y, 0), 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stick {
+    transition: none;
+  }
+}

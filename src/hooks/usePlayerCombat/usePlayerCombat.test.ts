@@ -1,0 +1,77 @@
+import { act, renderHook } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+
+import { usePlayerCombat } from './usePlayerCombat';
+import type { CombatListener, CombatSnapshot, World } from '~app/engine/world';
+
+function stubWorld() {
+  const watchers = new Set<CombatListener>();
+
+  const world: World = {
+    playerId: 1,
+    start: vi.fn(),
+    pause: vi.fn(),
+    dispose: vi.fn(),
+    subscribe: vi.fn(() => () => {}),
+    subscribeRoster: vi.fn(() => () => {}),
+    setPlayerDirection: vi.fn(),
+    roll: vi.fn(),
+    subscribeCombat: vi.fn((onChange) => {
+      watchers.add(onChange);
+
+      return () => {
+        watchers.delete(onChange);
+      };
+    }),
+  };
+
+  const send = (snapshot: CombatSnapshot): void => {
+    act(() => {
+      for (const onChange of watchers) {
+        onChange(snapshot);
+      }
+    });
+  };
+
+  return { world, send, watcherCount: () => watchers.size };
+}
+
+describe('usePlayerCombat', () => {
+  it('starts idle', () => {
+    const { world } = stubWorld();
+    const { result } = renderHook(() => usePlayerCombat(world));
+
+    expect(result.current).toEqual({ rolling: false, invulnerable: false });
+  });
+
+  it('reports a roll starting and ending', () => {
+    const { world, send } = stubWorld();
+    const { result } = renderHook(() => usePlayerCombat(world));
+
+    send({ rolling: true, invulnerable: true });
+    expect(result.current.rolling).toBe(true);
+
+    send({ rolling: false, invulnerable: false });
+    expect(result.current.rolling).toBe(false);
+  });
+
+  // The two fields are separate because the roll can end while protection
+  // continues — respawn (#6) writes the same invulnerability.
+  it('can be protected without rolling', () => {
+    const { world, send } = stubWorld();
+    const { result } = renderHook(() => usePlayerCombat(world));
+
+    send({ rolling: false, invulnerable: true });
+
+    expect(result.current).toEqual({ rolling: false, invulnerable: true });
+  });
+
+  it('unsubscribes on unmount', () => {
+    const { world, watcherCount } = stubWorld();
+    const { unmount } = renderHook(() => usePlayerCombat(world));
+
+    unmount();
+
+    expect(watcherCount()).toBe(0);
+  });
+});

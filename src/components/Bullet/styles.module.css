@@ -1,0 +1,27 @@
+/*
+ * 8 × 18 world units, centred on the engine's coordinate.
+ *
+ * No `will-change` here, unlike the Fighter: promoting 150 of these to their
+ * own compositor layers is the exact cost #11 goes to a real device to
+ * measure. One aircraft can have a layer; a bullet swarm has to earn it.
+ */
+
+.bullet {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 18px;
+  margin-top: -9px;
+  margin-left: -4px;
+  background: linear-gradient(180deg, #eafcff 0%, #6ee7ff 45%, rgb(77 163 255 / 0%) 100%);
+  border-radius: 50% 50% 40% 40%;
+}
+
+/* The glow, as a pseudo element — paint cost, but no extra node in a swarm. */
+.bullet::after {
+  content: "";
+  position: absolute;
+  inset: -3px -4px;
+  background: radial-gradient(ellipse at 50% 35%, rgb(110 231 255 / 55%), transparent 70%);
+}

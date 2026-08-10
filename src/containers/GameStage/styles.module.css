@@ -32,3 +32,49 @@
   transform-origin: 0 0;
   transform: scale(var(--stage-scale, 1)) translate(-50%, -50%);
 }
+
+/*
+ * The touch surface covers the whole viewport rather than just the field, so
+ * a thumb resting in the margin of a wide screen still steers. It sits above
+ * the field and below the controls.
+ */
+.surface {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+}
+
+.pause {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 0.7rem;
+  line-height: 1;
+  color: #9bb4c9;
+  background: rgb(19 28 39 / 85%);
+  border: 1px solid #233040;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.pause:focus-visible {
+  outline: 2px solid #4da3ff;
+  outline-offset: 2px;
+}
+
+.paused {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  font-size: 0.85rem;
+  letter-spacing: 0.3em;
+  color: #dbe5f0;
+  background: rgb(5 7 10 / 55%);
+}
