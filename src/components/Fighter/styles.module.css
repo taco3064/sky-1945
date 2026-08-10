@@ -26,6 +26,9 @@
   /* One promoted layer per aircraft. Cheap for one player; the real ceiling
      across ~160 entities is what #11 measures on a device. */
   will-change: transform;
+
+  /* Gives the roll's rotateY depth instead of a flat horizontal squash. */
+  perspective: 320px;
 }
 
 .craft {
@@ -37,6 +40,39 @@
   position: relative;
   width: 100%;
   height: 100%;
+  transform-style: preserve-3d;
+}
+
+/*
+ * The barrel roll (#10) — on the INNER element, because the outer one is
+ * written by the engine sixty times a second and the two would overwrite each
+ * other on the same property.
+ *
+ * Three turns in 1.2s: fast enough to read as a roll rather than a slow
+ * pirouette, and it lands facing forward. Linear, because a barrel roll has
+ * no reason to ease.
+ */
+.rolling {
+  animation: roll 1.2s linear;
+}
+
+@keyframes roll {
+  from {
+    transform: rotateY(0deg);
+  }
+
+  to {
+    transform: rotateY(1080deg);
+  }
+}
+
+/* The roll still protects and still silences the guns — only the spin goes.
+   Replaced by a flat brightening so the state stays visible. */
+@media (prefers-reduced-motion: reduce) {
+  .rolling {
+    animation: none;
+    filter: brightness(1.6);
+  }
 }
 
 .craft > * {

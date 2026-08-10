@@ -51,3 +51,56 @@ export function createPlayer(x: number, y: number): Body {
     frictionAir: 0,
   });
 }
+
+/**
+ * Bullets are small, and generous to hit with — the player's aim is not
+ * where the difficulty is meant to live.
+ */
+export const BULLET_HIT_RADIUS = 4;
+
+/** World units per second. Fast enough to feel instant across a 960-unit field. */
+export const BULLET_SPEED = 780;
+
+/** Damage before the loadout's power multiplier. */
+export const BULLET_BASE_DAMAGE = 10;
+
+/**
+ * Seconds between shots.
+ *
+ * The guns never stop (#5 removed the fire button), so this is the whole
+ * firing model: ten a second, steady. A steady rate is also what makes the
+ * worst case computable — peak bullet count is rate × time-on-screen, not
+ * whatever a player's mashing produces.
+ */
+export const PLAYER_FIRE_INTERVAL = 0.1;
+
+/** How far ahead of the player's centre a shot appears. */
+export const PLAYER_MUZZLE_OFFSET = 26;
+
+/**
+ * A bullet.
+ *
+ * Damage rides on the body rather than being looked up at impact: it is
+ * `base × powerBoost`, baked in at spawn, so no boost arithmetic ever runs
+ * inside the frame loop.
+ */
+export function createBullet(x: number, y: number, damage: number): Body {
+  const bullet = Bodies.circle(x, y, BULLET_HIT_RADIUS, {
+    label: 'player-bullet',
+    isSensor: true,
+    frictionAir: 0,
+  });
+
+  // Matter carries arbitrary data on `plugin`, which is where a value that
+  // belongs to the game rather than to the physics goes.
+  bullet.plugin = { damage };
+
+  return bullet;
+}
+
+/** Reads back what {@link createBullet} baked in. */
+export function damageOf(body: Body): number {
+  const plugin = body.plugin as { damage?: number };
+
+  return plugin.damage ?? 0;
+}

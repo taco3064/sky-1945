@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  BULLET_HIT_RADIUS,
   PLAYER_BASE_SPEED,
   PLAYER_BOUNDS_INSET,
   PLAYER_HIT_RADIUS,
   PLAYER_START_INSET,
+  createBullet,
   createPlayer,
+  damageOf,
 } from './entities';
 
 describe('createPlayer', () => {
@@ -27,6 +30,29 @@ describe('createPlayer', () => {
 
   it('is labelled, so collision handlers can tell it apart (#6)', () => {
     expect(createPlayer(0, 0).label).toBe('player');
+  });
+});
+
+describe('createBullet', () => {
+  it('carries the damage it was given', () => {
+    expect(damageOf(createBullet(0, 0, 42))).toBe(42);
+  });
+
+  it('is a sensor too — a shot passes through, it does not shove', () => {
+    const bullet = createBullet(0, 0, 10);
+
+    expect(bullet.isSensor).toBe(true);
+    expect(bullet.label).toBe('player-bullet');
+  });
+
+  it('is generous to hit with, unlike the player', () => {
+    expect(BULLET_HIT_RADIUS).toBeGreaterThan(PLAYER_HIT_RADIUS);
+  });
+
+  // A body with no damage on it reads as zero rather than NaN — the player
+  // body reaches damageOf too, once collisions start dispatching in #7.
+  it('reads zero from a body that carries no damage', () => {
+    expect(damageOf(createPlayer(0, 0))).toBe(0);
   });
 });
 

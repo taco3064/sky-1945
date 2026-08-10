@@ -12,6 +12,13 @@ export interface FighterProps {
    * learns that physics exists.
    */
   id: number;
+  /**
+   * True while a barrel roll is running.
+   *
+   * A boolean rather than anything the engine owns — this component is told
+   * what to draw, never where the state came from.
+   */
+  rolling?: boolean;
 }
 
 /**
@@ -23,12 +30,12 @@ export interface FighterProps {
  * Both writing `transform` on the same element would overwrite each other
  * sixty times a second.
  */
-export function Fighter({ id }: FighterProps) {
+export function Fighter({ id, rolling = false }: FighterProps) {
   const ref = useEntityTransform(id);
 
   return (
     <div ref={ref} className={styles.mount}>
-      <div className={styles.craft}>
+      <div className={`${styles.craft} ${rolling ? styles.rolling : ''}`}>
         <div className={styles.thrust} />
         <div className={styles.wing} />
         <div className={`${styles.fin} ${styles.finLeft}`} />

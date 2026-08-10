@@ -36,7 +36,14 @@ export function Game() {
     );
   }
 
-  // `paused` and `gameover` still render the stage underneath — their overlays
-  // arrive with the pause controls (#5) and the lives system (#6).
-  return <GameStage speedPoints={speedPoints} />;
+  // `gameover` still renders the stage underneath; its overlay arrives with
+  // the lives system (#6).
+  return (
+    <GameStage
+      speedPoints={speedPoints}
+      paused={state === 'paused'}
+      onPause={() => send(state === 'paused' ? 'resume' : 'pause')}
+      onQuit={() => send('abort')}
+    />
+  );
 }

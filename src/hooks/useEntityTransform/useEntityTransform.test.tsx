@@ -13,8 +13,12 @@ function stubWorld() {
   const world: World = {
     playerId: 7,
     start: vi.fn(),
+    pause: vi.fn(),
     dispose: vi.fn(),
     setPlayerDirection: vi.fn(),
+    roll: vi.fn(),
+    subscribeRoster: vi.fn(() => () => {}),
+    subscribeCombat: vi.fn(() => () => {}),
     subscribe: vi.fn((id, onFrame) => {
       const watching = listeners.get(id) ?? new Set<FrameListener>();
 

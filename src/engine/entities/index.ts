@@ -1,7 +1,14 @@
 export {
+  BULLET_BASE_DAMAGE,
+  BULLET_HIT_RADIUS,
+  BULLET_SPEED,
   PLAYER_BASE_SPEED,
   PLAYER_BOUNDS_INSET,
+  PLAYER_FIRE_INTERVAL,
   PLAYER_HIT_RADIUS,
+  PLAYER_MUZZLE_OFFSET,
   PLAYER_START_INSET,
+  createBullet,
   createPlayer,
+  damageOf,
 } from './entities';
