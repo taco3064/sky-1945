@@ -44,8 +44,19 @@
   touch-action: none;
 }
 
-/* Top centre: the lives counter takes the left corner in #6, the pause button
-   has the right. */
+/* Top-left: three aircraft read as "three left" faster than a numeral does,
+   and the HUD has to be legible without being looked at. */
+.lives {
+  position: absolute;
+  top: 0.85rem;
+  left: 0.85rem;
+  z-index: 2;
+  display: flex;
+  gap: 0.3rem;
+  pointer-events: none;
+}
+
+/* Top centre; the pause button has the right corner. */
 .round {
   position: absolute;
   top: 0.9rem;
@@ -82,7 +93,7 @@
   outline-offset: 2px;
 }
 
-.paused {
+.overlay {
   position: absolute;
   inset: 0;
   z-index: 1;
@@ -94,14 +105,14 @@
   background: rgb(5 7 10 / 72%);
 }
 
-.pausedTitle {
+.overlayTitle {
   margin: 0;
   font-size: 0.85rem;
   letter-spacing: 0.3em;
   color: #dbe5f0;
 }
 
-.pausedActions {
+.overlayActions {
   display: flex;
   gap: 0.75rem;
 }
@@ -121,4 +132,11 @@
 .action:focus-visible {
   outline: 2px solid #4da3ff;
   outline-offset: 2px;
+}
+
+.reached {
+  margin: -1.25rem 0 0;
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  color: #7d8fa0;
 }

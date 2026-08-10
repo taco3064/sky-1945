@@ -32,6 +32,8 @@ export interface BulletField {
   bodies: () => Body[];
   /** Live bullets and whose they are, for the roster. */
   records: () => BulletRecord[];
+  /** Take one out — it hit something. Unknown ids are ignored. */
+  remove: (id: number) => void;
   /** Forget everything. */
   clear: () => void;
 }
@@ -74,6 +76,17 @@ export function createBulletField(engine: Engine): BulletField {
       }
 
       return gone.length > 0;
+    },
+
+    remove(id) {
+      const bullet = live.get(id);
+
+      if (!bullet) {
+        return;
+      }
+
+      Composite.remove(engine.world, bullet);
+      live.delete(id);
     },
 
     bodies: () => [...live.values()],

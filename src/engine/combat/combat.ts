@@ -9,6 +9,24 @@
 /** How long a barrel roll runs, and how long it protects. */
 export const ROLL_DURATION = 1.2;
 
+/**
+ * How many aircraft a run gets.
+ *
+ * Lives are not HP. HP belongs to an entity and dies with it; lives belong to
+ * the run and outlive the aircraft — the player dies, the count drops, and a
+ * fresh craft appears. Folding them into one number produces something that
+ * means durability sometimes and retry count other times.
+ */
+export const STARTING_LIVES = 3;
+
+/**
+ * How long a fresh aircraft cannot be hit.
+ *
+ * Not optional. Without it, respawning into live fire burns all three lives in
+ * about three seconds and the run ends before the player touches a key.
+ */
+export const RESPAWN_INVULNERABILITY = 1.5;
+
 /** What the aircraft is doing, as opposed to where it is. */
 export interface CombatSnapshot {
   rolling: boolean;
@@ -86,4 +104,24 @@ export function startRoll(combat: Combat, now: number): Combat {
 /** Guns are silent for the duration of a roll. */
 export function canFire(combat: Combat, now: number): boolean {
   return !isRolling(combat, now);
+}
+
+/**
+ * The second source of invulnerability: a respawn.
+ *
+ * Takes the **later** of the two expiry times, never the sum. 1.5s of respawn
+ * protection on top of a 1.2s roll must not become 2.7s, or dying becomes the
+ * cheapest way to buy the longest invulnerability in the game and players farm
+ * it. The roll's own window (`rollingUntil`) is untouched — respawning does
+ * not silence the guns.
+ */
+export function grantInvulnerability(
+  combat: Combat,
+  now: number,
+  duration: number,
+): Combat {
+  return {
+    rollingUntil: combat.rollingUntil,
+    invulnerableUntil: Math.max(combat.invulnerableUntil, now + duration),
+  };
 }

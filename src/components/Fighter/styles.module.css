@@ -66,6 +66,34 @@
   }
 }
 
+/*
+ * Respawn protection, and the roll's own window.
+ *
+ * A pulse rather than a hard on/off flicker: this game is not going for the
+ * retro look, and a smooth pulse still reads unmistakably as "not solid yet".
+ */
+.invulnerable {
+  animation: protected 260ms ease-in-out infinite alternate;
+}
+
+@keyframes protected {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0.35;
+  }
+}
+
+/* Both animations sit on the same element, so a roll during respawn
+   protection would drop the blink. Compose them instead. */
+.rolling.invulnerable {
+  animation:
+    roll 1.2s linear,
+    protected 260ms ease-in-out infinite alternate;
+}
+
 /* The roll still protects and still silences the guns — only the spin goes.
    Replaced by a flat brightening so the state stays visible. */
 @media (prefers-reduced-motion: reduce) {

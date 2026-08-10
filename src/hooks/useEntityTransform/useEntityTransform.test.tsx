@@ -7,19 +7,28 @@ import { GameProvider } from '~app/contexts/GameContext';
 import type { FrameListener, World } from '~app/engine/world';
 
 /** A world that publishes only when a test tells it to. */
-function stubWorld() {
-  const listeners = new Map<number, Set<FrameListener>>();
-
-  const world: World = {
-    playerId: 7,
+function stubWorld(overrides: Partial<World> = {}): World {
+  return {
+    playerId: 1,
     start: vi.fn(),
     pause: vi.fn(),
     dispose: vi.fn(),
-    setPlayerDirection: vi.fn(),
-    roll: vi.fn(),
-    subscribeRound: vi.fn(() => () => {}),
+    subscribe: vi.fn(() => () => {}),
     subscribeRoster: vi.fn(() => () => {}),
     subscribeCombat: vi.fn(() => () => {}),
+    subscribeRound: vi.fn(() => () => {}),
+    subscribeLives: vi.fn(() => () => {}),
+    subscribeGameOver: vi.fn(() => () => {}),
+    setPlayerDirection: vi.fn(),
+    roll: vi.fn(),
+    ...overrides,
+  };
+}
+
+function drivenWorld() {
+  const listeners = new Map<number, Set<FrameListener>>();
+
+  const world = stubWorld({
     subscribe: vi.fn((id, onFrame) => {
       const watching = listeners.get(id) ?? new Set<FrameListener>();
 
@@ -30,7 +39,7 @@ function stubWorld() {
         watching.delete(onFrame);
       };
     }),
-  };
+  });
 
   const emit = (id: number, x: number, y: number, angle = 0): void => {
     for (const onFrame of listeners.get(id) ?? []) {
@@ -53,7 +62,7 @@ afterEach(() => {
 
 describe('useEntityTransform', () => {
   it('subscribes to the entity it was given', () => {
-    const { world } = stubWorld();
+    const { world } = drivenWorld();
 
     renderHook(() => useEntityTransform(7), { wrapper: wrapperFor(world) });
 
@@ -63,7 +72,7 @@ describe('useEntityTransform', () => {
   // The whole point: a frame arrives and the DOM changes, with no render in
   // between. Nothing here goes through React state.
   it('writes the transform straight onto the element', () => {
-    const { world, emit } = stubWorld();
+    const { world, emit } = drivenWorld();
 
     const { result } = renderHook(() => useEntityTransform(7), {
       wrapper: wrapperFor(world),
@@ -78,7 +87,7 @@ describe('useEntityTransform', () => {
   });
 
   it('survives a frame arriving before the element is attached', () => {
-    const { world, emit } = stubWorld();
+    const { world, emit } = drivenWorld();
 
     renderHook(() => useEntityTransform(7), { wrapper: wrapperFor(world) });
 
@@ -86,7 +95,7 @@ describe('useEntityTransform', () => {
   });
 
   it('unsubscribes on unmount', () => {
-    const { world, emit } = stubWorld();
+    const { world, emit } = drivenWorld();
 
     const { result, unmount } = renderHook(() => useEntityTransform(7), {
       wrapper: wrapperFor(world),

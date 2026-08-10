@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createEnemyField } from './enemies';
 import type { EnemyField } from './enemies';
-import { ENEMY_STATS } from '../entities';
+import { ENEMY_BULLET_LEAD, ENEMY_STATS } from '../entities';
 import { FIELD_HEIGHT } from '../field';
 
 const EVEN = { speed: 1, power: 1 };
@@ -219,5 +219,105 @@ describe('enemies · the field stays inside its bounds', () => {
         expect(body.position.y).toBeLessThan(FIELD_HEIGHT + 100);
       }
     }
+  });
+});
+
+describe('enemies · taking damage', () => {
+  it('survives a hit that does not finish it', () => {
+    field.spawn('large', 200);
+
+    const [enemy] = field.bodies();
+
+    expect(field.damage(enemy.id, 1)).toBeNull();
+    expect(field.count()).toBe(1);
+  });
+
+  it('reports where the wreck was when the hit kills it', () => {
+    field.spawn('small', 200);
+
+    const [enemy] = field.bodies();
+    const wreck = field.damage(enemy.id, ENEMY_STATS.small.hp);
+
+    expect(wreck).toEqual({ x: enemy.position.x, y: enemy.position.y });
+    expect(field.count()).toBe(0);
+  });
+
+  it('takes the body out of the physics world with it', () => {
+    field.spawn('small', 200);
+    field.damage(field.bodies()[0].id, 999);
+
+    expect(engine.world.bodies).toHaveLength(0);
+  });
+
+  // A bullet can reach an enemy that left the field on the same frame.
+  it('ignores an id it does not know', () => {
+    expect(field.damage(9999, 10)).toBeNull();
+  });
+
+  it('accumulates damage across hits', () => {
+    field.spawn('medium', 200);
+
+    const id = field.bodies()[0].id;
+    const half = ENEMY_STATS.medium.hp / 2;
+
+    expect(field.damage(id, half)).toBeNull();
+    expect(field.damage(id, half)).not.toBeNull();
+  });
+});
+
+describe('enemies · fire keeps up with the round', () => {
+  /** Collect the first volley an enemy of this kind fires under these boosts. */
+  function firstVolley(kind: 'small' | 'medium' | 'large', speed: number) {
+    field.spawn(kind, 200);
+
+    for (let tick = 0; tick < 60 * 20; tick += 1) {
+      const { shots } = field.advance(1 / 60, { speed, power: 1 });
+
+      if (shots.length > 0) {
+        return shots;
+      }
+    }
+
+    return [];
+  }
+
+  // Bullet speed was a constant while enemy speed scaled with the round, so a
+  // late-round enemy overtook its own fire — a broken enemy, not a hard one.
+  it.each(['small', 'medium', 'large'] as const)(
+    'never lets a %s enemy outrun its own bullets',
+    (kind) => {
+      for (const speed of [1, 2, 3]) {
+        const [shot] = firstVolley(kind, speed);
+        const craft = ENEMY_STATS[kind].speed * speed;
+
+        expect(Math.hypot(shot.vx, shot.vy))
+          .toBeGreaterThanOrEqual(craft * ENEMY_BULLET_LEAD);
+
+        field.clear();
+      }
+    },
+  );
+
+  // A faster craft crosses the field sooner, so a fixed cadence means fewer
+  // volleys — scaling speed would *reduce* the pressure it applies.
+  it('fires as many times on a fast pass as on a slow one', () => {
+    const passes = (speed: number): number => {
+      field.clear();
+      field.spawn('small', 200);
+
+      let volleys = 0;
+
+      for (let tick = 0; tick < 60 * 30 && field.count() > 0; tick += 1) {
+        volleys += field.advance(1 / 60, { speed, power: 1 }).shots.length > 0 ? 1 : 0;
+      }
+
+      return volleys;
+    };
+
+    const slow = passes(1);
+    const fast = passes(3);
+
+    expect(slow).toBeGreaterThan(1);
+    expect(fast).toBeGreaterThanOrEqual(slow - 1);
   });
 });

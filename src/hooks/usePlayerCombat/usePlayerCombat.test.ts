@@ -5,19 +5,28 @@ import { usePlayerCombat } from './usePlayerCombat';
 import type { CombatSnapshot } from '~app/engine/combat';
 import type { CombatListener, World } from '~app/engine/world';
 
-function stubWorld() {
-  const watchers = new Set<CombatListener>();
-
-  const world: World = {
+function stubWorld(overrides: Partial<World> = {}): World {
+  return {
     playerId: 1,
     start: vi.fn(),
     pause: vi.fn(),
     dispose: vi.fn(),
     subscribe: vi.fn(() => () => {}),
     subscribeRoster: vi.fn(() => () => {}),
+    subscribeCombat: vi.fn(() => () => {}),
+    subscribeRound: vi.fn(() => () => {}),
+    subscribeLives: vi.fn(() => () => {}),
+    subscribeGameOver: vi.fn(() => () => {}),
     setPlayerDirection: vi.fn(),
     roll: vi.fn(),
-    subscribeRound: vi.fn(() => () => {}),
+    ...overrides,
+  };
+}
+
+function drivenWorld() {
+  const watchers = new Set<CombatListener>();
+
+  const world = stubWorld({
     subscribeCombat: vi.fn((onChange) => {
       watchers.add(onChange);
 
@@ -25,7 +34,7 @@ function stubWorld() {
         watchers.delete(onChange);
       };
     }),
-  };
+  });
 
   const send = (snapshot: CombatSnapshot): void => {
     act(() => {
@@ -40,14 +49,14 @@ function stubWorld() {
 
 describe('usePlayerCombat', () => {
   it('starts idle', () => {
-    const { world } = stubWorld();
+    const { world } = drivenWorld();
     const { result } = renderHook(() => usePlayerCombat(world));
 
     expect(result.current).toEqual({ rolling: false, invulnerable: false });
   });
 
   it('reports a roll starting and ending', () => {
-    const { world, send } = stubWorld();
+    const { world, send } = drivenWorld();
     const { result } = renderHook(() => usePlayerCombat(world));
 
     send({ rolling: true, invulnerable: true });
@@ -60,7 +69,7 @@ describe('usePlayerCombat', () => {
   // The two fields are separate because the roll can end while protection
   // continues — respawn (#6) writes the same invulnerability.
   it('can be protected without rolling', () => {
-    const { world, send } = stubWorld();
+    const { world, send } = drivenWorld();
     const { result } = renderHook(() => usePlayerCombat(world));
 
     send({ rolling: false, invulnerable: true });
@@ -69,7 +78,7 @@ describe('usePlayerCombat', () => {
   });
 
   it('unsubscribes on unmount', () => {
-    const { world, watcherCount } = stubWorld();
+    const { world, watcherCount } = drivenWorld();
     const { unmount } = renderHook(() => usePlayerCombat(world));
 
     unmount();

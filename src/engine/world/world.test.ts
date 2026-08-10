@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createWorld } from './world';
+import { STARTING_LIVES } from '../combat';
 import { FIELD_HEIGHT, FIELD_WIDTH } from '../field';
 import type { EntityRecord, Transform, World } from './world';
 
@@ -510,5 +511,64 @@ describe('createWorld · rounds', () => {
     runFrames(45000);
 
     expect(onRound.mock.calls.at(-1)?.[0]).toBeGreaterThan(1);
+  });
+});
+
+describe('createWorld · lives', () => {
+  it('starts with a full set', () => {
+    world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
+
+    const onLives = vi.fn();
+
+    world.subscribeLives(onLives);
+
+    expect(onLives).toHaveBeenCalledWith(STARTING_LIVES);
+  });
+
+  // Flying upward into the descending wave is the reliable way to make contact
+  // happen — waiting to be shot depends on where the wave lines up.
+  it('spends a life on contact, and ends the run when they are gone', () => {
+    world = createWorld({ speedMultiplier: 3, powerMultiplier: 1 });
+
+    const onLives = vi.fn();
+    const onGameOver = vi.fn();
+
+    world.subscribeLives(onLives);
+    world.subscribeGameOver(onGameOver);
+    world.start();
+
+    // The heading is re-sent each time, because kill() clears it — a fresh
+    // aircraft does not inherit the last one's input.
+    for (let attempt = 0; attempt < 14; attempt += 1) {
+      world.setPlayerDirection(0, -1);
+      runFrames(4000);
+    }
+
+    const spent = onLives.mock.calls.map(([remaining]) => remaining as number);
+
+    expect(spent).toContain(STARTING_LIVES - 1);
+    expect(spent.at(-1)).toBe(0);
+    expect(Math.min(...spent)).toBe(0);
+    expect(onGameOver).toHaveBeenCalledOnce();
+  });
+});
+
+describe('createWorld · a fresh aircraft does not inherit the last one', () => {
+  it('clears the heading on death, so it does not fly on unattended', () => {
+    world = createWorld({ speedMultiplier: 3, powerMultiplier: 1 });
+
+    const at = trackerFor(world);
+
+    world.start();
+    world.setPlayerDirection(0, -1);
+    runFrames(8000);
+
+    const settled = at().y;
+
+    runFrames(2000);
+
+    // Whether or not it has died by now, it is not still climbing under an
+    // input nobody gave it.
+    expect(Math.abs(at().y - settled)).toBeLessThan(FIELD_HEIGHT / 2);
   });
 });

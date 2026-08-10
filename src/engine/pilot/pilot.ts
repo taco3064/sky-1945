@@ -1,7 +1,15 @@
 import { Body, Composite } from 'matter-js';
 import type { Engine } from 'matter-js';
 
-import { canFire, createCombat, isInvulnerable, isRolling, startRoll } from '../combat';
+import {
+  RESPAWN_INVULNERABILITY,
+  canFire,
+  createCombat,
+  grantInvulnerability,
+  isInvulnerable,
+  isRolling,
+  startRoll,
+} from '../combat';
 import type { Combat, CombatSnapshot } from '../combat';
 import {
   BULLET_BASE_DAMAGE,
@@ -55,6 +63,18 @@ export interface Pilot {
   roll: () => boolean;
   /** Rolling and invulnerable, right now. */
   snapshot: () => CombatSnapshot;
+  /** Whether a contact right now would be fatal. */
+  isVulnerable: () => boolean;
+  /**
+   * Killed by contact.
+   *
+   * Returns where the wreck was, puts the aircraft back at its start with no
+   * heading — a fresh craft, not a corpse — and grants respawn protection
+   * immediately. The protection belongs to dying rather than to whoever is
+   * watching, because a frame resolves in several collision passes: without it,
+   * one death repeats on the very next pass.
+   */
+  kill: () => { x: number; y: number };
 }
 
 export function createPilot(engine: Engine, options: PilotOptions): Pilot {
@@ -155,5 +175,22 @@ export function createPilot(engine: Engine, options: PilotOptions): Pilot {
       rolling: isRolling(combat, clock),
       invulnerable: isInvulnerable(combat, clock),
     }),
+
+    isVulnerable: () => !isInvulnerable(combat, clock),
+
+    kill() {
+      const wreck = { x: body.position.x, y: body.position.y };
+
+      Body.setPosition(body, {
+        x: FIELD_WIDTH / 2,
+        y: FIELD_HEIGHT - PLAYER_START_INSET,
+      });
+
+      direction.x = 0;
+      direction.y = 0;
+      combat = grantInvulnerability(combat, clock, RESPAWN_INVULNERABILITY);
+
+      return wreck;
+    },
   };
 }

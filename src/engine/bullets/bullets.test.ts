@@ -136,3 +136,22 @@ describe('bullets · clear', () => {
     expect(field.bodies()).toHaveLength(0);
   });
 });
+
+describe('bullets · removing on impact', () => {
+  it('takes the bullet out of both the map and the physics world', () => {
+    field.add([upward()]);
+
+    const [bullet] = field.bodies();
+
+    field.remove(bullet.id);
+
+    expect(field.records()).toHaveLength(0);
+    expect(engine.world.bodies).toHaveLength(0);
+  });
+
+  // A bullet can hit an enemy on the same frame it leaves the field, so the
+  // id it reports may already be gone.
+  it('ignores an id it does not know', () => {
+    expect(() => field.remove(9999)).not.toThrow();
+  });
+});

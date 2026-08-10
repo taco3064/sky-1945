@@ -2,6 +2,7 @@ import { Body, Composite } from 'matter-js';
 import type { Engine } from 'matter-js';
 
 import {
+  ENEMY_BULLET_LEAD,
   ENEMY_BULLET_SPEED,
   ENEMY_STATS,
   createEnemy,
@@ -29,6 +30,8 @@ const DOWNWARD = 90;
 /** Per-enemy state the physics body has no place for. */
 interface Flight {
   kind: EnemyKind;
+  /** Remaining hit points. Never leaves the engine — see EnemyStats.hp. */
+  hp: number;
   /** Where it entered, which its sway oscillates around. */
   originX: number;
   /** Seconds since it appeared — drives both sway and cadence. */
@@ -79,6 +82,15 @@ export interface EnemyBoosts {
 export interface EnemyField {
   /** Put one on the field, entering above the top edge. */
   spawn: (kind: EnemyKind, x: number) => void;
+  /**
+   * Subtract hit points.
+   *
+   * Returns where the wreck was if that killed it, and null otherwise — so the
+   * caller can put a burst there without asking a second question. An unknown
+   * id is null too: a bullet can reach an enemy that left the field on the same
+   * frame.
+   */
+  damage: (id: number, amount: number) => Vector | null;
   /** Move everyone, fire what is due, cull what has left. */
   advance: (elapsed: number, boosts: EnemyBoosts) => EnemyAdvance;
   /** Live bodies, for publishing transforms. */
@@ -91,35 +103,42 @@ export interface EnemyField {
   clear: () => void;
 }
 
+function positionFor(flight: Flight, body: Body, distance: number): Vector {
+  const stats = ENEMY_STATS[flight.kind];
+
+  const offset = stats.sway === 0
+    ? 0
+    : Math.sin(flight.age * stats.swayRate * Math.PI * 2) * stats.sway;
+
+  return { x: flight.originX + offset, y: body.position.y + distance };
+}
+
+/**
+ * A volley, with its speed tied to the shooter's.
+ *
+ * Always at least ENEMY_BULLET_LEAD times faster than the craft that fired it,
+ * so no amount of difficulty scaling lets an enemy overtake its own shot.
+ */
+function volleyFrom(flight: Flight, body: Body, boosts: EnemyBoosts): BulletSpawn[] {
+  const stats = ENEMY_STATS[flight.kind];
+  const travel = stats.speed * boosts.speed;
+
+  return shotsFor({
+    kind: stats.pattern,
+    x: body.position.x,
+    y: body.position.y + enemyMuzzleOffset(flight.kind),
+    speed: Math.max(ENEMY_BULLET_SPEED, travel * ENEMY_BULLET_LEAD),
+    damage: stats.damage * boosts.power,
+    side: 'enemy',
+    heading: DOWNWARD,
+  });
+}
+
 export function createEnemyField(engine: Engine): EnemyField {
   const live = new Map<number, Body>();
   const flights = new Map<number, Flight>();
 
   /** Sway is a function of age, so an enemy never drifts off course. */
-  const positionFor = (flight: Flight, body: Body, distance: number): Vector => {
-    const stats = ENEMY_STATS[flight.kind];
-
-    const offset = stats.sway === 0
-      ? 0
-      : Math.sin(flight.age * stats.swayRate * Math.PI * 2) * stats.sway;
-
-    return { x: flight.originX + offset, y: body.position.y + distance };
-  };
-
-  const volleyFrom = (flight: Flight, body: Body, power: number): BulletSpawn[] => {
-    const stats = ENEMY_STATS[flight.kind];
-
-    return shotsFor({
-      kind: stats.pattern,
-      x: body.position.x,
-      y: body.position.y + enemyMuzzleOffset(flight.kind),
-      speed: ENEMY_BULLET_SPEED,
-      damage: stats.damage * power,
-      side: 'enemy',
-      heading: DOWNWARD,
-    });
-  };
-
   /** One enemy, one frame: move, decide whether it is gone, fire if due. */
   const advanceOne = (body: Body, tick: Tick): Step => {
     const flight = flights.get(body.id) as Flight;
@@ -145,13 +164,16 @@ export function createEnemyField(engine: Engine): EnemyField {
 
     flight.sinceShot += tick.elapsed;
 
-    if (flight.sinceShot < stats.fireInterval) {
+    // Scaled by the round's speed, so a faster craft fires proportionally more
+    // often — otherwise going faster means applying *less* pressure, because it
+    // leaves the field sooner.
+    if (flight.sinceShot < stats.fireInterval / tick.boosts.speed) {
       return IDLE;
     }
 
     flight.sinceShot = 0;
 
-    return { gone: false, shots: volleyFrom(flight, body, tick.boosts.power) };
+    return { gone: false, shots: volleyFrom(flight, body, tick.boosts) };
   };
 
   const cull = (ids: number[]): void => {
@@ -167,8 +189,37 @@ export function createEnemyField(engine: Engine): EnemyField {
       const enemy = createEnemy(kind, x, -ENEMY_STATS[kind].radius);
 
       live.set(enemy.id, enemy);
-      flights.set(enemy.id, { kind, originX: x, age: 0, sinceShot: 0 });
+
+      flights.set(enemy.id, {
+        kind,
+        hp: ENEMY_STATS[kind].hp,
+        originX: x,
+        age: 0,
+        sinceShot: 0,
+      });
+
       Composite.add(engine.world, enemy);
+    },
+
+    damage(id, amount) {
+      const flight = flights.get(id);
+      const body = live.get(id);
+
+      if (!flight || !body) {
+        return null;
+      }
+
+      flight.hp -= amount;
+
+      if (flight.hp > 0) {
+        return null;
+      }
+
+      const wreck = { x: body.position.x, y: body.position.y };
+
+      cull([id]);
+
+      return wreck;
     },
 
     advance(elapsed, boosts) {
