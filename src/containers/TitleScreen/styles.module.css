@@ -1,0 +1,62 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(2.5rem, 12vw, 5rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1;
+}
+
+.prompt {
+  margin: 0;
+  font-size: clamp(0.75rem, 3.5vw, 1rem);
+  letter-spacing: 0.28em;
+  color: #9bb4c9;
+  animation: breathe 2.4s ease-in-out infinite;
+}
+
+/* Eased, not stepped. A hard-cut blink is the retro look, and this game is
+   not going for one. */
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.forTouch {
+  display: none;
+}
+
+/* Coarse pointer with no hover — a phone or tablet, where "press any key" is
+   an instruction the player cannot follow. */
+@media (hover: none) and (pointer: coarse) {
+  .forKeyboard {
+    display: none;
+  }
+
+  .forTouch {
+    display: inline;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prompt {
+    opacity: 0.8;
+    animation: none;
+  }
+}
