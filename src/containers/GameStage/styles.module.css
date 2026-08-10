@@ -1,0 +1,34 @@
+/*
+ * The field is 540 × 960 world units on every device, and the screen is
+ * fitted to it — never the other way round. A field sized to the viewport
+ * would be a wider field on a tablet, and a wider field is an easier one:
+ * the same wave would be more dodgeable on bigger hardware.
+ */
+
+.viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.field {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 540px;
+  height: 960px;
+  background: #05070a;
+  border: 1px solid #16202c;
+
+  /*
+   * Read right to left: translate by half the field's own (unscaled) size,
+   * then scale that offset along with everything else. Doing it the other way
+   * round would move the field by half its *unscaled* size and leave it
+   * off-centre at every scale but 1.
+   *
+   * The scale itself is written by useStageScale on resize — not per frame.
+   */
+  transform-origin: 0 0;
+  transform: scale(var(--stage-scale, 1)) translate(-50%, -50%);
+}

@@ -1,0 +1,1 @@
+export { useStageScale } from './useStageScale';

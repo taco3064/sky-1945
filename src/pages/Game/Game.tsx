@@ -1,3 +1,4 @@
+import { GameStage } from '~app/containers/GameStage';
 import { LoadoutScreen } from '~app/containers/LoadoutScreen';
 import { TitleScreen } from '~app/containers/TitleScreen';
 import { useGameSession } from '~app/hooks/useGameSession';
@@ -35,7 +36,7 @@ export function Game() {
     );
   }
 
-  // #4 adds the stage. The machine already knows every transition
-  // (engine/session); the screens are what is missing.
-  return null;
+  // `paused` and `gameover` still render the stage underneath — their overlays
+  // arrive with the pause controls (#5) and the lives system (#6).
+  return <GameStage speedPoints={speedPoints} />;
 }

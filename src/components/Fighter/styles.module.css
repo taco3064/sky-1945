@@ -1,0 +1,148 @@
+/*
+ * ALLY-01 — 44 × 52 world units.
+ *
+ * Dark hull, cold energy. Contrast is what reads as engineered at this size;
+ * a wholly bright aircraft reads as a toy. Only three things glow — canopy,
+ * spine, thrusters — and the wingtip lamps and leading edge are pseudo
+ * elements, so they cost paint but no DOM node and no React reconciliation.
+ *
+ * The hit circle is 3 units (engine/entities). These numbers and that one are
+ * deliberately unrelated, and cannot be reconciled by accident: components
+ * cannot import engine.
+ */
+
+.mount {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 44px;
+  height: 52px;
+
+  /* Half the box, so the engine's coordinate lands on the aircraft's centre
+     rather than its top-left corner. */
+  margin-top: -26px;
+  margin-left: -22px;
+
+  /* One promoted layer per aircraft. Cheap for one player; the real ceiling
+     across ~160 entities is what #11 measures on a device. */
+  will-change: transform;
+}
+
+.craft {
+  --hull: #131c27;
+  --face: #33485f;
+  --edge: #4da3ff;
+  --glow: #6ee7ff;
+
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.craft > * {
+  position: absolute;
+}
+
+/* Engine bloom, under everything so the hull occludes its top edge — the
+   light comes from behind the aircraft, not off its surface. #9 animates
+   this element. */
+.thrust {
+  bottom: -4%;
+  left: 28%;
+  width: 44%;
+  height: 20%;
+  background:
+    radial-gradient(ellipse 55% 100% at 30% 0%, var(--glow) 0%, transparent 70%),
+    radial-gradient(ellipse 55% 100% at 70% 0%, var(--glow) 0%, transparent 70%);
+  opacity: 0.85;
+}
+
+/* Faceted planform: dark face, lit leading edge. */
+.wing {
+  top: 42%;
+  left: 0;
+  width: 100%;
+  height: 36%;
+  background: linear-gradient(180deg, var(--face) 0%, var(--hull) 55%);
+  clip-path: polygon(
+    0% 86%, 16% 6%, 40% 0%, 60% 0%, 84% 6%, 100% 86%,
+    100% 100%, 68% 62%, 32% 62%, 0% 100%
+  );
+}
+
+.wing::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, var(--glow) 0%, transparent 26%);
+  clip-path: inherit;
+}
+
+.wing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle 1.5px at 2% 84%, var(--glow) 0%, transparent 100%),
+    radial-gradient(circle 1.5px at 98% 84%, var(--glow) 0%, transparent 100%);
+}
+
+.fin {
+  bottom: 2%;
+  width: 22%;
+  height: 26%;
+  background: linear-gradient(180deg, var(--face), var(--hull));
+}
+
+.finLeft {
+  left: 10%;
+  clip-path: polygon(100% 0%, 100% 100%, 0% 100%);
+}
+
+.finRight {
+  right: 10%;
+  clip-path: polygon(0% 0%, 100% 100%, 0% 100%);
+}
+
+/* Lit across rather than down: a cylinder reads round that way, and the two
+   dark flanks are what give the silhouette its edge against a black field. */
+.body {
+  top: 0;
+  left: 33%;
+  width: 34%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--hull) 0%,
+    var(--face) 34%,
+    #52708f 50%,
+    var(--face) 66%,
+    var(--hull) 100%
+  );
+  clip-path: polygon(
+    50% 0%, 74% 20%, 66% 48%, 76% 74%,
+    62% 100%, 38% 100%, 24% 74%, 34% 48%, 26% 20%
+  );
+}
+
+/* One hairline down the spine — the cheapest way to say "powered". */
+.body::before {
+  content: "";
+  position: absolute;
+  top: 34%;
+  left: 46%;
+  width: 8%;
+  height: 52%;
+  background: linear-gradient(180deg, var(--edge), transparent);
+  opacity: 0.9;
+}
+
+.canopy {
+  top: 20%;
+  left: 39%;
+  width: 22%;
+  height: 22%;
+  background: linear-gradient(155deg, #eafcff 0%, var(--glow) 42%, #14647f 100%);
+  border-radius: 52% 52% 40% 40%;
+  box-shadow: 0 0 5px var(--glow);
+}
