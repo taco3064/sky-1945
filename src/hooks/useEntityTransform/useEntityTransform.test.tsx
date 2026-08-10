@@ -17,6 +17,7 @@ function stubWorld() {
     dispose: vi.fn(),
     setPlayerDirection: vi.fn(),
     roll: vi.fn(),
+    subscribeRound: vi.fn(() => () => {}),
     subscribeRoster: vi.fn(() => () => {}),
     subscribeCombat: vi.fn(() => () => {}),
     subscribe: vi.fn((id, onFrame) => {

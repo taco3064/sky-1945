@@ -1,33 +1,37 @@
 import { Body, Composite } from 'matter-js';
 import type { Engine } from 'matter-js';
 
-import { BULLET_SPEED, PLAYER_FIRE_INTERVAL, createBullet } from '../entities';
+import { createBullet, velocityOf } from '../entities';
+import { isOutside } from '../field';
+import type { BulletSpawn } from '../patterns';
 
 /**
- * A field of bullets: when they appear, where they go, and when they stop
- * existing. Split out of the world because that module was doing five things
- * and this is one of them.
+ * Every bullet in flight, from either side.
+ *
+ * It knows nothing about cadence — when to fire belongs to whoever is firing
+ * (the pilot, an enemy), and this module only carries what has already been
+ * fired. Velocity rides on each body, so a radial burst and a straight shot
+ * advance through exactly the same code.
  */
 
-export interface Shot {
-  /** Whether the guns may fire. A roll silences them (#10). */
-  allowed: boolean;
-  /** Where a bullet appears, in world units. */
-  x: number;
-  y: number;
-  /** Damage, already multiplied by the loadout's power boost. */
-  damage: number;
+/** Bullets outside the field by this much are gone for good. */
+const CULL_MARGIN = 24;
+
+export interface BulletRecord {
+  id: number;
+  /** Enemy fire, which is drawn differently and (in #6) kills the player. */
+  hostile: boolean;
 }
 
 export interface BulletField {
-  /** Advance the firing cadence and spawn what is due. True if any spawned. */
-  fire: (elapsed: number, shot: Shot) => boolean;
+  /** Put a volley into the world. True if anything was added. */
+  add: (spawns: BulletSpawn[]) => boolean;
   /** Move every bullet; drop the ones off the field. True if any left. */
   advance: (elapsed: number) => boolean;
   /** Live bodies, for publishing transforms. */
   bodies: () => Body[];
-  /** Live ids, for the roster. */
-  ids: () => number[];
+  /** Live bullets and whose they are, for the roster. */
+  records: () => BulletRecord[];
   /** Forget everything. */
   clear: () => void;
 }
@@ -35,50 +39,36 @@ export interface BulletField {
 export function createBulletField(engine: Engine): BulletField {
   const live = new Map<number, Body>();
 
-  let sinceShot = 0;
-
   return {
-    fire(elapsed, shot) {
-      if (!shot.allowed) {
-        // The cadence keeps running while the guns are silent, capped at one
-        // interval — so the first shot after a roll is immediate rather than
-        // delayed by however long the roll took, and a long roll does not
-        // bank up a burst either.
-        sinceShot = Math.min(sinceShot + elapsed, PLAYER_FIRE_INTERVAL);
+    add(spawns) {
+      for (const spawn of spawns) {
+        const bullet = createBullet(spawn);
 
-        return false;
-      }
-
-      sinceShot += elapsed;
-
-      let fired = false;
-
-      while (sinceShot >= PLAYER_FIRE_INTERVAL) {
-        const bullet = createBullet(shot.x, shot.y, shot.damage);
-
-        sinceShot -= PLAYER_FIRE_INTERVAL;
         live.set(bullet.id, bullet);
         Composite.add(engine.world, bullet);
-        fired = true;
       }
 
-      return fired;
+      return spawns.length > 0;
     },
 
     advance(elapsed) {
       const gone: number[] = [];
 
       for (const [id, bullet] of live) {
-        const y = bullet.position.y - BULLET_SPEED * elapsed;
+        const { vx, vy } = velocityOf(bullet);
+        const x = bullet.position.x + vx * elapsed;
+        const y = bullet.position.y + vy * elapsed;
 
-        if (y < 0) {
+        if (isOutside(x, y, CULL_MARGIN)) {
           gone.push(id);
         } else {
-          Body.setPosition(bullet, { x: bullet.position.x, y });
+          Body.setPosition(bullet, { x, y });
         }
       }
 
       for (const id of gone) {
+        // Out of the physics world as well as the map. A body left behind is
+        // a leak the collision phase pays for every frame, forever.
         Composite.remove(engine.world, live.get(id) as Body);
         live.delete(id);
       }
@@ -88,7 +78,10 @@ export function createBulletField(engine: Engine): BulletField {
 
     bodies: () => [...live.values()],
 
-    ids: () => [...live.keys()],
+    records: () => [...live.values()].map((bullet) => ({
+      id: bullet.id,
+      hostile: bullet.label === 'enemy-bullet',
+    })),
 
     clear: () => live.clear(),
   };

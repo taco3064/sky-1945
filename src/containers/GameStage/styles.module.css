@@ -44,6 +44,21 @@
   touch-action: none;
 }
 
+/* Top centre: the lives counter takes the left corner in #6, the pause button
+   has the right. */
+.round {
+  position: absolute;
+  top: 0.9rem;
+  left: 50%;
+  z-index: 2;
+  margin: 0;
+  font-size: 0.65rem;
+  letter-spacing: 0.24em;
+  color: #7d8fa0;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
 .pause {
   position: absolute;
   top: 0.75rem;

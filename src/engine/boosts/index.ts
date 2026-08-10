@@ -3,6 +3,7 @@ export {
   BOOST_MIN_PERCENT,
   DEFAULT_POINTS,
   LOADOUT_POINTS,
+  boostsForRound,
   boostsFromPoints,
   toPoints,
 } from './boosts';

@@ -2,7 +2,8 @@ import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { usePlayerCombat } from './usePlayerCombat';
-import type { CombatListener, CombatSnapshot, World } from '~app/engine/world';
+import type { CombatSnapshot } from '~app/engine/combat';
+import type { CombatListener, World } from '~app/engine/world';
 
 function stubWorld() {
   const watchers = new Set<CombatListener>();
@@ -16,6 +17,7 @@ function stubWorld() {
     subscribeRoster: vi.fn(() => () => {}),
     setPlayerDirection: vi.fn(),
     roll: vi.fn(),
+    subscribeRound: vi.fn(() => () => {}),
     subscribeCombat: vi.fn((onChange) => {
       watchers.add(onChange);
 

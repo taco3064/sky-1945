@@ -16,6 +16,7 @@ function stubWorld() {
     subscribeCombat: vi.fn(() => () => {}),
     setPlayerDirection: vi.fn(),
     roll: vi.fn(),
+    subscribeRound: vi.fn(() => () => {}),
     subscribeRoster: vi.fn((onChange) => {
       watchers.add(onChange);
 
@@ -48,11 +49,11 @@ describe('useEntityRoster', () => {
     const { world, send } = stubWorld();
     const { result } = renderHook(() => useEntityRoster(world));
 
-    send([{ id: 1, kind: 'player' }, { id: 2, kind: 'bullet' }]);
+    send([{ id: 1, kind: 'player' }, { id: 2, kind: 'player-bullet' }]);
 
     expect(result.current).toEqual([
       { id: 1, kind: 'player' },
-      { id: 2, kind: 'bullet' },
+      { id: 2, kind: 'player-bullet' },
     ]);
   });
 
@@ -60,7 +61,7 @@ describe('useEntityRoster', () => {
     const { world, send } = stubWorld();
     const { result } = renderHook(() => useEntityRoster(world));
 
-    send([{ id: 1, kind: 'player' }, { id: 2, kind: 'bullet' }]);
+    send([{ id: 1, kind: 'player' }, { id: 2, kind: 'player-bullet' }]);
     send([{ id: 1, kind: 'player' }]);
 
     expect(result.current).toHaveLength(1);

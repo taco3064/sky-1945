@@ -5,6 +5,7 @@ import {
   BOOST_MIN_PERCENT,
   DEFAULT_POINTS,
   LOADOUT_POINTS,
+  boostsForRound,
   boostsFromPoints,
   toPoints,
 } from './boosts';
@@ -83,5 +84,38 @@ describe('toPoints · the one door a raw number comes through', () => {
     expect(toPoints(-999)).toBe(0);
     expect(toPoints(LOADOUT_POINTS + 1)).toBe(LOADOUT_POINTS);
     expect(toPoints(999)).toBe(LOADOUT_POINTS);
+  });
+});
+
+describe('boostsForRound · difficulty is a function, not a table', () => {
+  it('leaves round one at full strength on both stats', () => {
+    const { speed, power } = boostsForRound(1);
+
+    expect(speed.percent).toBe(BOOST_MIN_PERCENT);
+    expect(power.percent).toBe(BOOST_MIN_PERCENT);
+  });
+
+  // Deliberately NOT zero-sum, unlike the player's allocation: a harder round
+  // is faster *and* hits harder. Same shape, different arithmetic — which is
+  // why this is a second function rather than a reused one.
+  it('raises both stats together, where a loadout trades one for the other', () => {
+    const { speed, power } = boostsForRound(5);
+
+    expect(speed.percent).toBeGreaterThan(BOOST_MIN_PERCENT);
+    expect(power.percent).toBe(speed.percent);
+  });
+
+  it('climbs one point per round', () => {
+    expect(boostsForRound(3).speed.percent - boostsForRound(2).speed.percent)
+      .toBe(boostsForRound(2).speed.percent - boostsForRound(1).speed.percent);
+  });
+
+  it('stops at the same ceiling the player has', () => {
+    expect(boostsForRound(11).speed.percent).toBe(BOOST_MAX_PERCENT);
+    expect(boostsForRound(500).speed.percent).toBe(BOOST_MAX_PERCENT);
+  });
+
+  it('treats a round below one as round one, rather than going negative', () => {
+    expect(boostsForRound(0).speed.percent).toBe(BOOST_MIN_PERCENT);
   });
 });

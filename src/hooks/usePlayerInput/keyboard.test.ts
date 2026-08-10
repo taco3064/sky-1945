@@ -15,6 +15,7 @@ function stubWorld(): World {
     subscribeCombat: vi.fn(() => () => {}),
     setPlayerDirection: vi.fn(),
     roll: vi.fn(),
+    subscribeRound: vi.fn(() => () => {}),
   };
 }
 

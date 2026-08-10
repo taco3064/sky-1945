@@ -1,0 +1,182 @@
+/*
+ * ENEMY-S / M / L — 34×36, 54×56, 86×78 world units.
+ *
+ * Red deepening with size: a light orange-red for the trash mob, full red for
+ * the medium, a dark blood red for the heavy. Size and colour both read as
+ * threat, so a player can rank what is on screen without counting parts.
+ *
+ * Drawn nose-up. The engine publishes a 180° angle on every enemy body, so
+ * they arrive on the field pointing at the player without a wrapper element.
+ *
+ * Hit radii (13 / 20 / 32, in engine/entities) nearly match these drawings —
+ * the opposite of the player's 3 against a 44-wide sprite. That asymmetry is
+ * the balance of the game, and it cannot be reconciled by accident because
+ * components may not import engine.
+ */
+
+.mount {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+
+.mount > * {
+  position: absolute;
+}
+
+/* ------------------------------------------------------------ small · 34×36 */
+
+.small {
+  --shell: #ff8a5c;
+  --deep: #8f3216;
+  --mid: #a63f22;
+
+  width: 34px;
+  height: 36px;
+  margin-top: -18px;
+  margin-left: -17px;
+}
+
+.small .wing {
+  top: 34%;
+  left: 0;
+  width: 100%;
+  height: 42%;
+  background: linear-gradient(180deg, var(--shell) 0%, var(--mid) 100%);
+  clip-path: polygon(0% 0%, 100% 0%, 78% 100%, 22% 100%);
+}
+
+.small .body {
+  top: 0;
+  left: 32%;
+  width: 36%;
+  height: 82%;
+  background: linear-gradient(180deg, #ffc7a8 0%, var(--shell) 55%, var(--deep) 100%);
+  clip-path: polygon(50% 0%, 100% 46%, 82% 100%, 18% 100%, 0% 46%);
+}
+
+.small .core {
+  top: 44%;
+  left: 42%;
+  width: 16%;
+  height: 16%;
+  background: #ffe9c9;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #ffb37a;
+}
+
+/* ----------------------------------------------------------- medium · 54×56 */
+
+.medium {
+  --shell: #ff4d4d;
+  --deep: #6e1a1a;
+  --mid: #7d1f1f;
+
+  width: 54px;
+  height: 56px;
+  margin-top: -28px;
+  margin-left: -27px;
+}
+
+.medium .wing {
+  top: 30%;
+  left: 0;
+  width: 100%;
+  height: 44%;
+  background: linear-gradient(180deg, var(--shell) 0%, var(--mid) 100%);
+  clip-path: polygon(0% 14%, 20% 0%, 80% 0%, 100% 14%, 100% 74%, 62% 100%, 38% 100%, 0% 74%);
+}
+
+.medium .body {
+  top: 0;
+  left: 34%;
+  width: 32%;
+  height: 100%;
+  background: linear-gradient(180deg, #ffb0b0 0%, var(--shell) 48%, var(--deep) 100%);
+  clip-path: polygon(50% 0%, 100% 28%, 100% 84%, 66% 100%, 34% 100%, 0% 84%, 0% 28%);
+}
+
+.medium .canopy {
+  top: 22%;
+  left: 42%;
+  width: 16%;
+  height: 18%;
+  background: #2a0d0d;
+  border-radius: 50%;
+}
+
+.medium .pod {
+  top: 44%;
+  width: 15%;
+  height: 40%;
+  background: linear-gradient(180deg, #9c2b2b, #4d1414);
+  border-radius: 2px 2px 40% 40%;
+}
+
+/* ------------------------------------------------------------ large · 86×78 */
+
+.large {
+  --shell: #b8322c;
+  --deep: #4a100d;
+  --mid: #5e1512;
+
+  width: 86px;
+  height: 78px;
+  margin-top: -39px;
+  margin-left: -43px;
+}
+
+.large .wing {
+  top: 26%;
+  left: 0;
+  width: 100%;
+  height: 46%;
+  background: linear-gradient(180deg, var(--shell) 0%, var(--mid) 100%);
+  clip-path: polygon(0% 20%, 14% 0%, 86% 0%, 100% 20%, 100% 100%, 72% 82%, 28% 82%, 0% 100%);
+}
+
+.large .armour {
+  top: 40%;
+  left: 12%;
+  width: 76%;
+  height: 16%;
+  background: repeating-linear-gradient(90deg, #7d211d 0 6px, #521310 6px 8px);
+}
+
+.large .body {
+  top: 0;
+  left: 36%;
+  width: 28%;
+  height: 100%;
+  background: linear-gradient(180deg, #f0a9a4 0%, var(--shell) 40%, var(--deep) 100%);
+  clip-path: polygon(50% 0%, 100% 22%, 100% 86%, 70% 100%, 30% 100%, 0% 86%, 0% 22%);
+}
+
+.large .core {
+  top: 30%;
+  left: 44%;
+  width: 12%;
+  height: 12%;
+  background: #ffdca8;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #ff8a5c;
+}
+
+.large .pod {
+  top: 56%;
+  width: 11%;
+  height: 34%;
+  background: linear-gradient(180deg, #8f2723, #38100e);
+  border-radius: 2px 2px 45% 45%;
+}
+
+/* ---------------------------------------------------- shared pod placement */
+
+.podLeft {
+  left: 8%;
+}
+
+.podRight {
+  right: 8%;
+}

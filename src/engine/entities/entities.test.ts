@@ -9,6 +9,7 @@ import {
   createBullet,
   createPlayer,
   damageOf,
+  velocityOf,
 } from './entities';
 
 describe('createPlayer', () => {
@@ -35,11 +36,22 @@ describe('createPlayer', () => {
 
 describe('createBullet', () => {
   it('carries the damage it was given', () => {
-    expect(damageOf(createBullet(0, 0, 42))).toBe(42);
+    const shot = createBullet({
+      x: 0,
+      y: 0,
+      vx: 0,
+      vy: -600,
+      damage: 42,
+      side: 'player',
+    });
+
+    expect(damageOf(shot)).toBe(42);
   });
 
   it('is a sensor too — a shot passes through, it does not shove', () => {
-    const bullet = createBullet(0, 0, 10);
+    const bullet = createBullet({
+      x: 0, y: 0, vx: 0, vy: -600, damage: 10, side: 'player',
+    });
 
     expect(bullet.isSensor).toBe(true);
     expect(bullet.label).toBe('player-bullet');
@@ -49,10 +61,11 @@ describe('createBullet', () => {
     expect(BULLET_HIT_RADIUS).toBeGreaterThan(PLAYER_HIT_RADIUS);
   });
 
-  // A body with no damage on it reads as zero rather than NaN — the player
-  // body reaches damageOf too, once collisions start dispatching in #7.
-  it('reads zero from a body that carries no damage', () => {
+  // A body with no payload reads as zero rather than NaN — the player body
+  // reaches both readers once collisions start dispatching in #6.
+  it('reads zero from a body that carries no payload', () => {
     expect(damageOf(createPlayer(0, 0))).toBe(0);
+    expect(velocityOf(createPlayer(0, 0))).toEqual({ vx: 0, vy: 0 });
   });
 });
 

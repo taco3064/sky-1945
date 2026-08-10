@@ -9,6 +9,12 @@
 /** How long a barrel roll runs, and how long it protects. */
 export const ROLL_DURATION = 1.2;
 
+/** What the aircraft is doing, as opposed to where it is. */
+export interface CombatSnapshot {
+  rolling: boolean;
+  invulnerable: boolean;
+}
+
 export interface Combat {
   /**
    * Time until which the player cannot be hit.

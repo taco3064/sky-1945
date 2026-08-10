@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
-import type { CombatSnapshot, World } from '~app/engine/world';
+import type { CombatSnapshot } from '~app/engine/combat';
+import type { World } from '~app/engine/world';
 
 const IDLE: CombatSnapshot = { rolling: false, invulnerable: false };
 

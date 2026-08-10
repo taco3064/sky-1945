@@ -2,6 +2,8 @@ export {
   BULLET_BASE_DAMAGE,
   BULLET_HIT_RADIUS,
   BULLET_SPEED,
+  ENEMY_BULLET_SPEED,
+  ENEMY_STATS,
   PLAYER_BASE_SPEED,
   PLAYER_BOUNDS_INSET,
   PLAYER_FIRE_INTERVAL,
@@ -9,6 +11,10 @@ export {
   PLAYER_MUZZLE_OFFSET,
   PLAYER_START_INSET,
   createBullet,
+  createEnemy,
   createPlayer,
   damageOf,
+  enemyMuzzleOffset,
+  velocityOf,
 } from './entities';
+export type { EnemyKind, EnemyStats } from './entities';
