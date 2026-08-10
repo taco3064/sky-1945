@@ -43,6 +43,7 @@ export function Game() {
       speedPoints={speedPoints}
       paused={state === 'paused'}
       onPause={() => send(state === 'paused' ? 'resume' : 'pause')}
+      onQuit={() => send('abort')}
     />
   );
 }

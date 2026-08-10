@@ -21,6 +21,8 @@ export interface GameStageProps {
   paused: boolean;
   /** Pause, or resume from paused — Escape and the on-screen button both send it. */
   onPause: () => void;
+  /** Abandon the run and go back to the title. Only reachable while paused. */
+  onQuit: () => void;
 }
 
 /**
@@ -33,7 +35,7 @@ export interface GameStageProps {
  * Both boosts are derived here rather than handed in: this is the unit that
  * needs them, so this is the unit that computes them.
  */
-export function GameStage({ speedPoints, paused, onPause }: GameStageProps) {
+export function GameStage({ speedPoints, paused, onPause, onQuit }: GameStageProps) {
   const world = useMemo(() => {
     const { speed, power } = boostsFromPoints(speedPoints);
 
@@ -84,7 +86,21 @@ export function GameStage({ speedPoints, paused, onPause }: GameStageProps) {
           {paused ? '▶' : '❚❚'}
         </button>
 
-        {paused ? <div className={styles.paused}>PAUSED</div> : null}
+        {paused && (
+          <div className={styles.paused}>
+            <p className={styles.pausedTitle}>PAUSED</p>
+            <div className={styles.pausedActions}>
+              <button type="button" className={styles.action} onClick={onPause}>
+                RESUME
+              </button>
+              {/* The run's only exit before lives run out (#6). Without it a
+                  paused player is not paused, they are stuck. */}
+              <button type="button" className={styles.action} onClick={onQuit}>
+                QUIT
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </GameProvider>
   );

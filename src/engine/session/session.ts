@@ -11,7 +11,14 @@
 export type SessionState = 'title' | 'loadout' | 'playing' | 'paused' | 'gameover';
 
 /** Everything that can move a run between screens. */
-export type SessionEvent = 'start' | 'confirm' | 'pause' | 'resume' | 'die' | 'reset';
+export type SessionEvent
+  = | 'start'
+    | 'confirm'
+    | 'pause'
+    | 'resume'
+    | 'abort'
+    | 'die'
+    | 'reset';
 
 /**
  * The whole machine. A state's absent event is a refused event — there is no
@@ -21,7 +28,10 @@ const TRANSITIONS: Record<SessionState, Partial<Record<SessionEvent, SessionStat
   title: { start: 'loadout' },
   loadout: { confirm: 'playing' },
   playing: { pause: 'paused', die: 'gameover' },
-  paused: { resume: 'playing' },
+  // `abort` is the only way out of a run before it ends. Without it the
+  // player is stuck: the run has no other exit until lives reach zero (#6),
+  // and a game you cannot leave is not paused, it is trapped.
+  paused: { resume: 'playing', abort: 'title' },
   gameover: { reset: 'title' },
 };
 
