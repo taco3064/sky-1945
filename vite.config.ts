@@ -16,6 +16,9 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    // Unmounts what each test rendered. Not optional with `globals` off —
+    // see the comment in the file.
+    setupFiles: ['./src/test-setup.ts'],
     coverage: {
       provider: 'v8',
       // engine and hooks only, on purpose. The engine is pure functions and
