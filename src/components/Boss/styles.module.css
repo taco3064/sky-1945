@@ -1,0 +1,250 @@
+/*
+ * BOSS — 140×124 world units, drawn nose-up.
+ *
+ * The enemy palette deepens with size: light orange-red, full red, blood red.
+ * This continues past the end of it — near-black plate with a cold violet
+ * energy running through it. The violet is the one colour on the enemy side
+ * that is not red, and it is reserved for the thing that has a health bar.
+ *
+ * Hit radius is 52 (engine/entities), against 140 of drawing. Roughly the same
+ * generous ratio the other enemies get: the player is the dot, everything they
+ * shoot at is a fair target.
+ *
+ * The pose and the move arrive as data attributes, and everything below the
+ * silhouette is the tell — the core pulses through a wind-up, the arms light for
+ * the shaped attacks, and the charge line drops for the beam.
+ */
+
+.mount {
+  --plate: #2b1524;
+  --plate-lit: #4a2440;
+  --edge: #7d3f68;
+  --energy: #c07dff;
+  --energy-hot: #f0d4ff;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 140px;
+  height: 124px;
+  margin-top: -62px;
+  margin-left: -70px;
+  will-change: transform;
+}
+
+.mount > * {
+  position: absolute;
+}
+
+/* ------------------------------------------------------------- silhouette */
+
+.wing {
+  top: 22%;
+  left: 0;
+  width: 100%;
+  height: 52%;
+  background: linear-gradient(180deg, var(--plate-lit) 0%, var(--plate) 100%);
+  clip-path: polygon(0% 26%, 10% 0%, 90% 0%, 100% 26%, 100% 100%, 74% 78%, 26% 78%, 0% 100%);
+}
+
+/* The forward-swept outriggers that make the silhouette read as a boss rather
+   than a scaled-up heavy. */
+.arm {
+  top: 8%;
+  width: 16%;
+  height: 44%;
+  background: linear-gradient(180deg, var(--edge) 0%, var(--plate) 90%);
+}
+
+.armLeft {
+  left: 2%;
+  clip-path: polygon(0% 30%, 100% 0%, 100% 100%, 20% 82%);
+}
+
+.armRight {
+  right: 2%;
+  clip-path: polygon(0% 0%, 100% 30%, 80% 82%, 0% 100%);
+}
+
+.armour {
+  top: 44%;
+  left: 10%;
+  width: 80%;
+  height: 13%;
+  background: repeating-linear-gradient(90deg, #57274a 0 7px, #24101f 7px 10px);
+}
+
+.pod {
+  top: 58%;
+  width: 10%;
+  height: 32%;
+  background: linear-gradient(180deg, #4a2440, #180a15);
+  border-radius: 2px 2px 45% 45%;
+}
+
+.podLeft {
+  left: 14%;
+}
+
+.podRight {
+  right: 14%;
+}
+
+.body {
+  top: 0;
+  left: 37%;
+  width: 26%;
+  height: 100%;
+  background: linear-gradient(180deg, #b98fae 0%, var(--plate-lit) 38%, #150a13 100%);
+  clip-path: polygon(50% 0%, 100% 20%, 100% 86%, 68% 100%, 32% 100%, 0% 86%, 0% 20%);
+}
+
+/* A lit rib down the fuselage: the only thing that reads as *powered* when the
+   boss is idle, so it never looks like wreckage that happens to be flying. */
+.spine {
+  top: 12%;
+  left: 49%;
+  width: 2%;
+  height: 62%;
+  background: linear-gradient(180deg, var(--energy) 0%, transparent 100%);
+  opacity: 0.75;
+}
+
+.canopy {
+  top: 16%;
+  left: 45%;
+  width: 10%;
+  height: 12%;
+  background: #120810;
+  border-radius: 50%;
+}
+
+.core {
+  top: 34%;
+  left: 43%;
+  width: 14%;
+  height: 14%;
+  background: radial-gradient(circle, var(--energy-hot) 0%, var(--energy) 60%, #6a2fa0 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--energy);
+}
+
+/* The beam's aperture, at the nose. Dark until it is charging. */
+.muzzle {
+  top: 92%;
+  left: 44%;
+  width: 12%;
+  height: 8%;
+  background: #120810;
+  border-radius: 0 0 50% 50%;
+  box-shadow: inset 0 2px 4px #000;
+}
+
+/* ------------------------------------------------------------------- tells */
+
+/*
+ * Winding up: the core swells and brightens.
+ *
+ * Fast enough to register in well under a second, because the shortest tell in
+ * the game is 0.45s and a player has to read it inside that.
+ */
+.mount[data-pose='winding'] .core {
+  animation: charge 0.4s ease-in-out infinite alternate;
+}
+
+.mount[data-pose='winding'] .spine {
+  opacity: 1;
+}
+
+@keyframes charge {
+  from {
+    box-shadow: 0 0 10px var(--energy);
+    transform: scale(1);
+  }
+
+  to {
+    box-shadow: 0 0 26px var(--energy-hot);
+    transform: scale(1.5);
+  }
+}
+
+/* Firing a shaped attack: the pods are what the bullets come out of, so they
+   are what lights. */
+.mount[data-pose='firing'] .pod {
+  background: linear-gradient(180deg, var(--energy) 0%, #4a2440 70%);
+  box-shadow: 0 0 12px var(--energy);
+}
+
+.mount[data-pose='firing'] .core {
+  box-shadow: 0 0 20px var(--energy-hot);
+}
+
+/*
+ * The beam's charge line.
+ *
+ * Absent for every other attack. It hangs from the muzzle down past the bottom
+ * of the field, exactly where the beam body will be, and widens from a hairline
+ * over the wind-up. A player who has seen one beam knows what this means, and
+ * that recognition is what makes the roll a decision rather than a reflex.
+ */
+.charge {
+  top: 96%;
+  left: 50%;
+  width: 2px;
+  height: 900px;
+  background: linear-gradient(180deg, var(--energy-hot) 0%, rgb(192 125 255 / 10%) 100%);
+  opacity: 0;
+  transform: translateX(-50%);
+}
+
+.mount[data-pose='winding'][data-move='beam'] .charge {
+  animation: aim 1.4s ease-in forwards;
+}
+
+.mount[data-pose='winding'][data-move='beam'] .muzzle {
+  background: var(--energy);
+  box-shadow: 0 0 18px var(--energy-hot);
+}
+
+@keyframes aim {
+  from {
+    width: 2px;
+    opacity: 0.35;
+  }
+
+  to {
+    width: 14px;
+    opacity: 0.9;
+  }
+}
+
+.mount[data-pose='firing'][data-move='beam'] .muzzle {
+  background: var(--energy-hot);
+  box-shadow: 0 0 30px var(--energy-hot);
+}
+
+/* Arriving: nothing is charged and nothing is aimed, so the player gets a
+   moment to see what has turned up. */
+.mount[data-pose='entering'] .core,
+.mount[data-pose='recovering'] .core {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /*
+   * The tells cannot simply be switched off — they are information, not
+   * decoration, and a player who cannot see them cannot answer a beam. So the
+   * animations become static states instead: fully lit rather than pulsing.
+   */
+  .mount[data-pose='winding'] .core {
+    animation: none;
+    box-shadow: 0 0 26px var(--energy-hot);
+    transform: scale(1.4);
+  }
+
+  .mount[data-pose='winding'][data-move='beam'] .charge {
+    animation: none;
+    width: 14px;
+    opacity: 0.9;
+  }
+}
