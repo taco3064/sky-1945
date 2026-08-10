@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { WORLD_HEIGHT, WORLD_WIDTH, createWorld } from './world';
+import { createWorld } from './world';
+import { FIELD_HEIGHT, FIELD_WIDTH } from '../field';
 import type { EntityRecord, Transform, World } from './world';
 
 /** Advance far enough for several frames to run. */
@@ -126,9 +127,9 @@ describe('createWorld · subscriptions', () => {
 
     const { x, y } = positionOf(world);
 
-    expect(x).toBeCloseTo(WORLD_WIDTH / 2, 0);
-    expect(y).toBeGreaterThan(WORLD_HEIGHT / 2);
-    expect(y).toBeLessThan(WORLD_HEIGHT);
+    expect(x).toBeCloseTo(FIELD_WIDTH / 2, 0);
+    expect(y).toBeGreaterThan(FIELD_HEIGHT / 2);
+    expect(y).toBeLessThan(FIELD_HEIGHT);
   });
 
   it('stops delivering to an unsubscribed listener', () => {
@@ -276,8 +277,8 @@ describe('createWorld · movement', () => {
 
     const { x, y } = positionOf(world);
 
-    expect(x).toBeLessThan(WORLD_WIDTH);
-    expect(x).toBeGreaterThan(WORLD_WIDTH - 40);
+    expect(x).toBeLessThan(FIELD_WIDTH);
+    expect(x).toBeGreaterThan(FIELD_WIDTH - 40);
     expect(y).toBeGreaterThan(0);
     expect(y).toBeLessThan(40);
   });
@@ -299,7 +300,7 @@ describe('createWorld · pause', () => {
     runFrames(500);
 
     expect(at().x).toBe(stopped);
-    expect(stopped).toBeGreaterThan(WORLD_WIDTH / 2);
+    expect(stopped).toBeGreaterThan(FIELD_WIDTH / 2);
   });
 
   it('resumes from where it stopped, without cashing in the lost time', () => {
@@ -344,7 +345,9 @@ describe('createWorld · the guns fire themselves', () => {
 
     const latest = onRoster.mock.calls.at(-1)?.[0] as EntityRecord[];
 
-    expect(latest.filter((entity) => entity.kind === 'bullet').length).toBeGreaterThan(1);
+    const fired = latest.filter((entity) => entity.kind === 'player-bullet');
+
+    expect(fired.length).toBeGreaterThan(1);
   });
 
   it('always keeps the player in the roster', () => {
@@ -363,7 +366,9 @@ describe('createWorld · the guns fire themselves', () => {
     let bulletId = 0;
 
     world.subscribeRoster((entities) => {
-      bulletId = entities.find((entity) => entity.kind === 'bullet')?.id ?? bulletId;
+      const shot = entities.find((entity) => entity.kind === 'player-bullet');
+
+      bulletId = shot?.id ?? bulletId;
     });
 
     world.start();
@@ -429,7 +434,7 @@ describe('createWorld · the roll', () => {
     world.roll();
     runFrames(900);
 
-    expect(entities.filter((entity) => entity.kind === 'bullet')).toHaveLength(0);
+    expect(entities.filter((entity) => entity.kind === 'player-bullet')).toHaveLength(0);
   });
 
   it('fires again once the roll ends', () => {
@@ -445,7 +450,7 @@ describe('createWorld · the roll', () => {
     world.roll();
     runFrames(1600);
 
-    const bullets = entities.filter((entity) => entity.kind === 'bullet');
+    const bullets = entities.filter((entity) => entity.kind === 'player-bullet');
 
     expect(bullets.length).toBeGreaterThan(0);
   });
@@ -478,5 +483,32 @@ describe('createWorld · the roll', () => {
     runFrames(1500);
 
     expect(onCombat).toHaveBeenCalledOnce();
+  });
+});
+
+describe('createWorld · rounds', () => {
+  it('starts on round one', () => {
+    world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
+
+    const onRound = vi.fn();
+
+    world.subscribeRound(onRound);
+
+    expect(onRound).toHaveBeenCalledWith(1);
+  });
+
+  // A round ends when its last wave has been sent *and* the field is clear —
+  // not on a timer, so a player who kills nothing still has to wait for the
+  // slowest craft to fly past.
+  it('advances once the last wave has cleared the field', () => {
+    world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
+
+    const onRound = vi.fn();
+
+    world.subscribeRound(onRound);
+    world.start();
+    runFrames(45000);
+
+    expect(onRound.mock.calls.at(-1)?.[0]).toBeGreaterThan(1);
   });
 });

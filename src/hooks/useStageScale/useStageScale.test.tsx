@@ -2,7 +2,7 @@ import { render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useStageScale } from './useStageScale';
-import { WORLD_HEIGHT, WORLD_WIDTH } from '~app/engine/world';
+import { FIELD_HEIGHT, FIELD_WIDTH } from '~app/engine/field';
 
 /** jsdom has no ResizeObserver, so the test supplies one it can drive. */
 class StubResizeObserver {
@@ -88,7 +88,7 @@ describe('useStageScale', () => {
   it('writes 1 at exactly the field size', () => {
     const { getByTestId } = render(<Stage />);
 
-    latest().resizeTo(WORLD_WIDTH, WORLD_HEIGHT);
+    latest().resizeTo(FIELD_WIDTH, FIELD_HEIGHT);
 
     expect(getByTestId('viewport').style.getPropertyValue('--stage-scale')).toBe('1');
   });

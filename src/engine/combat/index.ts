@@ -7,4 +7,4 @@ export {
   isRolling,
   startRoll,
 } from './combat';
-export type { Combat } from './combat';
+export type { Combat, CombatSnapshot } from './combat';

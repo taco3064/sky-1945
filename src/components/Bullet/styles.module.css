@@ -25,3 +25,24 @@
   inset: -3px -4px;
   background: radial-gradient(ellipse at 50% 35%, rgb(110 231 255 / 55%), transparent 70%);
 }
+
+/*
+ * Enemy fire: amber-red, and a touch larger.
+ *
+ * Colour alone would not be enough — a player scanning a full screen reads
+ * shape and size before hue, and telling their own shots from the ones that
+ * kill them has to work at a glance.
+ */
+.hostile {
+  width: 10px;
+  height: 10px;
+  margin-top: -5px;
+  margin-left: -5px;
+  background: radial-gradient(circle at 50% 40%, #fff3d0 0%, #ffb03a 40%, #d63a1a 100%);
+  border-radius: 50%;
+}
+
+.hostile::after {
+  inset: -4px;
+  background: radial-gradient(circle, rgb(255 138 60 / 55%), transparent 70%);
+}

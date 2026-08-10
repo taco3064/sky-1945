@@ -86,3 +86,22 @@ export function boostsFromPoints(points: LoadoutPoints): Boosts {
     power: boost(LOADOUT_POINTS - points),
   };
 }
+
+/**
+ * The round's difficulty, in the same shape a loadout produces.
+ *
+ * Deliberately **not** zero-sum, unlike the player's allocation: a harder
+ * round is faster *and* hits harder, where spending a point on the player's
+ * speed costs them power. Same shape, different arithmetic — which is what
+ * "one model, two sources" actually means, and why this is a second function
+ * rather than a reused one.
+ *
+ * Round 1 is 100% on both. Each round adds one point's worth, and it stops at
+ * 300% — the same ceiling the player has, reached at round 11.
+ */
+export function boostsForRound(round: number): Boosts {
+  const points = Math.min(Math.max(round - 1, 0), LOADOUT_POINTS);
+  const same = boost(points);
+
+  return { speed: same, power: same };
+}

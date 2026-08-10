@@ -1,11 +1,15 @@
 import { Bodies } from 'matter-js';
 import type { Body } from 'matter-js';
 
+import type { BulletSpawn, PatternKind } from '../patterns';
+
 /**
  * The bodies the simulation moves around. Physics only — nothing here knows
  * how an aircraft is drawn, and nothing that draws one can reach this module
  * (the engine layer does not admit `components` as an importer).
  */
+
+/* ---------------------------------------------------------------- player */
 
 /**
  * The player's collision circle, in world units.
@@ -52,6 +56,8 @@ export function createPlayer(x: number, y: number): Body {
   });
 }
 
+/* --------------------------------------------------------------- bullets */
+
 /**
  * Bullets are small, and generous to hit with — the player's aim is not
  * where the difficulty is meant to live.
@@ -61,11 +67,14 @@ export const BULLET_HIT_RADIUS = 4;
 /** World units per second. Fast enough to feel instant across a 960-unit field. */
 export const BULLET_SPEED = 780;
 
+/** Enemy fire is slower than the player's, so it can be read and dodged. */
+export const ENEMY_BULLET_SPEED = 260;
+
 /** Damage before the loadout's power multiplier. */
 export const BULLET_BASE_DAMAGE = 10;
 
 /**
- * Seconds between shots.
+ * Seconds between the player's shots.
  *
  * The guns never stop (#5 removed the fire button), so this is the whole
  * firing model: ten a second, steady. A steady rate is also what makes the
@@ -77,30 +86,138 @@ export const PLAYER_FIRE_INTERVAL = 0.1;
 /** How far ahead of the player's centre a shot appears. */
 export const PLAYER_MUZZLE_OFFSET = 26;
 
+/** What a bullet carries beyond its position. */
+interface BulletPayload {
+  damage: number;
+  vx: number;
+  vy: number;
+}
+
 /**
  * A bullet.
  *
- * Damage rides on the body rather than being looked up at impact: it is
- * `base × powerBoost`, baked in at spawn, so no boost arithmetic ever runs
- * inside the frame loop.
+ * Damage and velocity ride on the body rather than being looked up at impact:
+ * damage is `base × powerBoost` baked in at spawn, and velocity comes from the
+ * pattern that fired it. Neither is recomputed inside the frame loop.
  */
-export function createBullet(x: number, y: number, damage: number): Body {
-  const bullet = Bodies.circle(x, y, BULLET_HIT_RADIUS, {
-    label: 'player-bullet',
+export function createBullet(spawn: BulletSpawn): Body {
+  const bullet = Bodies.circle(spawn.x, spawn.y, BULLET_HIT_RADIUS, {
+    label: spawn.side === 'player' ? 'player-bullet' : 'enemy-bullet',
     isSensor: true,
     frictionAir: 0,
   });
 
-  // Matter carries arbitrary data on `plugin`, which is where a value that
-  // belongs to the game rather than to the physics goes.
-  bullet.plugin = { damage };
+  // Matter carries arbitrary data on `plugin`, which is where values that
+  // belong to the game rather than to the physics go.
+  const payload: BulletPayload = {
+    damage: spawn.damage,
+    vx: spawn.vx,
+    vy: spawn.vy,
+  };
+
+  bullet.plugin = payload;
 
   return bullet;
 }
 
 /** Reads back what {@link createBullet} baked in. */
 export function damageOf(body: Body): number {
-  const plugin = body.plugin as { damage?: number };
+  return (body.plugin as Partial<BulletPayload>).damage ?? 0;
+}
 
-  return plugin.damage ?? 0;
+/** The velocity a pattern gave this bullet, in world units per second. */
+export function velocityOf(body: Body): { vx: number; vy: number } {
+  const payload = body.plugin as Partial<BulletPayload>;
+
+  return { vx: payload.vx ?? 0, vy: payload.vy ?? 0 };
+}
+
+/* --------------------------------------------------------------- enemies */
+
+export type EnemyKind = 'small' | 'medium' | 'large';
+
+export interface EnemyStats {
+  /** Collision radius, in world units. */
+  radius: number;
+  /** Downward speed at 100%, world units per second. */
+  speed: number;
+  /** Bullet damage at 100%. */
+  damage: number;
+  /** Seconds between volleys. */
+  fireInterval: number;
+  /** Which trajectory its fire takes. */
+  pattern: PatternKind;
+  /** How far it drifts sideways, in world units. Zero flies straight. */
+  sway: number;
+  /** Sway cycles per second. */
+  swayRate: number;
+}
+
+/**
+ * The three silhouettes, and what each one is for.
+ *
+ * Unlike the player, an enemy's hit circle nearly matches its drawing —
+ * roughly a third of the sprite's width. The asymmetry is deliberate and is
+ * the whole balance of the game: the player is a dot that dies on contact,
+ * and enemies are generous targets. One rule applied to both sides would make
+ * this unplayable in one direction and trivial in the other.
+ *
+ * The DOM node counts behind these (3 / 5 / 6) are what set the concurrency
+ * ceilings — a small enemy is cheap enough to send ten of.
+ */
+export const ENEMY_STATS: Record<EnemyKind, EnemyStats> = {
+  small: {
+    radius: 13,
+    speed: 165,
+    damage: 8,
+    fireInterval: 1.6,
+    pattern: 'straight',
+    sway: 0,
+    swayRate: 0,
+  },
+  medium: {
+    radius: 20,
+    speed: 115,
+    damage: 10,
+    fireInterval: 2.4,
+    pattern: 'spread',
+    sway: 70,
+    swayRate: 0.35,
+  },
+  large: {
+    radius: 32,
+    speed: 72,
+    damage: 12,
+    fireInterval: 3.2,
+    pattern: 'radial',
+    sway: 0,
+    swayRate: 0,
+  },
+};
+
+/** Where a volley leaves an enemy — its nose, which points down the screen. */
+export function enemyMuzzleOffset(kind: EnemyKind): number {
+  return ENEMY_STATS[kind].radius + 6;
+}
+
+/**
+ * An enemy body.
+ *
+ * A sensor like everything else: Matter reports the contact and the game
+ * decides what it means. Nothing in this game is pushed by anything.
+ */
+export function createEnemy(kind: EnemyKind, x: number, y: number): Body {
+  return Bodies.circle(x, y, ENEMY_STATS[kind].radius, {
+    label: `enemy-${kind}`,
+    isSensor: true,
+    frictionAir: 0,
+    // Nose down, towards the player.
+    //
+    // Carried on the body rather than added as a CSS wrapper, because the
+    // transform the engine already publishes has an angle in it. A wrapper
+    // would cost one DOM node per enemy — and the reason it would be needed
+    // at all is that the *inner* element is where attitude animations go
+    // (#6's explosion), so the rotation cannot live there either.
+    angle: Math.PI,
+  });
 }

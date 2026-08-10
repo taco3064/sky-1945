@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
 
-import { WORLD_HEIGHT, WORLD_WIDTH } from '~app/engine/world';
+import { FIELD_HEIGHT, FIELD_WIDTH } from '~app/engine/field';
 
 /**
  * Fits the fixed field to whatever screen it lands on, by writing a CSS
@@ -28,7 +28,7 @@ export function useStageScale(): RefObject<HTMLDivElement | null> {
 
     const observer = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect;
-      const scale = Math.min(width / WORLD_WIDTH, height / WORLD_HEIGHT);
+      const scale = Math.min(width / FIELD_WIDTH, height / FIELD_HEIGHT);
 
       viewport.style.setProperty('--stage-scale', String(scale));
     });

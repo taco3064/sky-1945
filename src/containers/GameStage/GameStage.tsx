@@ -1,18 +1,33 @@
 import { useEffect, useMemo } from 'react';
 
 import { Bullet } from '~app/components/Bullet';
+import { Enemy } from '~app/components/Enemy';
+import type { EnemyVariant } from '~app/components/Enemy';
 import { Fighter } from '~app/components/Fighter';
 import { TouchStick } from '~app/components/TouchStick';
 import { GameProvider } from '~app/contexts/GameContext';
 import { boostsFromPoints } from '~app/engine/boosts';
 import type { LoadoutPoints } from '~app/engine/boosts';
 import { createWorld } from '~app/engine/world';
+import type { EntityKind } from '~app/engine/world';
 import { useEntityRoster } from '~app/hooks/useEntityRoster';
+import { useGameRound } from '~app/hooks/useGameRound';
 import { usePlayerCombat } from '~app/hooks/usePlayerCombat';
 import { usePlayerInput } from '~app/hooks/usePlayerInput';
 import { useStageScale } from '~app/hooks/useStageScale';
 
 import styles from './styles.module.css';
+
+/** Which silhouette an enemy kind draws with. */
+const VARIANTS: Record<string, EnemyVariant> = {
+  'enemy-small': 'small',
+  'enemy-medium': 'medium',
+  'enemy-large': 'large',
+};
+
+function variantFor(kind: EntityKind): EnemyVariant {
+  return VARIANTS[kind];
+}
 
 export interface GameStageProps {
   /** The run's allocation. Both boosts are derived here. */
@@ -49,6 +64,7 @@ export function GameStage({ speedPoints, paused, onPause, onQuit }: GameStagePro
   const { surface, stick } = usePlayerInput(world, onPause);
   const entities = useEntityRoster(world);
   const { rolling } = usePlayerCombat(world);
+  const round = useGameRound(world);
 
   useEffect(() => {
     if (paused) {
@@ -66,10 +82,30 @@ export function GameStage({ speedPoints, paused, onPause, onQuit }: GameStagePro
     <GameProvider world={world}>
       <div ref={viewport} className={styles.viewport}>
         <div className={styles.field}>
-          {entities.map((entity) => (entity.kind === 'player'
-            ? <Fighter key={entity.id} id={entity.id} rolling={rolling} />
-            : <Bullet key={entity.id} id={entity.id} />))}
+          {entities.map((entity) => {
+            if (entity.kind === 'player') {
+              return <Fighter key={entity.id} id={entity.id} rolling={rolling} />;
+            }
+
+            if (entity.kind === 'player-bullet') {
+              return <Bullet key={entity.id} id={entity.id} />;
+            }
+
+            if (entity.kind === 'enemy-bullet') {
+              return <Bullet key={entity.id} id={entity.id} hostile />;
+            }
+
+            return (
+              <Enemy
+                key={entity.id}
+                id={entity.id}
+                variant={variantFor(entity.kind)}
+              />
+            );
+          })}
         </div>
+
+        <p className={styles.round}>{`ROUND ${round}`}</p>
 
         {/* Above the field so it catches every touch, including the margins
             a wide screen leaves either side of the play area. */}
