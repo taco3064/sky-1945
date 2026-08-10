@@ -4,19 +4,28 @@ import { describe, expect, it, vi } from 'vitest';
 import { useEntityRoster } from './useEntityRoster';
 import type { EntityRecord, RosterListener, World } from '~app/engine/world';
 
-function stubWorld() {
-  const watchers = new Set<RosterListener>();
-
-  const world: World = {
+function stubWorld(overrides: Partial<World> = {}): World {
+  return {
     playerId: 1,
     start: vi.fn(),
     pause: vi.fn(),
     dispose: vi.fn(),
     subscribe: vi.fn(() => () => {}),
+    subscribeRoster: vi.fn(() => () => {}),
     subscribeCombat: vi.fn(() => () => {}),
+    subscribeRound: vi.fn(() => () => {}),
+    subscribeLives: vi.fn(() => () => {}),
+    subscribeGameOver: vi.fn(() => () => {}),
     setPlayerDirection: vi.fn(),
     roll: vi.fn(),
-    subscribeRound: vi.fn(() => () => {}),
+    ...overrides,
+  };
+}
+
+function drivenWorld() {
+  const watchers = new Set<RosterListener>();
+
+  const world = stubWorld({
     subscribeRoster: vi.fn((onChange) => {
       watchers.add(onChange);
 
@@ -24,7 +33,7 @@ function stubWorld() {
         watchers.delete(onChange);
       };
     }),
-  };
+  });
 
   const send = (entities: EntityRecord[]): void => {
     act(() => {
@@ -39,14 +48,14 @@ function stubWorld() {
 
 describe('useEntityRoster', () => {
   it('starts empty', () => {
-    const { world } = stubWorld();
+    const { world } = drivenWorld();
     const { result } = renderHook(() => useEntityRoster(world));
 
     expect(result.current).toEqual([]);
   });
 
   it('takes what the world sends', () => {
-    const { world, send } = stubWorld();
+    const { world, send } = drivenWorld();
     const { result } = renderHook(() => useEntityRoster(world));
 
     send([{ id: 1, kind: 'player' }, { id: 2, kind: 'player-bullet' }]);
@@ -58,7 +67,7 @@ describe('useEntityRoster', () => {
   });
 
   it('follows despawns as well as spawns', () => {
-    const { world, send } = stubWorld();
+    const { world, send } = drivenWorld();
     const { result } = renderHook(() => useEntityRoster(world));
 
     send([{ id: 1, kind: 'player' }, { id: 2, kind: 'player-bullet' }]);
@@ -68,7 +77,7 @@ describe('useEntityRoster', () => {
   });
 
   it('unsubscribes on unmount', () => {
-    const { world, watcherCount } = stubWorld();
+    const { world, watcherCount } = drivenWorld();
     const { unmount } = renderHook(() => useEntityRoster(world));
 
     expect(watcherCount()).toBe(1);

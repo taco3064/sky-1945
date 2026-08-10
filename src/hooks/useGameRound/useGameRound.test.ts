@@ -4,10 +4,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { useGameRound } from './useGameRound';
 import type { RoundListener, World } from '~app/engine/world';
 
-function stubWorld() {
-  const watchers = new Set<RoundListener>();
-
-  const world: World = {
+function stubWorld(overrides: Partial<World> = {}): World {
+  return {
     playerId: 1,
     start: vi.fn(),
     pause: vi.fn(),
@@ -15,8 +13,19 @@ function stubWorld() {
     subscribe: vi.fn(() => () => {}),
     subscribeRoster: vi.fn(() => () => {}),
     subscribeCombat: vi.fn(() => () => {}),
+    subscribeRound: vi.fn(() => () => {}),
+    subscribeLives: vi.fn(() => () => {}),
+    subscribeGameOver: vi.fn(() => () => {}),
     setPlayerDirection: vi.fn(),
     roll: vi.fn(),
+    ...overrides,
+  };
+}
+
+function drivenWorld() {
+  const watchers = new Set<RoundListener>();
+
+  const world = stubWorld({
     subscribeRound: vi.fn((onChange) => {
       watchers.add(onChange);
 
@@ -24,7 +33,7 @@ function stubWorld() {
         watchers.delete(onChange);
       };
     }),
-  };
+  });
 
   const send = (round: number): void => {
     act(() => {
@@ -39,14 +48,14 @@ function stubWorld() {
 
 describe('useGameRound', () => {
   it('starts on round one', () => {
-    const { world } = stubWorld();
+    const { world } = drivenWorld();
     const { result } = renderHook(() => useGameRound(world));
 
     expect(result.current).toBe(1);
   });
 
   it('follows the round the world announces', () => {
-    const { world, send } = stubWorld();
+    const { world, send } = drivenWorld();
     const { result } = renderHook(() => useGameRound(world));
 
     send(2);
@@ -57,7 +66,7 @@ describe('useGameRound', () => {
   });
 
   it('unsubscribes on unmount', () => {
-    const { world, watcherCount } = stubWorld();
+    const { world, watcherCount } = drivenWorld();
     const { unmount } = renderHook(() => useGameRound(world));
 
     expect(watcherCount()).toBe(1);

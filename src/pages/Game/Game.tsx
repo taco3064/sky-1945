@@ -36,14 +36,15 @@ export function Game() {
     );
   }
 
-  // `gameover` still renders the stage underneath; its overlay arrives with
-  // the lives system (#6).
+  // `playing`, `paused` and `gameover` all render the stage — the last two
+  // stop the world and lay an overlay over it, rather than tearing it down.
   return (
     <GameStage
       speedPoints={speedPoints}
-      paused={state === 'paused'}
+      phase={state}
       onPause={() => send(state === 'paused' ? 'resume' : 'pause')}
-      onQuit={() => send('abort')}
+      onQuit={() => send(state === 'gameover' ? 'reset' : 'abort')}
+      onGameOver={() => send('die')}
     />
   );
 }

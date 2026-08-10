@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { usePlayerInput } from './usePlayerInput';
 import type { World } from '~app/engine/world';
 
-function stubWorld(): World {
+function stubWorld(overrides: Partial<World> = {}): World {
   return {
     playerId: 1,
     start: vi.fn(),
@@ -13,9 +13,12 @@ function stubWorld(): World {
     subscribe: vi.fn(() => () => {}),
     subscribeRoster: vi.fn(() => () => {}),
     subscribeCombat: vi.fn(() => () => {}),
+    subscribeRound: vi.fn(() => () => {}),
+    subscribeLives: vi.fn(() => () => {}),
+    subscribeGameOver: vi.fn(() => () => {}),
     setPlayerDirection: vi.fn(),
     roll: vi.fn(),
-    subscribeRound: vi.fn(() => () => {}),
+    ...overrides,
   };
 }
 

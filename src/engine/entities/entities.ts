@@ -67,8 +67,23 @@ export const BULLET_HIT_RADIUS = 4;
 /** World units per second. Fast enough to feel instant across a 960-unit field. */
 export const BULLET_SPEED = 780;
 
-/** Enemy fire is slower than the player's, so it can be read and dodged. */
+/**
+ * The floor on enemy fire — slower than the player's, so it can be read.
+ *
+ * A floor rather than the speed itself, because it is not enough on its own at
+ * high rounds: a round-11 small enemy travels at 165 x 3 = 495 and would
+ * overtake its own bullets. See ENEMY_BULLET_LEAD.
+ */
 export const ENEMY_BULLET_SPEED = 260;
+
+/**
+ * How much faster than its shooter a bullet must travel.
+ *
+ * Without this, difficulty scaling eventually lets an enemy outrun its own
+ * fire — the craft arriving ahead of the shot it took is not a hard enemy, it
+ * is a broken one.
+ */
+export const ENEMY_BULLET_LEAD = 1.5;
 
 /** Damage before the loadout's power multiplier. */
 export const BULLET_BASE_DAMAGE = 10;
@@ -139,11 +154,26 @@ export type EnemyKind = 'small' | 'medium' | 'large';
 export interface EnemyStats {
   /** Collision radius, in world units. */
   radius: number;
+  /**
+   * How much damage it takes to kill.
+   *
+   * Never leaves the engine. A trash mob has no health bar — the player reads
+   * "it is still there" and knows it is not dead — so this number is spent
+   * entirely inside the simulation and React is only told the entity died.
+   * The boss is the exception, and that is #8's problem.
+   */
+  hp: number;
   /** Downward speed at 100%, world units per second. */
   speed: number;
   /** Bullet damage at 100%. */
   damage: number;
-  /** Seconds between volleys. */
+  /**
+   * Seconds between volleys at 100%.
+   *
+   * Divided by the round's speed boost in flight, so a faster craft fires
+   * proportionally more often. Otherwise scaling speed *reduces* the pressure
+   * it applies: it crosses the field sooner and gets fewer volleys off.
+   */
   fireInterval: number;
   /** Which trajectory its fire takes. */
   pattern: PatternKind;
@@ -167,28 +197,31 @@ export interface EnemyStats {
  */
 export const ENEMY_STATS: Record<EnemyKind, EnemyStats> = {
   small: {
+    hp: 20,
     radius: 13,
     speed: 165,
     damage: 8,
-    fireInterval: 1.6,
+    fireInterval: 1.1,
     pattern: 'straight',
     sway: 0,
     swayRate: 0,
   },
   medium: {
+    hp: 60,
     radius: 20,
     speed: 115,
     damage: 10,
-    fireInterval: 2.4,
+    fireInterval: 1.6,
     pattern: 'spread',
     sway: 70,
     swayRate: 0.35,
   },
   large: {
+    hp: 160,
     radius: 32,
     speed: 72,
     damage: 12,
-    fireInterval: 3.2,
+    fireInterval: 2.2,
     pattern: 'radial',
     sway: 0,
     swayRate: 0,

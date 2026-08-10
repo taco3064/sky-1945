@@ -1,143 +1,68 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 
-import { Bullet } from '~app/components/Bullet';
-import { Enemy } from '~app/components/Enemy';
-import type { EnemyVariant } from '~app/components/Enemy';
-import { Fighter } from '~app/components/Fighter';
-import { TouchStick } from '~app/components/TouchStick';
-import { GameProvider } from '~app/contexts/GameContext';
 import { boostsFromPoints } from '~app/engine/boosts';
 import type { LoadoutPoints } from '~app/engine/boosts';
 import { createWorld } from '~app/engine/world';
-import type { EntityKind } from '~app/engine/world';
-import { useEntityRoster } from '~app/hooks/useEntityRoster';
-import { useGameRound } from '~app/hooks/useGameRound';
-import { usePlayerCombat } from '~app/hooks/usePlayerCombat';
-import { usePlayerInput } from '~app/hooks/usePlayerInput';
-import { useStageScale } from '~app/hooks/useStageScale';
+import type { World } from '~app/engine/world';
 
+import { Field } from './field';
+import type { StagePhase } from './field';
 import styles from './styles.module.css';
-
-/** Which silhouette an enemy kind draws with. */
-const VARIANTS: Record<string, EnemyVariant> = {
-  'enemy-small': 'small',
-  'enemy-medium': 'medium',
-  'enemy-large': 'large',
-};
-
-function variantFor(kind: EntityKind): EnemyVariant {
-  return VARIANTS[kind];
-}
 
 export interface GameStageProps {
   /** The run's allocation. Both boosts are derived here. */
   speedPoints: LoadoutPoints;
-  /** Whether the run is paused. The world stops stepping, keeping every body. */
-  paused: boolean;
-  /** Pause, or resume from paused — Escape and the on-screen button both send it. */
+  /** Playing, paused, or finished. Anything but `playing` stops the world. */
+  phase: StagePhase;
+  /** Pause, or resume from paused. */
   onPause: () => void;
-  /** Abandon the run and go back to the title. Only reachable while paused. */
+  /** Leave the run for the title screen. */
   onQuit: () => void;
+  /** The last life is gone. */
+  onGameOver: () => void;
 }
 
 /**
- * The field, and the only place the simulation is created and torn down.
+ * Owns the simulation's lifetime, and nothing else.
  *
- * It mounts the provider itself — containers may, and pages may not, so a
- * screen that needs the world wraps its own subtree rather than reaching up
- * for one.
+ * The world is created **inside an effect** rather than in a `useMemo`, and
+ * that distinction was a real bug rather than a preference. A `useMemo` builds
+ * one world and hands the same one to every mount, while StrictMode
+ * deliberately mounts twice: the first cleanup called `dispose()`, whose
+ * `Engine.clear()` empties Matter's collision detector, and the second mount
+ * restarted that same world. The detector is only rebuilt when bodies are added
+ * or removed, so it stayed empty — positions kept updating, because the engine
+ * writes those itself, and **nothing ever collided again**. It reproduced on
+ * every page load, which is precisely the class of bug StrictMode exists to
+ * surface.
  *
- * Both boosts are derived here rather than handed in: this is the unit that
- * needs them, so this is the unit that computes them.
+ * So each mount builds its own world and disposes its own world, and `dispose`
+ * gets to mean what it says.
  */
-export function GameStage({ speedPoints, paused, onPause, onQuit }: GameStageProps) {
-  const world = useMemo(() => {
+export function GameStage({ speedPoints, ...rest }: GameStageProps) {
+  const [world, setWorld] = useState<World | null>(null);
+
+  useEffect(() => {
     const { speed, power } = boostsFromPoints(speedPoints);
 
-    return createWorld({
+    const created = createWorld({
       speedMultiplier: speed.multiplier,
       powerMultiplier: power.multiplier,
     });
+
+    setWorld(created);
+
+    return () => {
+      created.dispose();
+      setWorld(null);
+    };
   }, [speedPoints]);
 
-  const viewport = useStageScale();
-  const { surface, stick } = usePlayerInput(world, onPause);
-  const entities = useEntityRoster(world);
-  const { rolling } = usePlayerCombat(world);
-  const round = useGameRound(world);
+  // One frame of empty field before the world exists. The alternative — a world
+  // built during render — is the bug described above.
+  if (!world) {
+    return <div className={styles.viewport} />;
+  }
 
-  useEffect(() => {
-    if (paused) {
-      world.pause();
-    } else {
-      world.start();
-    }
-  }, [world, paused]);
-
-  // Separate from the pause effect on purpose: disposal belongs to the
-  // world's lifetime, not to whether it happens to be paused right now.
-  useEffect(() => () => world.dispose(), [world]);
-
-  return (
-    <GameProvider world={world}>
-      <div ref={viewport} className={styles.viewport}>
-        <div className={styles.field}>
-          {entities.map((entity) => {
-            if (entity.kind === 'player') {
-              return <Fighter key={entity.id} id={entity.id} rolling={rolling} />;
-            }
-
-            if (entity.kind === 'player-bullet') {
-              return <Bullet key={entity.id} id={entity.id} />;
-            }
-
-            if (entity.kind === 'enemy-bullet') {
-              return <Bullet key={entity.id} id={entity.id} hostile />;
-            }
-
-            return (
-              <Enemy
-                key={entity.id}
-                id={entity.id}
-                variant={variantFor(entity.kind)}
-              />
-            );
-          })}
-        </div>
-
-        <p className={styles.round}>{`ROUND ${round}`}</p>
-
-        {/* Above the field so it catches every touch, including the margins
-            a wide screen leaves either side of the play area. */}
-        <div ref={surface} className={styles.surface} />
-
-        <TouchStick ref={stick} />
-
-        <button
-          type="button"
-          className={styles.pause}
-          aria-label={paused ? 'Resume' : 'Pause'}
-          onClick={onPause}
-        >
-          {paused ? '▶' : '❚❚'}
-        </button>
-
-        {paused && (
-          <div className={styles.paused}>
-            <p className={styles.pausedTitle}>PAUSED</p>
-            <div className={styles.pausedActions}>
-              <button type="button" className={styles.action} onClick={onPause}>
-                RESUME
-              </button>
-              {/* The run's only exit before lives run out (#6). Without it a
-                  paused player is not paused, they are stuck. */}
-              <button type="button" className={styles.action} onClick={onQuit}>
-                QUIT
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </GameProvider>
-  );
+  return <Field world={world} {...rest} />;
 }

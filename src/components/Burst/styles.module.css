@@ -1,0 +1,130 @@
+/*
+ * The wreck, in two beats: a flash, then the shards.
+ *
+ * The whole thing is CSS animation — nothing here is driven per frame, and the
+ * engine only publishes the position once because a burst does not move.
+ * Total duration matches BURST_DURATION in engine/effects; if one changes the
+ * other has to, or shards will be cut off mid-flight or linger after the
+ * entity is gone.
+ */
+
+.burst {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+/* --- palettes --- */
+
+.ally {
+  --core: #eafcff;
+  --shard: #6ee7ff;
+  --edge: #2b6ba8;
+}
+
+.enemy {
+  --core: #fff3d0;
+  --shard: #ff8a5c;
+  --edge: #8f3216;
+}
+
+/* --- sizes --- */
+
+.small {
+  --reach: 34px;
+  --piece: 5px;
+  --flash-size: 26px;
+}
+
+.large {
+  --reach: 58px;
+  --piece: 7px;
+  --flash-size: 46px;
+}
+
+/* --- the flash --- */
+
+.flash {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--flash-size);
+  height: var(--flash-size);
+  margin-top: calc(var(--flash-size) / -2);
+  margin-left: calc(var(--flash-size) / -2);
+  background: radial-gradient(circle, var(--core) 0%, var(--shard) 45%, transparent 72%);
+  border-radius: 50%;
+  animation: flash 180ms ease-out forwards;
+}
+
+@keyframes flash {
+  from {
+    opacity: 1;
+    transform: scale(0.3);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+/* --- the shards --- */
+
+.shard {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--piece);
+  height: calc(var(--piece) * 1.8);
+  margin-top: calc(var(--piece) / -1);
+  margin-left: calc(var(--piece) / -2);
+  background: linear-gradient(180deg, var(--shard), var(--edge));
+  animation: scatter 600ms cubic-bezier(0.2, 0.6, 0.35, 1) forwards;
+}
+
+/*
+ * Ten directions, hand-picked rather than evenly divided: an even fan reads as
+ * a decoration, and an uneven one reads as something breaking. The first six
+ * cover the circle, so a small burst using only those still looks complete.
+ */
+.shard:nth-child(2) { --dx: -0.9; --dy: -0.5; --spin: 210deg; }
+.shard:nth-child(3) { --dx: 0.8; --dy: -0.7; --spin: -260deg; }
+.shard:nth-child(4) { --dx: 0.95; --dy: 0.45; --spin: 180deg; }
+.shard:nth-child(5) { --dx: -0.2; --dy: 1; --spin: -140deg; }
+.shard:nth-child(6) { --dx: -0.85; --dy: 0.6; --spin: 300deg; }
+.shard:nth-child(7) { --dx: 0.25; --dy: -1; --spin: -190deg; }
+.shard:nth-child(8) { --dx: -0.55; --dy: -0.85; --spin: 240deg; }
+.shard:nth-child(9) { --dx: 0.6; --dy: 0.8; --spin: -220deg; }
+.shard:nth-child(10) { --dx: 1; --dy: -0.15; --spin: 160deg; }
+.shard:nth-child(11) { --dx: -1; --dy: 0.1; --spin: -300deg; }
+
+@keyframes scatter {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+
+  to {
+    opacity: 0;
+    transform:
+      translate3d(calc(var(--dx, 1) * var(--reach)), calc(var(--dy, 1) * var(--reach)), 0)
+      rotate(var(--spin, 180deg));
+  }
+}
+
+/* The wreck still has to register — a hit the player cannot see is worse than
+   one they cannot admire. So the flash stays and only the scatter goes. */
+@media (prefers-reduced-motion: reduce) {
+  .shard {
+    animation: none;
+    opacity: 0;
+  }
+
+  .flash {
+    animation-duration: 400ms;
+  }
+}

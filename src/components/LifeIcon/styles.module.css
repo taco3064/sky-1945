@@ -1,0 +1,34 @@
+/*
+ * ALLY-01 at 14 × 16, reduced to two parts.
+ *
+ * Not a scaled copy of the Fighter: its six parts and three pseudo elements
+ * are shapes that only resolve above ~30px. What reads at this size is the
+ * silhouette plus one bright point, so that is all this draws.
+ */
+
+.icon {
+  position: relative;
+  display: inline-block;
+  width: 14px;
+  height: 16px;
+}
+
+.wing {
+  position: absolute;
+  top: 42%;
+  left: 0;
+  width: 100%;
+  height: 34%;
+  background: #33485f;
+  clip-path: polygon(0% 86%, 18% 0%, 82% 0%, 100% 86%, 100% 100%, 66% 62%, 34% 62%, 0% 100%);
+}
+
+.body {
+  position: absolute;
+  top: 0;
+  left: 34%;
+  width: 32%;
+  height: 100%;
+  background: linear-gradient(180deg, #6ee7ff 0%, #4da3ff 40%, #16202c 100%);
+  clip-path: polygon(50% 0%, 100% 24%, 100% 88%, 62% 100%, 38% 100%, 0% 88%, 0% 24%);
+}

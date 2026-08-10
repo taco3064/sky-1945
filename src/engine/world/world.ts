@@ -1,33 +1,32 @@
 import { Engine } from 'matter-js';
 import type { Body } from 'matter-js';
 
-import { boostsForRound } from '../boosts';
 import { createBulletField } from '../bullets';
-import type { BulletField } from '../bullets';
 import { createChannel, createKeyedChannel } from '../channel';
 import type { Channel } from '../channel';
+import { STARTING_LIVES } from '../combat';
 import type { CombatSnapshot } from '../combat';
+import { createCollisionWatch } from '../collisions';
 import { createDirector } from '../director';
+import { createEffectField } from '../effects';
+import type { BurstSize, BurstTone } from '../effects';
 import { createEnemyField } from '../enemies';
-import type { EnemyField } from '../enemies';
+import { stepFrame } from '../frame';
+import type { FrameParts, FrameResult } from '../frame';
 import { createPilot } from '../pilot';
-import type { Pilot } from '../pilot';
 
 /**
- * The simulation, and the only animation loop in the repo — the blueprint's
- * `engine` layer owns `requestAnimationFrame`, so a second one cannot be
- * opened anywhere else without lint saying so.
+ * The simulation's lifetime, and the channels the outside world listens on.
  *
- * Matter runs in sensor mode: gravity off, every body flagged `isSensor`, and
- * every position written directly rather than integrated. What Matter is here
- * for is broad-phase collision — nothing in a bullet-hell game bounces off
- * anything, and a solver stepping 150 bullets would be paying for physics the
- * game never asks about.
+ * What happens inside a frame lives in `../frame`; the field's dimensions in
+ * `../field`; the player in `../pilot`; enemies, bullets and bursts in their
+ * own fields. This module creates them, runs the one animation loop the repo
+ * is allowed (the blueprint's `engine` layer owns `requestAnimationFrame`),
+ * and publishes what changed.
  *
- * What this module owns is the *order things happen in*, and the channels the
- * outside world listens on. Everything else lives where it belongs: the
- * player in `../pilot`, enemies in `../enemies`, bullets in `../bullets`, the
- * schedule in `../director`, the field's dimensions in `../field`.
+ * Matter runs in sensor mode throughout: gravity off, every body a sensor,
+ * every position written directly. Matter reports contacts; nothing here is
+ * ever pushed by anything.
  */
 
 /**
@@ -41,7 +40,7 @@ import type { Pilot } from '../pilot';
  */
 const MAX_STEP_SECONDS = 1 / 60;
 
-/** Matter body ids. */
+/** Matter body ids, and burst ids — which count down from -1. */
 export type EntityId = number;
 
 /** Everything that can be on the field, flat enough for a lookup table. */
@@ -51,11 +50,14 @@ export type EntityKind
     | 'enemy-bullet'
     | 'enemy-small'
     | 'enemy-medium'
-    | 'enemy-large';
+    | 'enemy-large'
+    | 'burst';
 
 export interface EntityRecord {
   id: EntityId;
   kind: EntityKind;
+  /** Bursts only: how big, and whose wreckage it is. */
+  burst?: { size: BurstSize; tone: BurstTone };
 }
 
 export interface Vector2 {
@@ -74,6 +76,8 @@ export type FrameListener = (transform: Transform) => void;
 export type RosterListener = (entities: EntityRecord[]) => void;
 export type CombatListener = (snapshot: CombatSnapshot) => void;
 export type RoundListener = (round: number) => void;
+export type LivesListener = (remaining: number) => void;
+export type GameOverListener = () => void;
 
 export interface WorldOptions {
   /** The loadout's speed multiplier, 1–3. */
@@ -99,6 +103,17 @@ export interface World {
   subscribeCombat: (onChange: CombatListener) => () => void;
   /** Watch the round number. Fires when a round is cleared. */
   subscribeRound: (onChange: RoundListener) => () => void;
+  /**
+   * Watch how many aircraft the run has left.
+   *
+   * Lives live here rather than in React because they and the death that
+   * spends them are one decision: the world knows the player was hit, so it is
+   * the only place that can subtract a life and respawn in the same breath.
+   * Holding a copy upstairs would be two numbers that can disagree.
+   */
+  subscribeLives: (onChange: LivesListener) => () => void;
+  /** Fires when the last life is gone. */
+  subscribeGameOver: (onGameOver: GameOverListener) => () => void;
   /** Point the player. Any vector; length is normalised away. */
   setPlayerDirection: (x: number, y: number) => void;
   /** Attempt a barrel roll. Ignored while one is already running. */
@@ -112,9 +127,8 @@ function clamp(value: number, min: number, max: number): number {
 /**
  * Subscribe, and deliver the current value straight away.
  *
- * All three of the non-frame channels want this — a listener that had to wait
- * for the next change to learn the present state would render a round counter
- * showing nothing until the round ended.
+ * A listener that had to wait for the next change to learn the present state
+ * would render a round counter showing nothing until the round ended.
  */
 function openWith<T>(channel: Channel<T>, current: () => T) {
   return (onChange: (value: T) => void) => {
@@ -129,23 +143,24 @@ function openWith<T>(channel: Channel<T>, current: () => T) {
 /**
  * Everything on the field, right now.
  *
- * Reads the three fields rather than closing over them, so it lives out here
- * with the other pure helpers instead of inside the factory.
+ * Reads the parts rather than closing over them, so it lives out here with the
+ * other pure helpers instead of inside the factory.
  */
-function rosterOf(
-  pilot: Pilot,
-  bullets: BulletField,
-  enemies: EnemyField,
-): EntityRecord[] {
+function rosterOf(parts: FrameParts): EntityRecord[] {
   return [
-    { id: pilot.id, kind: 'player' },
-    ...bullets.records().map(({ id, hostile }): EntityRecord => ({
+    { id: parts.pilot.id, kind: 'player' },
+    ...parts.bullets.records().map(({ id, hostile }): EntityRecord => ({
       id,
       kind: hostile ? 'enemy-bullet' : 'player-bullet',
     })),
-    ...enemies.records().map(({ id, kind }): EntityRecord => ({
+    ...parts.enemies.records().map(({ id, kind }): EntityRecord => ({
       id,
       kind: `enemy-${kind}`,
+    })),
+    ...parts.effects.records().map(({ id, size, tone }): EntityRecord => ({
+      id,
+      kind: 'burst',
+      burst: { size, tone },
     })),
   ];
 }
@@ -158,56 +173,81 @@ function transformOf(body: Body): Transform {
   };
 }
 
+/** Build the simulation's moving parts. */
+function assemble(engine: Engine, options: WorldOptions): FrameParts {
+  return {
+    engine,
+    pilot: createPilot(engine, options),
+    bullets: createBulletField(engine),
+    enemies: createEnemyField(engine),
+    effects: createEffectField(),
+    collisions: createCollisionWatch(engine),
+    director: createDirector(),
+  };
+}
+
 export function createWorld(options: WorldOptions): World {
   const engine = Engine.create({ gravity: { x: 0, y: 0 } });
-  const pilot = createPilot(engine, options);
-  const bullets = createBulletField(engine);
-  const enemies = createEnemyField(engine);
-  const director = createDirector();
+  const parts = assemble(engine, options);
 
   const channels = {
     frames: createKeyedChannel<EntityId, Transform>(),
     roster: createChannel<EntityRecord[]>(),
     combat: createChannel<CombatSnapshot>(),
     round: createChannel<number>(),
+    lives: createChannel<number>(),
+    gameOver: createChannel<void>(),
   };
 
   const loop = { frame: null as number | null, previous: 0 };
 
   let wasRolling = false;
+  let lives = STARTING_LIVES;
 
-  /** Everyone moves, everyone who is due fires. Returns whether the roster changed. */
-  const advanceAll = (elapsed: number): boolean => {
-    const boosts = boostsForRound(director.round());
-
-    for (const spawn of director.advance(elapsed)) {
-      enemies.spawn(spawn.kind, spawn.x);
+  /**
+   * Spend a life, and end the run if that was the last one.
+   *
+   * The fresh aircraft is already up and already protected — `pilot.kill()`
+   * does both, because a frame resolves in several collision passes and a craft
+   * left unprotected between them would die again on the next one.
+   */
+  const spendLife = (): void => {
+    // The run is already over. Whoever is watching stops the world when they
+    // hear about it, but the engine holds the invariant itself rather than
+    // trusting that to arrive before the next contact does.
+    if (lives === 0) {
+      return;
     }
 
-    const fromEnemies = enemies.advance(elapsed, {
-      speed: boosts.speed.multiplier,
-      power: boosts.power.multiplier,
-    });
+    lives -= 1;
+    channels.lives.send(lives);
 
-    const spawned = bullets.add([...pilot.advance(elapsed), ...fromEnemies.shots]);
+    if (lives > 0) {
+      return;
+    }
 
-    return spawned || bullets.advance(elapsed) || fromEnemies.changed;
+    channels.gameOver.send(undefined);
   };
 
   const publishFrames = (): void => {
-    channels.frames.send(pilot.id, transformOf(pilot.body));
+    channels.frames.send(parts.pilot.id, transformOf(parts.pilot.body));
 
-    for (const body of [...bullets.bodies(), ...enemies.bodies()]) {
+    for (const body of [...parts.bullets.bodies(), ...parts.enemies.bodies()]) {
       channels.frames.send(body.id, transformOf(body));
+    }
+
+    // Bursts do not move, but a subscriber mounting after one began still has
+    // to hear a position from somewhere.
+    for (const { id, x, y } of parts.effects.placements()) {
+      channels.frames.send(id, { x, y, angle: 0 });
     }
   };
 
-  /** A round ends when its last wave has been sent and the field is clear. */
-  const publishChanges = (rosterChanged: boolean): void => {
-    const combat = pilot.snapshot();
+  const publish = (result: FrameResult): void => {
+    const combat = parts.pilot.snapshot();
 
-    if (rosterChanged) {
-      channels.roster.send(rosterOf(pilot, bullets, enemies));
+    if (result.rosterChanged) {
+      channels.roster.send(rosterOf(parts));
     }
 
     if (combat.rolling !== wasRolling) {
@@ -215,9 +255,12 @@ export function createWorld(options: WorldOptions): World {
       channels.combat.send(combat);
     }
 
-    if (director.isDrained() && enemies.count() === 0) {
-      director.nextRound();
-      channels.round.send(director.round());
+    if (result.roundAdvanced) {
+      channels.round.send(parts.director.round());
+    }
+
+    if (result.playerDied) {
+      spendLife();
     }
   };
 
@@ -229,18 +272,14 @@ export function createWorld(options: WorldOptions): World {
     const elapsed = clamp((now - loop.previous) / 1000, 0, MAX_STEP_SECONDS);
 
     loop.previous = now;
-
-    const rosterChanged = advanceAll(elapsed);
-
-    Engine.update(engine, elapsed * 1000);
     publishFrames();
-    publishChanges(rosterChanged);
+    publish(stepFrame(parts, elapsed));
 
     loop.frame = requestAnimationFrame(step);
   };
 
   return {
-    playerId: pilot.id,
+    playerId: parts.pilot.id,
 
     start() {
       if (loop.frame !== null) {
@@ -260,8 +299,10 @@ export function createWorld(options: WorldOptions): World {
 
     dispose() {
       this.pause();
-      bullets.clear();
-      enemies.clear();
+      parts.collisions.dispose();
+      parts.bullets.clear();
+      parts.enemies.clear();
+      parts.effects.clear();
 
       for (const channel of Object.values(channels)) {
         channel.clear();
@@ -272,22 +313,26 @@ export function createWorld(options: WorldOptions): World {
 
     subscribe: (id, onFrame) => channels.frames.subscribe(id, onFrame),
 
-    subscribeRoster: openWith(channels.roster, () => rosterOf(pilot, bullets, enemies)),
+    subscribeRoster: openWith(channels.roster, () => rosterOf(parts)),
 
-    subscribeCombat: openWith(channels.combat, pilot.snapshot),
+    subscribeCombat: openWith(channels.combat, parts.pilot.snapshot),
 
-    subscribeRound: openWith(channels.round, director.round),
+    subscribeRound: openWith(channels.round, parts.director.round),
 
-    setPlayerDirection: (x, y) => pilot.point(x, y),
+    subscribeLives: openWith(channels.lives, () => lives),
+
+    subscribeGameOver: (onGameOver) => channels.gameOver.subscribe(onGameOver),
+
+    setPlayerDirection: (x, y) => parts.pilot.point(x, y),
 
     // Announced here rather than left to the next frame's publish: the
     // animation should start on the keypress, not 16ms after it.
     roll() {
-      if (!pilot.roll()) {
+      if (!parts.pilot.roll()) {
         return;
       }
 
-      const combat = pilot.snapshot();
+      const combat = parts.pilot.snapshot();
 
       wasRolling = combat.rolling;
       channels.combat.send(combat);

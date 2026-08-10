@@ -19,6 +19,14 @@ export interface FighterProps {
    * what to draw, never where the state came from.
    */
   rolling?: boolean;
+  /**
+   * True while the aircraft cannot be hit — after a respawn, or mid-roll.
+   *
+   * Drawn as a blink rather than left invisible: the player has to be able to
+   * tell "I am safe" from "I am about to die", and a craft that looks normal
+   * while protected teaches the wrong lesson about what is survivable.
+   */
+  invulnerable?: boolean;
 }
 
 /**
@@ -30,12 +38,18 @@ export interface FighterProps {
  * Both writing `transform` on the same element would overwrite each other
  * sixty times a second.
  */
-export function Fighter({ id, rolling = false }: FighterProps) {
+export function Fighter({ id, rolling = false, invulnerable = false }: FighterProps) {
   const ref = useEntityTransform(id);
 
   return (
     <div ref={ref} className={styles.mount}>
-      <div className={`${styles.craft} ${rolling ? styles.rolling : ''}`}>
+      <div
+        className={[
+          styles.craft,
+          rolling ? styles.rolling : '',
+          invulnerable ? styles.invulnerable : '',
+        ].join(' ')}
+      >
         <div className={styles.thrust} />
         <div className={styles.wing} />
         <div className={`${styles.fin} ${styles.finLeft}`} />

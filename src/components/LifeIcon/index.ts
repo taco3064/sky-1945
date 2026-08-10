@@ -1,0 +1,1 @@
+export { LifeIcon } from './LifeIcon';
