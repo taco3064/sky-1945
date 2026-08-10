@@ -1,0 +1,92 @@
+# Publish the game to GitHub Pages whenever main moves.
+#
+# The verify job is not decoration beside the deploy — it gates it. Every gate in
+# this repo (lint, tsc, the 100% coverage floor, and blueprint's layer nets) has
+# until now run only on a developer's machine, behind a hook that can be skipped.
+# This is the first place they run somewhere nobody can bypass, and a green
+# deployment badge is meant to mean all of them held.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  # A redeploy without a commit: useful when the Pages settings change, or to
+  # republish after a failed run.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  # Required by actions/deploy-pages, which authenticates to Pages with an OIDC
+  # token rather than a stored secret.
+  id-token: write
+
+# One deployment at a time, and never cancel one that is already publishing —
+# a half-finished deploy would leave the site serving a mix of two builds.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      # Each gate is its own step so a failure names itself in the run summary
+      # rather than hiding inside one long script.
+      - name: Lint
+        run: npm run lint
+
+      - name: Types
+        run: npx tsc -b --force
+
+      - name: Tests and coverage floor
+        run: npm run coverage
+
+      # The architecture contract this repo exists to test. It reports rather
+      # than fails on structure it cannot see, so the hard boundaries are the
+      # ESLint rules above — this is the survey that says how much is covered.
+      - name: Architecture contract
+        run: npm run inspect
+
+  build:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      # Pages serves a project site from /<repo>/, so the bundle's asset URLs
+      # have to be written for that prefix. Passed here rather than set in
+      # vite.config.ts: where the site is hosted is a fact about deployment, and
+      # a local `npm run build` should stay root-relative.
+      - name: Build
+        run: npx vite build --base=/${{ github.event.repository.name }}/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
