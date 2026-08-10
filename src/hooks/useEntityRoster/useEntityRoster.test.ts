@@ -16,6 +16,7 @@ function stubWorld(overrides: Partial<World> = {}): World {
     subscribeRound: vi.fn(() => () => {}),
     subscribeLives: vi.fn(() => () => {}),
     subscribeGameOver: vi.fn(() => () => {}),
+    subscribeBoss: vi.fn(() => () => {}),
     setPlayerDirection: vi.fn(),
     roll: vi.fn(),
     ...overrides,

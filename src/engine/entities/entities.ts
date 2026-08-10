@@ -250,3 +250,76 @@ export function createEnemy(kind: EnemyKind, x: number, y: number): Body {
     angle: Math.PI,
   });
 }
+
+/* ------------------------------------------------------------------- boss */
+
+/**
+ * The boss's numbers, and why they are not a fourth `ENEMY_STATS` entry.
+ *
+ * Every field in `EnemyStats` would mean something different here. Its `hp` is
+ * published to React — the bar across the top — where a trash mob's never
+ * leaves the engine. It has no single `pattern`, because it draws on all three.
+ * It has no `fireInterval`, because its fire is a sequence of wind-up and
+ * release rather than a metronome. And it never leaves the field: a trash mob's
+ * life ends when it flies off, the boss's ends only when it dies.
+ *
+ * Four fields carrying four different meanings is not one table with a special
+ * case in it. `../boss` owns the behaviour; this is only what it is made of.
+ */
+export const BOSS_STATS = {
+  /** Collision radius. Large, and honestly so — there is no dodging past it. */
+  radius: 52,
+  /** Hit points in round 1. `../boss` scales this with the round. */
+  hp: 900,
+  /** World units per second, both entering and patrolling. */
+  speed: 90,
+  /** Damage per bullet at 100%. */
+  damage: 14,
+};
+
+/** The altitude it settles at: high enough to leave the player room to work. */
+export const BOSS_ALTITUDE = 150;
+
+/**
+ * The beam's footprint.
+ *
+ * Long enough to reach past the bottom edge from the boss's altitude, so the
+ * only honest answers are sideways or a roll — never "wait underneath it".
+ */
+export const BEAM_WIDTH = 88;
+export const BEAM_LENGTH = 1000;
+
+/** The boss's body. A sensor and nose-down, like every other enemy. */
+export function createBoss(x: number, y: number): Body {
+  return Bodies.circle(x, y, BOSS_STATS.radius, {
+    label: 'enemy-boss',
+    isSensor: true,
+    frictionAir: 0,
+    angle: Math.PI,
+  });
+}
+
+/** Where the boss's fire leaves it. */
+export function bossMuzzleOffset(): number {
+  return BOSS_STATS.radius + 8;
+}
+
+/**
+ * The beam's body: a rectangle hanging from the boss's nose.
+ *
+ * Deliberately not a wall of bullets. Bullets would be dozens of bodies holding
+ * a shape that never changes, they would be deleted one by one as the player's
+ * own fire met them, and the beam's edge would flicker as each one spawned. One
+ * rectangle is the honest description of "this column is lethal right now".
+ *
+ * Labelled `enemy-beam` because `../collisions` treats everything on the enemy
+ * side as fatal on contact but keeps a separate list of the ones that are
+ * hazards rather than aircraft. A beam cannot be shot down.
+ */
+export function createBeam(x: number, y: number): Body {
+  return Bodies.rectangle(x, y + BEAM_LENGTH / 2, BEAM_WIDTH, BEAM_LENGTH, {
+    label: 'enemy-beam',
+    isSensor: true,
+    frictionAir: 0,
+  });
+}

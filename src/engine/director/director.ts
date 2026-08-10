@@ -72,14 +72,30 @@ export function wavesForRound(round: number): Wave[] {
   }));
 }
 
+/**
+ * Which half of a round is running.
+ *
+ * A round used to end when its last wave had been sent and the field was clear.
+ * The boss (#8) splits that in two: the same condition now ends the *waves* and
+ * summons the boss, and only the boss's death ends the round. Without a phase,
+ * the frame would have to infer which of the two "the field is clear" meant, and
+ * it would infer wrong on the frame between the last mob dying and the boss
+ * arriving.
+ */
+export type RoundPhase = 'waves' | 'boss';
+
 export interface Director {
   /** Advance the clock; returns what to put on the field this frame. */
   advance: (elapsed: number) => Spawn[];
   /** Current round, 1-based. */
   round: () => number;
+  /** Which half of the round is running. */
+  phase: () => RoundPhase;
   /** True once every wave of this round has been sent. */
   isDrained: () => boolean;
-  /** Begin the next round. */
+  /** The waves are done; the boss is the rest of the round. */
+  beginBoss: () => void;
+  /** Begin the next round, back at its waves. */
   nextRound: () => void;
 }
 
@@ -88,10 +104,17 @@ export function createDirector(): Director {
   let waves = wavesForRound(round);
   let clock = 0;
   let sent = 0;
+  let phase: RoundPhase = 'waves';
 
   return {
     advance(elapsed) {
       const due: Spawn[] = [];
+
+      // Nothing new arrives during the boss. Mobs on top of it would hide the
+      // one thing the fight is about — reading the boss's tell.
+      if (phase === 'boss') {
+        return due;
+      }
 
       clock += elapsed;
 
@@ -113,13 +136,20 @@ export function createDirector(): Director {
 
     round: () => round,
 
+    phase: () => phase,
+
     isDrained: () => sent >= waves.length,
+
+    beginBoss() {
+      phase = 'boss';
+    },
 
     nextRound() {
       round += 1;
       waves = wavesForRound(round);
       clock = 0;
       sent = 0;
+      phase = 'waves';
     },
   };
 }

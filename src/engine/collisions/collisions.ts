@@ -33,13 +33,31 @@ export interface CollisionWatch {
   dispose: () => void;
 }
 
-function isEnemy(body: Body): boolean {
-  return body.label.startsWith('enemy-') && body.label !== 'enemy-bullet';
+/**
+ * Everything on the enemy side kills the player on contact.
+ *
+ * One rule for aircraft, bullets and the boss's beam alike, because the outcome
+ * is the same for all three and the label prefix already says whose they are.
+ * This replaced a list of "an enemy, or an enemy's bullet" that would have had
+ * to grow an entry every time the enemy side gained a new kind of thing.
+ */
+function isThreat(body: Body): boolean {
+  return body.label.startsWith('enemy-');
 }
 
-/** Anything that kills the player on contact: an enemy, or an enemy's bullet. */
-function isThreat(body: Body): boolean {
-  return isEnemy(body) || body.label === 'enemy-bullet';
+/**
+ * Enemy-side things that threaten but cannot be shot.
+ *
+ * A bullet is not a target, and neither is the boss's beam: player fire passes
+ * straight through both. Without the beam listed here, the player's own shots
+ * would be swallowed by the column they are trying to shoot past, and each one
+ * would report damage against a body that owns no hit points.
+ */
+const HAZARDS = new Set(['enemy-bullet', 'enemy-beam']);
+
+/** Enemy-side and shootable — an aircraft, up to and including the boss. */
+function isEnemy(body: Body): boolean {
+  return isThreat(body) && !HAZARDS.has(body.label);
 }
 
 function damageHit(bullet: Body, enemy: Body): Hit | null {

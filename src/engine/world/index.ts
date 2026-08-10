@@ -1,5 +1,6 @@
 export { createWorld } from './world';
 export type {
+  BossListener,
   CombatListener,
   GameOverListener,
   EntityId,

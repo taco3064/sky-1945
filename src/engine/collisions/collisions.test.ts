@@ -3,7 +3,13 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createCollisionWatch } from './collisions';
 import type { CollisionWatch } from './collisions';
-import { createBullet, createEnemy, createPlayer } from '../entities';
+import {
+  createBeam,
+  createBoss,
+  createBullet,
+  createEnemy,
+  createPlayer,
+} from '../entities';
 
 let engine: Engine;
 let watch: CollisionWatch;
@@ -143,5 +149,56 @@ describe('collisions · draining', () => {
     tick();
 
     expect(watch.drain()).toHaveLength(0);
+  });
+});
+
+describe('collisions · the enemy side is one rule', () => {
+  /*
+   * Contact with anything on the enemy side is fatal, and the label prefix is
+   * the whole test. It replaced a list of "an enemy, or an enemy's bullet",
+   * which would have needed a new entry the moment the boss's beam arrived —
+   * and the failure mode of forgetting is a hazard the player can fly through.
+   */
+  it('kills the player on contact with the boss', () => {
+    Composite.add(engine.world, [createPlayer(270, 150), createBoss(270, 150)]);
+    tick();
+
+    expect(watch.drain()).toEqual([{ kind: 'player-hit' }]);
+  });
+
+  it('kills the player on contact with the beam', () => {
+    Composite.add(engine.world, [createPlayer(270, 600), createBeam(270, 200)]);
+    tick();
+
+    expect(watch.drain()).toEqual([{ kind: 'player-hit' }]);
+  });
+});
+
+describe('collisions · what can be shot', () => {
+  it('reports damage on the boss, which has hit points of its own', () => {
+    const boss = createBoss(270, 150);
+
+    Composite.add(engine.world, [playerBullet(270, 150), boss]);
+    tick();
+
+    expect(watch.drain()).toEqual([{
+      kind: 'enemy-damaged',
+      enemyId: boss.id,
+      bulletId: expect.any(Number),
+      damage: 25,
+    }]);
+  });
+
+  /*
+   * The beam is a hazard, not a target. Without it excluded, the player's own
+   * fire would be swallowed by the very column it is trying to shoot past —
+   * and every shot would report damage against a body that owns no hit points,
+   * so the frame would delete a bullet for nothing.
+   */
+  it('reports nothing when a player bullet meets the beam', () => {
+    Composite.add(engine.world, [playerBullet(270, 400), createBeam(270, 150)]);
+    tick();
+
+    expect(watch.drain()).toEqual([]);
   });
 });

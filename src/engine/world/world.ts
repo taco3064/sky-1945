@@ -1,9 +1,11 @@
 import { Engine } from 'matter-js';
 import type { Body } from 'matter-js';
 
+import { createBossField } from '../boss';
+import type { BossSnapshot } from '../boss';
 import { createBulletField } from '../bullets';
 import { createChannel, createKeyedChannel } from '../channel';
-import type { Channel } from '../channel';
+import type { Channel, KeyedChannel } from '../channel';
 import { STARTING_LIVES } from '../combat';
 import type { CombatSnapshot } from '../combat';
 import { createCollisionWatch } from '../collisions';
@@ -51,6 +53,8 @@ export type EntityKind
     | 'enemy-small'
     | 'enemy-medium'
     | 'enemy-large'
+    | 'enemy-boss'
+    | 'enemy-beam'
     | 'burst';
 
 export interface EntityRecord {
@@ -77,6 +81,7 @@ export type RosterListener = (entities: EntityRecord[]) => void;
 export type CombatListener = (snapshot: CombatSnapshot) => void;
 export type RoundListener = (round: number) => void;
 export type LivesListener = (remaining: number) => void;
+export type BossListener = (boss: BossSnapshot | null) => void;
 export type GameOverListener = () => void;
 
 export interface WorldOptions {
@@ -114,6 +119,15 @@ export interface World {
   subscribeLives: (onChange: LivesListener) => () => void;
   /** Fires when the last life is gone. */
   subscribeGameOver: (onGameOver: GameOverListener) => () => void;
+  /**
+   * Watch the boss: its hit points, its stance, and null when there is none.
+   *
+   * The one place the engine hands its hit points upstairs. A trash mob's stay
+   * down here because nothing draws them — the player reads "it is still there".
+   * The boss has a bar, so React has to know the number, and this is the whole
+   * of that exception rather than a general HP channel.
+   */
+  subscribeBoss: (onChange: BossListener) => () => void;
   /** Point the player. Any vector; length is normalised away. */
   setPlayerDirection: (x: number, y: number) => void;
   /** Attempt a barrel roll. Ignored while one is already running. */
@@ -157,12 +171,45 @@ function rosterOf(parts: FrameParts): EntityRecord[] {
       id,
       kind: `enemy-${kind}`,
     })),
+    ...parts.boss.records().map(({ id, kind }): EntityRecord => ({
+      id,
+      kind: `enemy-${kind}`,
+    })),
     ...parts.effects.records().map(({ id, size, tone }): EntityRecord => ({
       id,
       kind: 'burst',
       burst: { size, tone },
     })),
   ];
+}
+
+/**
+ * Send every position on the field down the transform channel.
+ *
+ * Reads the parts rather than closing over them, like `rosterOf` above — which
+ * is what keeps it out here rather than inside the factory, where it was the
+ * fifteen lines that pushed `createWorld` past its budget.
+ */
+type FrameChannel = KeyedChannel<EntityId, Transform>;
+
+function publishFrames(parts: FrameParts, frames: FrameChannel): void {
+  frames.send(parts.pilot.id, transformOf(parts.pilot.body));
+
+  const moving = [
+    ...parts.bullets.bodies(),
+    ...parts.enemies.bodies(),
+    ...parts.boss.bodies(),
+  ];
+
+  for (const body of moving) {
+    frames.send(body.id, transformOf(body));
+  }
+
+  // Bursts do not move, but a subscriber mounting after one began still has to
+  // hear a position from somewhere.
+  for (const { id, x, y } of parts.effects.placements()) {
+    frames.send(id, { x, y, angle: 0 });
+  }
 }
 
 function transformOf(body: Body): Transform {
@@ -183,6 +230,7 @@ function assemble(engine: Engine, options: WorldOptions): FrameParts {
     effects: createEffectField(),
     collisions: createCollisionWatch(engine),
     director: createDirector(),
+    boss: createBossField(engine),
   };
 }
 
@@ -197,6 +245,7 @@ export function createWorld(options: WorldOptions): World {
     round: createChannel<number>(),
     lives: createChannel<number>(),
     gameOver: createChannel<void>(),
+    boss: createChannel<BossSnapshot | null>(),
   };
 
   const loop = { frame: null as number | null, previous: 0 };
@@ -229,20 +278,6 @@ export function createWorld(options: WorldOptions): World {
     channels.gameOver.send(undefined);
   };
 
-  const publishFrames = (): void => {
-    channels.frames.send(parts.pilot.id, transformOf(parts.pilot.body));
-
-    for (const body of [...parts.bullets.bodies(), ...parts.enemies.bodies()]) {
-      channels.frames.send(body.id, transformOf(body));
-    }
-
-    // Bursts do not move, but a subscriber mounting after one began still has
-    // to hear a position from somewhere.
-    for (const { id, x, y } of parts.effects.placements()) {
-      channels.frames.send(id, { x, y, angle: 0 });
-    }
-  };
-
   const publish = (result: FrameResult): void => {
     const combat = parts.pilot.snapshot();
 
@@ -259,6 +294,10 @@ export function createWorld(options: WorldOptions): World {
       channels.round.send(parts.director.round());
     }
 
+    if (result.bossChanged) {
+      channels.boss.send(parts.boss.snapshot());
+    }
+
     if (result.playerDied) {
       spendLife();
     }
@@ -272,7 +311,7 @@ export function createWorld(options: WorldOptions): World {
     const elapsed = clamp((now - loop.previous) / 1000, 0, MAX_STEP_SECONDS);
 
     loop.previous = now;
-    publishFrames();
+    publishFrames(parts, channels.frames);
     publish(stepFrame(parts, elapsed));
 
     loop.frame = requestAnimationFrame(step);
@@ -302,6 +341,7 @@ export function createWorld(options: WorldOptions): World {
       parts.collisions.dispose();
       parts.bullets.clear();
       parts.enemies.clear();
+      parts.boss.clear();
       parts.effects.clear();
 
       for (const channel of Object.values(channels)) {
@@ -322,6 +362,8 @@ export function createWorld(options: WorldOptions): World {
     subscribeLives: openWith(channels.lives, () => lives),
 
     subscribeGameOver: (onGameOver) => channels.gameOver.subscribe(onGameOver),
+
+    subscribeBoss: openWith(channels.boss, parts.boss.snapshot),
 
     setPlayerDirection: (x, y) => parts.pilot.point(x, y),
 

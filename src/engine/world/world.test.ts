@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createWorld } from './world';
+import { bossHpFor } from '../boss';
 import { STARTING_LIVES } from '../combat';
 import { FIELD_HEIGHT, FIELD_WIDTH } from '../field';
 import type { EntityRecord, Transform, World } from './world';
@@ -498,19 +499,42 @@ describe('createWorld · rounds', () => {
     expect(onRound).toHaveBeenCalledWith(1);
   });
 
-  // A round ends when its last wave has been sent *and* the field is clear —
-  // not on a timer, so a player who kills nothing still has to wait for the
-  // slowest craft to fly past.
-  it('advances once the last wave has cleared the field', () => {
-    world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
+  // The waves end when the last one has been sent *and* the field is clear —
+  // not on a timer, so a player who kills nothing still waits for the slowest
+  // craft to fly past. What that no longer does is end the round: it summons
+  // the boss, and the round runs until the boss dies.
+  //
+  // Full power so the fight resolves inside the run: the player sits in the
+  // centre firing continuously, which is exactly under where the boss settles.
+  it('summons the boss when the waves clear, then advances once it dies', () => {
+    world = createWorld({ speedMultiplier: 1, powerMultiplier: 3 });
 
     const onRound = vi.fn();
+    const onBoss = vi.fn();
 
     world.subscribeRound(onRound);
+    world.subscribeBoss(onBoss);
     world.start();
-    runFrames(45000);
+    runFrames(60000);
 
+    const summoned = onBoss.mock.calls.map(([boss]) => boss).filter(Boolean);
+
+    expect(summoned.length).toBeGreaterThan(0);
+    expect(summoned[0].maxHp).toBe(bossHpFor(1));
     expect(onRound.mock.calls.at(-1)?.[0]).toBeGreaterThan(1);
+  });
+
+  it('has no boss before the waves are done', () => {
+    world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
+
+    const onBoss = vi.fn();
+
+    world.subscribeBoss(onBoss);
+    world.start();
+    runFrames(2000);
+
+    expect(onBoss).toHaveBeenCalledWith(null);
+    expect(onBoss.mock.calls.every(([boss]) => boss === null)).toBe(true);
   });
 });
 
@@ -572,3 +596,4 @@ describe('createWorld · a fresh aircraft does not inherit the last one', () => 
     expect(Math.abs(at().y - settled)).toBeLessThan(FIELD_HEIGHT / 2);
   });
 });
+

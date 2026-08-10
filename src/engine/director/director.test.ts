@@ -119,3 +119,50 @@ describe('createDirector · rounds', () => {
     expect(director.advance(600).length).toBeGreaterThan(first);
   });
 });
+
+describe('createDirector · the round has two phases', () => {
+  it('starts on the waves', () => {
+    expect(createDirector().phase()).toBe('waves');
+  });
+
+  it('moves to the boss when told, and stays on the same round', () => {
+    const director = createDirector();
+
+    director.beginBoss();
+
+    expect(director.phase()).toBe('boss');
+    expect(director.round()).toBe(1);
+  });
+
+  // Mobs on top of the boss would hide the one thing the fight is about:
+  // reading the boss's tell.
+  it('sends nothing new once the boss is up', () => {
+    const director = createDirector();
+
+    director.beginBoss();
+
+    expect(director.advance(60)).toEqual([]);
+  });
+
+  it('goes back to the waves on the next round', () => {
+    const director = createDirector();
+
+    director.beginBoss();
+    director.nextRound();
+
+    expect(director.phase()).toBe('waves');
+    expect(director.round()).toBe(2);
+    expect(director.advance(0).length).toBeGreaterThan(0);
+  });
+
+  it('does not let the boss phase stall the clock for the next round', () => {
+    const director = createDirector();
+
+    director.advance(60);
+    director.beginBoss();
+    director.advance(60);
+    director.nextRound();
+
+    expect(director.isDrained()).toBe(false);
+  });
+});

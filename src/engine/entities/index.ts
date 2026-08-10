@@ -1,4 +1,8 @@
 export {
+  BEAM_LENGTH,
+  BEAM_WIDTH,
+  BOSS_ALTITUDE,
+  BOSS_STATS,
   BULLET_BASE_DAMAGE,
   BULLET_HIT_RADIUS,
   BULLET_SPEED,
@@ -11,6 +15,9 @@ export {
   PLAYER_HIT_RADIUS,
   PLAYER_MUZZLE_OFFSET,
   PLAYER_START_INSET,
+  bossMuzzleOffset,
+  createBeam,
+  createBoss,
   createBullet,
   createEnemy,
   createPlayer,
