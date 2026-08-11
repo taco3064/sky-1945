@@ -160,7 +160,7 @@ describe('collisions · the enemy side is one rule', () => {
    * and the failure mode of forgetting is a hazard the player can fly through.
    */
   it('kills the player on contact with the boss', () => {
-    Composite.add(engine.world, [createPlayer(270, 150), createBoss(270, 150)]);
+    Composite.add(engine.world, [createPlayer(270, 150), createBoss(270, 150, 1)]);
     tick();
 
     expect(watch.drain()).toEqual([{ kind: 'player-hit' }]);
@@ -176,7 +176,7 @@ describe('collisions · the enemy side is one rule', () => {
 
 describe('collisions · what can be shot', () => {
   it('reports damage on the boss, which has hit points of its own', () => {
-    const boss = createBoss(270, 150);
+    const boss = createBoss(270, 150, 1);
 
     Composite.add(engine.world, [playerBullet(270, 150), boss]);
     tick();

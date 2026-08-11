@@ -320,6 +320,30 @@ export const BOSS_STATS = {
   damage: 14,
 };
 
+/**
+ * How large a boss can be rolled, as a multiple of `BOSS_STATS`.
+ *
+ * The one die in the engine, and the exception is narrow enough to state exactly.
+ * Attack order is derived and never drawn, because a player has to *read* it —
+ * predictability there is what makes the tells mean anything. A body size is
+ * different in kind: it is fully visible from the moment the boss appears, so
+ * nothing has to be remembered to answer it, and rolling it is what stops every
+ * fight in a run being the same fight.
+ */
+export const BOSS_SCALE_MIN = 0.8;
+export const BOSS_SCALE_MAX = 2;
+
+/**
+ * A size for a fresh boss.
+ *
+ * Separate from `summon` so it can be handed in instead: the caller in play rolls,
+ * and every test states the size it means. Randomness at the boundary, arithmetic
+ * everywhere inside.
+ */
+export function rollBossScale(): number {
+  return BOSS_SCALE_MIN + Math.random() * (BOSS_SCALE_MAX - BOSS_SCALE_MIN);
+}
+
 /** The altitude it settles at: high enough to leave the player room to work. */
 export const BOSS_ALTITUDE = 150;
 
@@ -342,13 +366,18 @@ export const BOSS_ENTRY_SPEED = 420;
  *
  * Long enough to reach past the bottom edge from the boss's altitude, so the
  * only honest answers are sideways or a roll — never "wait underneath it".
+ *
+ * The width is not scaled by the boss's size. A bigger boss is already harder in
+ * two ways it was given deliberately; a wider lethal column on top of that would
+ * take the sideways answer away, and then the beam has only one answer instead of
+ * two.
  */
 export const BEAM_WIDTH = 88;
 export const BEAM_LENGTH = 1000;
 
-/** The boss's body. A sensor and nose-down, like every other enemy. */
-export function createBoss(x: number, y: number): Body {
-  return Bodies.circle(x, y, BOSS_STATS.radius, {
+/** The boss's body, at the size it was rolled. A sensor and nose-down. */
+export function createBoss(x: number, y: number, scale: number): Body {
+  return Bodies.circle(x, y, BOSS_STATS.radius * scale, {
     label: 'enemy-boss',
     isSensor: true,
     frictionAir: 0,
@@ -356,9 +385,23 @@ export function createBoss(x: number, y: number): Body {
   });
 }
 
-/** Where the boss's fire leaves it. */
-export function bossMuzzleOffset(): number {
-  return BOSS_STATS.radius + 8;
+/**
+ * How far ahead of the boss's centre its aimed fire appears, at scale 1.
+ *
+ * Sized from the *drawing* rather than from the hit circle, and that distinction
+ * started mattering the moment the body could be rolled larger. The sprite is 124
+ * tall against a hit radius of 52, so its nose is about 64 from the centre — and
+ * `radius + 8` was near enough to look right at scale 1 and 20 units short at scale
+ * 2, which reads as fire coming out of the middle of the aircraft.
+ *
+ * One of the handful of engine numbers that answers to the art. The drawing's own
+ * dimensions live in the Boss component's CSS and cannot be imported here, so the
+ * check is visual: at any size the trails should leave the aperture.
+ */
+const BOSS_MUZZLE_REACH = 66;
+
+export function bossMuzzleOffset(scale: number): number {
+  return BOSS_MUZZLE_REACH * scale;
 }
 
 /**

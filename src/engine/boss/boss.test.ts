@@ -4,7 +4,14 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { ALL_ATTACKS, attackAt, durationOf, windUpOf } from './attacks';
 import { bossHpFor, createBossField } from './boss';
 import type { BossField, BossSnapshot } from './boss';
-import { BEAM_WIDTH, BOSS_ALTITUDE, BOSS_STATS } from '../entities';
+import {
+  BEAM_WIDTH,
+  BOSS_ALTITUDE,
+  BOSS_SCALE_MAX,
+  BOSS_SCALE_MIN,
+  BOSS_STATS,
+  PLAYER_START_INSET,
+} from '../entities';
 import { FIELD_HEIGHT, FIELD_WIDTH, isOutside } from '../field';
 import type { BulletSpawn } from '../patterns';
 
@@ -205,28 +212,43 @@ describe('advance · entering', () => {
    * The ceiling is the honest one: 1.5 units of descent per frame plus at most
    * 1.5 of patrol, so anything past 4 is a discontinuity rather than motion.
    */
+  /*
+   * Split by whether a ram is in flight, because the two have very different honest
+   * speeds and one ceiling for both would be too loose to catch anything.
+   *
+   * Cruising, the fastest legitimate motion is the flight in at 7 units a frame plus
+   * about 2 of patrol. A dive is an order of magnitude quicker by design — it now
+   * reaches the bottom of the field in 1.3s — so it gets its own, wider bound.
+   *
+   * Both are still far below a teleport, which is what this exists for: the boss has
+   * shipped two of them, and neither was visible from a single frame.
+   */
   it('never jumps between one frame and the next', () => {
     let previous = { ...boss.bodies()[0].position };
-    let furthest = 0;
+    let cruising = 0;
+    let diving = 0;
 
     for (let step = 0; step < 1800; step += 1) {
+      // Read before advancing: the jump belongs to the stance the boss was *in*,
+      // not the one the step moved it to.
+      const seen = boss.snapshot();
+
       boss.advance(1 / 60, FULL_POWER);
 
       const at = boss.bodies()[0].position;
+      const jump = Math.hypot(at.x - previous.x, at.y - previous.y);
 
-      furthest = Math.max(furthest, Math.hypot(at.x - previous.x, at.y - previous.y));
+      if (seen?.attack === 'ram' && seen.stance === 'firing') {
+        diving = Math.max(diving, jump);
+      } else {
+        cruising = Math.max(cruising, jump);
+      }
+
       previous = { ...at };
     }
 
-    /*
-     * The ceiling adds up the fastest thing each motion can do in one frame: the
-     * flight in at 7 units, the two patrol axes at about 2 between them, and the
-     * ram's dive at around 11 with its sideways slide on top. Twenty is above all
-     * of them together and far below a teleport, which is what this is for — the
-     * boss shipped with a 143-unit jump, and no single-frame assertion could see
-     * it.
-     */
-    expect(furthest).toBeLessThan(24);
+    expect(cruising).toBeLessThan(10);
+    expect(diving).toBeLessThan(48);
   });
 
   /*
@@ -682,5 +704,167 @@ describe('advance · the ram', () => {
 
       expect(isOutside(x, y, BOSS_STATS.radius)).toBe(false);
     }
+  });
+});
+
+describe('summon · the rolled body size', () => {
+  it('takes the size it is given', () => {
+    boss.summon(1, 1.8);
+
+    expect(boss.bodies()[0].circleRadius).toBeCloseTo(BOSS_STATS.radius * 1.8, 5);
+  });
+
+  it('rolls one inside the declared range when none is given', () => {
+    // Twenty rolls: enough that a broken range shows up, few enough to stay fast.
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const rolled = createBossField(Engine.create({ gravity: { x: 0, y: 0 } }));
+
+      rolled.summon(1);
+
+      const radius = rolled.bodies()[0].circleRadius as number;
+
+      expect(radius).toBeGreaterThanOrEqual(BOSS_STATS.radius * BOSS_SCALE_MIN);
+      expect(radius).toBeLessThanOrEqual(BOSS_STATS.radius * BOSS_SCALE_MAX);
+    }
+  });
+
+  // The trade, in both directions: neither size is simply the easier fight.
+  it('moves a small one faster than a large one', () => {
+    const small = createBossField(Engine.create({ gravity: { x: 0, y: 0 } }));
+    const large = createBossField(Engine.create({ gravity: { x: 0, y: 0 } }));
+
+    small.summon(1, BOSS_SCALE_MIN);
+    large.summon(1, BOSS_SCALE_MAX);
+
+    for (const one of [small, large]) {
+      while (one.snapshot()?.stance === 'entering') {
+        one.advance(1 / 60, FULL_POWER);
+      }
+    }
+
+    const spanOf = (one: BossField): number => {
+      const seen: number[] = [];
+
+      for (let step = 0; step < 300; step += 1) {
+        one.advance(1 / 60, FULL_POWER);
+        seen.push(one.bodies()[0].position.x);
+      }
+
+      return Math.max(...seen) - Math.min(...seen);
+    };
+
+    expect(spanOf(small)).toBeGreaterThan(spanOf(large));
+  });
+
+  it('fires more from a large one than a small one', () => {
+    const shotsFrom = (scale: number): number => {
+      const one = createBossField(Engine.create({ gravity: { x: 0, y: 0 } }));
+
+      one.summon(1, scale);
+
+      let shots = 0;
+
+      for (let step = 0; step < 1800; step += 1) {
+        shots += one.advance(1 / 60, FULL_POWER).shots.length;
+      }
+
+      return shots;
+    };
+
+    expect(shotsFrom(BOSS_SCALE_MAX)).toBeGreaterThan(shotsFrom(BOSS_SCALE_MIN));
+  });
+});
+
+describe('advance · the ram reaches the bottom', () => {
+  /*
+   * It used to bottom out around 55% of the field, which left a band along the
+   * bottom edge where standing still was safe — reported as space left for someone
+   * to hide in. The dive is measured to a floor now, so it arrives at the same row
+   * whatever the patrol was doing.
+   */
+  it('carries the boss past the player station', () => {
+    boss.summon(1, 1);
+    land();
+
+    let deepest = 0;
+
+    for (let step = 0; step < 9000; step += 1) {
+      boss.advance(1 / 60, { power: 1, playerX: FIELD_WIDTH / 2 });
+      deepest = Math.max(deepest, boss.bodies()[0].position.y);
+    }
+
+    expect(deepest).toBeGreaterThan(FIELD_HEIGHT - PLAYER_START_INSET);
+  });
+
+  it('keeps its centre on the field even at the bottom of a dive', () => {
+    boss.summon(1, BOSS_SCALE_MAX);
+    land();
+
+    for (let step = 0; step < 9000; step += 1) {
+      boss.advance(1 / 60, { power: 1, playerX: step % 2 === 0 ? 40 : 500 });
+
+      const { x, y } = boss.bodies()[0].position;
+
+      expect(isOutside(x, y, 0)).toBe(false);
+    }
+  });
+});
+
+describe('advance · where the shots leave from', () => {
+  /** Run until a named attack is firing, collecting that volley. */
+  function volleyOf(attack: string, scale: number) {
+    const one = createBossField(Engine.create({ gravity: { x: 0, y: 0 } }));
+
+    one.summon(1, scale);
+
+    for (let step = 0; step < 9000; step += 1) {
+      const seen = one.snapshot();
+
+      if (seen?.stance === 'firing' && seen.attack === attack) {
+        const { shots } = one.advance(1 / 60, FULL_POWER);
+
+        if (shots.length > 0) {
+          return { shots, at: { ...one.bodies()[0].position } };
+        }
+      }
+
+      one.advance(1 / 60, FULL_POWER);
+    }
+
+    throw new Error(`never fired ${attack}`);
+  }
+
+  /*
+   * A radial burst leaves the centre, not the nose.
+   *
+   * Reported from play at a rolled size of 2: a ring fired from the muzzle has its
+   * centre hanging 132 units below the aircraft, which reads as a ring belonging to
+   * nothing. A burst is the aircraft coming apart in every direction.
+   */
+  it.each([1, BOSS_SCALE_MAX])('fires a radial from the centre at scale %s', (scale) => {
+    const { shots, at } = volleyOf('radial', scale);
+
+    for (const shot of shots) {
+      expect(shot.y).toBeCloseTo(at.y, 0);
+      expect(shot.x).toBeCloseTo(at.x, 0);
+    }
+  });
+
+  it.each([1, BOSS_SCALE_MAX])('fires aimed shots from the nose at scale %s', (scale) => {
+    const { shots, at } = volleyOf('straight', scale);
+
+    for (const shot of shots) {
+      expect(shot.y).toBeGreaterThan(at.y);
+    }
+  });
+
+  // The muzzle answers to the drawing, so it has to grow with it — at scale 1 the
+  // old `radius + 8` looked right and at scale 2 it was 20 units inside the body.
+  it('puts the muzzle further out on a larger body', () => {
+    const small = volleyOf('straight', 1);
+    const large = volleyOf('straight', BOSS_SCALE_MAX);
+
+    expect(large.shots[0].y - large.at.y)
+      .toBeGreaterThan((small.shots[0].y - small.at.y) * 1.5);
   });
 });

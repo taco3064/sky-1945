@@ -3,6 +3,8 @@ export {
   BEAM_WIDTH,
   BOSS_ALTITUDE,
   BOSS_ENTRY_SPEED,
+  BOSS_SCALE_MAX,
+  BOSS_SCALE_MIN,
   BOSS_STATS,
   BULLET_BASE_DAMAGE,
   BULLET_HIT_RADIUS,
@@ -26,6 +28,7 @@ export {
   createEnemy,
   createPlayer,
   damageOf,
+  rollBossScale,
   enemyMuzzleOffset,
   velocityOf,
 } from './entities';

@@ -73,6 +73,7 @@ function draw(entity: EntityRecord, combat: CombatSnapshot, boss: BossSnapshot |
         id={entity.id}
         pose={(boss?.stance ?? 'entering') as BossPose}
         move={boss?.attack as BossMove | undefined}
+        size={boss?.scale}
       />
     );
   }

@@ -9,6 +9,7 @@ import {
   bossMuzzleOffset,
   createBeam,
   createBoss,
+  rollBossScale,
 } from '../entities';
 import { FIELD_HEIGHT, FIELD_WIDTH } from '../field';
 import type { Point } from '../field';
@@ -73,14 +74,23 @@ const HP_PER_ROUND = 650;
 const ARRIVAL_SECONDS = (BOSS_ALTITUDE - ENTRY_Y) / BOSS_ENTRY_SPEED;
 
 /**
- * How far down the ram carries the boss, and how far it recoils first.
+ * How low the ram carries the boss's centre, and how far it recoils first.
  *
- * The dive stops short of the player's own row: it has to be survivable by moving
- * sideways, not only by being somewhere else entirely. The recoil is the tell —
- * the boss pulls *back* before it commits, which is the opposite motion to the
- * attack and therefore unmistakable.
+ * A floor rather than a depth, and that is the fix: as a fixed displacement the
+ * dive bottomed out around 55% of the field and left a band along the bottom edge
+ * where standing still was safe. Reported as exactly that — space left for someone
+ * to hide in. Measured from the boss's actual position each frame, it now reaches
+ * the same row whatever its patrol was doing, and the only answers are sideways or
+ * a roll.
+ *
+ * Short of the very bottom so the boss's *centre* stays on the field. The body
+ * overhangs the edge, which is the point: a large one covers the player's whole
+ * row.
+ *
+ * The recoil is the tell — the boss pulls *back* before it commits, the opposite
+ * motion to the attack and therefore unmistakable.
  */
-const RAM_DEPTH = FIELD_HEIGHT * 0.55;
+const RAM_FLOOR = FIELD_HEIGHT - 40;
 const RAM_RECOIL = 70;
 
 /** What React is shown. The only hit points in the game that leave the engine. */
@@ -92,6 +102,13 @@ export interface BossSnapshot {
   stance: BossStance;
   /** What it is winding up or firing. Absent while it is still entering. */
   attack?: BossAttack;
+  /**
+   * The body size it was rolled at, so the drawing matches the hit circle.
+   *
+   * The one number here that exists for the picture rather than for the fight — and
+   * it has to be published, because `components` cannot reach the engine to ask.
+   */
+  scale: number;
 }
 
 export interface BossAdvance {
@@ -123,8 +140,14 @@ export interface BossConditions {
 }
 
 export interface BossField {
-  /** Put the boss on the field for a round. Summoning twice is a no-op. */
-  summon: (round: number) => void;
+  /**
+   * Put the boss on the field for a round, at a rolled body size.
+   *
+   * The size is a parameter with a default rather than an internal roll, so play
+   * gets a different boss each time and every test states the one it means.
+   * Summoning twice is a no-op.
+   */
+  summon: (round: number, scale?: number) => void;
   /** True if this body id is the boss's, so damage reaches the right owner. */
   owns: (id: number) => boolean;
   /**
@@ -170,7 +193,7 @@ function hasArrived(duel: Duel): boolean {
  * of the attack, and returns. A dive that snapped back would read as a teleport,
  * and this engine has already shipped one of those.
  */
-function ramOffset(duel: Duel, patrolX: number): Point {
+function ramOffset(duel: Duel, patrol: Point): Point {
   if (attackOf(duel) !== 'ram') {
     return { x: 0, y: 0 };
   }
@@ -197,10 +220,12 @@ function ramOffset(duel: Duel, patrolX: number): Point {
      * the dive and the return are one motion, and the attack ends where the
      * patrol already is.
      */
-    x: (duel.aimedX - patrolX) * reach,
-    // The recoil is bled off linearly across the dive, so the position picks up
-    // exactly where the wind-up left it instead of stepping back to zero.
-    y: RAM_DEPTH * reach - RAM_RECOIL * (1 - progress),
+    x: (duel.aimedX - patrol.x) * reach,
+    // Measured to the floor from wherever the patrol has the boss, so the dive
+    // always arrives at the same row. The recoil is bled off linearly across it, so
+    // the position picks up exactly where the wind-up left it rather than stepping
+    // back to zero.
+    y: (RAM_FLOOR - patrol.y) * reach - RAM_RECOIL * (1 - progress),
   };
 }
 
@@ -227,17 +252,33 @@ function positionOf(duel: Duel): Point {
 
   const onStation = duel.age - ARRIVAL_SECONDS;
 
+  /*
+   * The body size divides the patrol's rate, and *that* is where "smaller is
+   * faster" lives.
+   *
+   * It was first written as a division on `BOSS_STATS.speed`, which does nothing:
+   * the patrol is a function of age, not of distance travelled, so that constant
+   * stops mattering the moment the boss arrives. The size test caught it — two
+   * bosses at opposite ends of the range swept exactly the same span.
+   *
+   * Dividing the rate rather than the reach is deliberate. A small boss covers its
+   * box quicker; it does not cover a *larger* box, so the field's bounds hold
+   * without a second thought.
+   */
+  const rateX = PATROL_RATE_X / duel.scale;
+  const rateY = PATROL_RATE_Y / duel.scale;
+
   const patrolX = FIELD_WIDTH / 2
-    + Math.sin(onStation * PATROL_RATE_X * Math.PI * 2) * PATROL_REACH_X;
+    + Math.sin(onStation * rateX * Math.PI * 2) * PATROL_REACH_X;
 
   // Starts at its altitude and only ever dips below it: `1 - cos` runs 0→2, so
   // the boss cannot back out through the top of the field on the vertical axis.
   const patrolY = BOSS_ALTITUDE
-    + (1 - Math.cos(onStation * PATROL_RATE_Y * Math.PI * 2)) * (PATROL_REACH_Y / 2);
+    + (1 - Math.cos(onStation * rateY * Math.PI * 2)) * (PATROL_REACH_Y / 2);
 
   // The ram is an offset on top of the patrol, never a position of its own, so
   // the boss is back on its wander the instant the attack ends.
-  const dive = ramOffset(duel, patrolX);
+  const dive = ramOffset(duel, { x: patrolX, y: patrolY });
 
   return { x: patrolX + dive.x, y: patrolY + dive.y };
 }
@@ -247,10 +288,17 @@ export function createBossField(engine: Engine): BossField {
   let beam: Body | null = null;
   let duel: Duel | null = null;
 
-  /** The beam is opened and closed by the state machine, never by it directly. */
+  /**
+   * The beam is opened and closed by the state machine, never by it directly.
+   *
+   * `open` takes the muzzle position already worked out, rather than the boss's
+   * centre plus a size to offset it by. That kept an unreachable `?? 1` out of here:
+   * the machine only ever opens a beam mid-fight, so there is no case where the size
+   * is unknown — and a branch that cannot run is a branch no test can justify.
+   */
   const control = {
-    open(at: Point) {
-      beam = createBeam(at.x, at.y + bossMuzzleOffset());
+    open(muzzle: Point) {
+      beam = createBeam(muzzle.x, muzzle.y);
       Composite.add(engine.world, beam);
     },
 
@@ -276,13 +324,13 @@ export function createBossField(engine: Engine): BossField {
   };
 
   return {
-    summon(round) {
+    summon(round, scale = rollBossScale()) {
       if (duel) {
         return;
       }
 
-      body = createBoss(FIELD_WIDTH / 2, ENTRY_Y);
-      duel = newDuel(round, bossHpFor(round));
+      body = createBoss(FIELD_WIDTH / 2, ENTRY_Y, scale);
+      duel = newDuel(round, bossHpFor(round), scale);
 
       Composite.add(engine.world, body);
     },
@@ -333,7 +381,8 @@ export function createBossField(engine: Engine): BossField {
       duel.since += elapsed;
       duel.sinceVolley += elapsed;
       // The flight in has its own speed: quicker than the patrol, because an
-      // entrance is a cue rather than a phase of the fight.
+      // entrance is a cue rather than a phase of the fight. Where the body size
+      // enters is the patrol's *rate* — see `positionOf`.
       const pace = hasArrived(duel) ? BOSS_STATS.speed : BOSS_ENTRY_SPEED;
 
       duel.travelled += pace * elapsed;
@@ -345,7 +394,7 @@ export function createBossField(engine: Engine): BossField {
       // The beam hangs from the nose, so its centre is half a beam below it —
       // re-placed every frame, which is what makes it track the patrol.
       if (beam) {
-        const hang = bossMuzzleOffset() + BEAM_LENGTH / 2;
+        const hang = bossMuzzleOffset(duel.scale) + BEAM_LENGTH / 2;
 
         Body.setPosition(beam, { x: at.x, y: at.y + hang });
       }
@@ -381,6 +430,7 @@ export function createBossField(engine: Engine): BossField {
         hp: Math.max(duel.hp, 0),
         maxHp: duel.maxHp,
         stance: duel.stance,
+        scale: duel.scale,
         // Absent while entering. There is nothing to telegraph yet, and naming
         // an attack before the boss is on screen is a tell for something the
         // player has no way to answer.

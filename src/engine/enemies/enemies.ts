@@ -132,10 +132,16 @@ function volleyFrom(flight: Flight, body: Body, boosts: EnemyBoosts): BulletSpaw
   const stats = ENEMY_STATS[flight.kind];
   const travel = stats.speed * boosts.speed;
 
+  // A radial burst leaves the centre; an aimed shape leaves the nose. Same rule as
+  // the boss, and it was wrong here for the same reason — a ring centred on the
+  // muzzle sits below the craft that threw it. Far less visible on a 78-unit
+  // silhouette than on one rolled to twice that, which is why the boss found it.
+  const reach = stats.pattern === 'radial' ? 0 : enemyMuzzleOffset(flight.kind);
+
   return shotsFor({
     kind: stats.pattern,
     x: body.position.x,
-    y: body.position.y + enemyMuzzleOffset(flight.kind),
+    y: body.position.y + reach,
     speed: Math.max(ENEMY_BULLET_SPEED, travel * ENEMY_BULLET_LEAD),
     damage: stats.damage * boosts.power,
     side: 'enemy',
