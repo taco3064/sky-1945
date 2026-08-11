@@ -19,7 +19,7 @@ import type { World } from '~app/engine/world';
 // ignoring the rule: one extra full reload when *this* file is edited during
 // development. Cost of obeying it: a module shape that contradicts the
 // contract every other module in the repo follows.
-// oxlint-disable-next-line react/only-export-components
+// eslint-disable-next-line react-refresh/only-export-components -- the shape above wins
 export const GameContext = createContext<World | null>(null);
 
 export interface GameProviderProps {

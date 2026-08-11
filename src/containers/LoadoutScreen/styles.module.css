@@ -101,6 +101,13 @@
   outline-offset: 0.5rem;
 }
 
+/* The same 22rem the bars and the slider use, so the bindings read as part of
+   that column rather than as an inserted panel. */
+.hints {
+  width: 100%;
+  max-width: 22rem;
+}
+
 .start {
   padding: 0.75rem 3rem;
   font: inherit;

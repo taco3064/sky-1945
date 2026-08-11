@@ -1,0 +1,35 @@
+/* Fills whatever the screen gives it — the width cap lives out there, beside
+   the one the bars and the slider use. */
+.controls {
+  width: 100%;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  border-collapse: collapse;
+}
+
+.caption {
+  padding-bottom: 0.6rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  color: #7d8fa0;
+}
+
+/* Headers, not emphasis: the weight comes off so the bindings are what the eye
+   lands on. Both are `th` for the screen reader's benefit — one scoped to its
+   column, one to its row. */
+.device,
+.action {
+  font-weight: 400;
+  color: #7d8fa0;
+  text-align: left;
+}
+
+.action {
+  padding-right: 1rem;
+}
+
+.binding {
+  padding: 0.25rem 1rem 0.25rem 0;
+  color: #e8eef4;
+  text-align: left;
+}

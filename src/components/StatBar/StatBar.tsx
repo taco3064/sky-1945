@@ -20,7 +20,7 @@ export interface StatBarProps {
  * sometimes and damage other times.
  *
  * The scale ends arrive as props rather than being written in here, because
- * they are the engine's numbers — hardcoding 100 and 300 in a component would
+ * they are the engine's numbers — hardcoding 100 and 200 in a component would
  * put a second copy of them a layer away from the first.
  */
 export function StatBar({ label, percent, min, max }: StatBarProps) {

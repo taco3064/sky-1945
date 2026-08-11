@@ -10,13 +10,13 @@
 /** Points a run distributes between the two stats. */
 export const LOADOUT_POINTS = 10;
 
-/** What a single point is worth, in whole percent. */
-const PERCENT_PER_POINT = 20;
+/** What a single point is worth, in whole percent — one notch of the slider. */
+const PERCENT_PER_POINT = 10;
 
 /** No points on a stat still leaves it at full strength. */
 export const BOOST_MIN_PERCENT = 100;
 
-/** Every point on one stat: 100 + 10 × 20. */
+/** Every point on one stat: 100 + 10 × 10. */
 export const BOOST_MAX_PERCENT = BOOST_MIN_PERCENT + LOADOUT_POINTS * PERCENT_PER_POINT;
 
 /**
@@ -30,9 +30,9 @@ export type LoadoutPoints = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 export const DEFAULT_POINTS: LoadoutPoints = 5;
 
 export interface Boost {
-  /** What the simulation multiplies by, 1–3. */
+  /** What the simulation multiplies by, 1–2. */
   multiplier: number;
-  /** The same value in the spec's own units, 100–300. */
+  /** The same value in the spec's own units, 100–200. */
   percent: number;
 }
 
@@ -47,8 +47,8 @@ export interface Boosts {
  * The one place a raw number becomes a legal allocation: rounded, then held
  * inside 0–10.
  *
- * This is not the 100–300 range being clamped — that range needs no guard,
- * because ten points at twenty percent each reaches exactly 300 and cannot
+ * This is not the 100–200 range being clamped — that range needs no guard,
+ * because ten points at ten percent each reaches exactly 200 and cannot
  * pass it. This clamps the *slider*, whose ends are a different question:
  * dragging past either end should stop, not wrap or throw.
  */
@@ -64,10 +64,10 @@ export function toPoints(value: number): LoadoutPoints {
 /**
  * Percent first, multiplier derived from it.
  *
- * Deliberately not `1 + points * 0.2`: that produces 1.6000000000000001 at
- * three points, which then renders as "160.00000000000003%" and fails an
+ * Deliberately not `1 + points * 0.1`: that produces 1.7000000000000002 at
+ * seven points, which then renders as "170.00000000000003%" and fails an
  * equality assertion. Whole-percent arithmetic stays exact, and dividing by
- * 100 lands on the same double the literal 1.6 does.
+ * 100 lands on the same double the literal 1.7 does.
  */
 function boost(points: number): Boost {
   const percent = BOOST_MIN_PERCENT + points * PERCENT_PER_POINT;
@@ -97,7 +97,7 @@ export function boostsFromPoints(points: LoadoutPoints): Boosts {
  * rather than a reused one.
  *
  * Round 1 is 100% on both. Each round adds one point's worth, and it stops at
- * 300% — the same ceiling the player has, reached at round 11.
+ * 200% — the same ceiling the player has, reached at round 11.
  */
 export function boostsForRound(round: number): Boosts {
   const points = Math.min(Math.max(round - 1, 0), LOADOUT_POINTS);

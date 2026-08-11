@@ -17,10 +17,10 @@ const ALL_POINTS: LoadoutPoints[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 describe('boosts · the range is a property of the rule, not a guard', () => {
   it('has a point worth exactly a tenth of the span', () => {
-    expect(BOOST_MAX_PERCENT - BOOST_MIN_PERCENT).toBe(LOADOUT_POINTS * 20);
+    expect(BOOST_MAX_PERCENT - BOOST_MIN_PERCENT).toBe(LOADOUT_POINTS * 10);
   });
 
-  it.each(ALL_POINTS)('%i points keeps both stats inside 100–300', (points) => {
+  it.each(ALL_POINTS)('%i points keeps both stats inside 100–200', (points) => {
     const { speed, power } = boostsFromPoints(points);
 
     for (const percent of [speed.percent, power.percent]) {
@@ -46,11 +46,15 @@ describe('boosts · the range is a property of the rule, not a guard', () => {
 });
 
 describe('boosts · the multiplier is exact, not merely close', () => {
-  // `1 + 3 * 0.2` is 1.6000000000000001, which renders as 160.00000000000003%
+  // `1 + 7 * 0.1` is 1.7000000000000002, which renders as 170.00000000000003%
   // and fails this assertion. Whole-percent arithmetic is why it passes.
+  //
+  // Seven points is the one allocation that breaks naive arithmetic at ten
+  // percent a point, and both derivations are checked against it: seven spent
+  // on speed, and the seven `power` gets back as the remainder of three.
   it('lands on the literal at the allocation that breaks naive arithmetic', () => {
-    expect(boostsFromPoints(3).speed.multiplier).toBe(1.6);
-    expect(boostsFromPoints(7).speed.multiplier).toBe(2.4);
+    expect(boostsFromPoints(7).speed.multiplier).toBe(1.7);
+    expect(boostsFromPoints(3).power.multiplier).toBe(1.7);
   });
 
   it.each(ALL_POINTS)('%i points keeps multiplier and percent agreeing', (points) => {
@@ -63,8 +67,8 @@ describe('boosts · the multiplier is exact, not merely close', () => {
   it('starts a run at even odds', () => {
     const { speed, power } = boostsFromPoints(DEFAULT_POINTS);
 
-    expect(speed.percent).toBe(200);
-    expect(power.percent).toBe(200);
+    expect(speed.percent).toBe(150);
+    expect(power.percent).toBe(150);
   });
 });
 
