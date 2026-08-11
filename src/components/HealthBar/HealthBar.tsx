@@ -7,6 +7,8 @@ export interface HealthBarProps {
   maxHp: number;
   /** True while the boss is winding up its beam. */
   aiming?: boolean;
+  /** True while the boss is still flying in and cannot be hurt. */
+  shielded?: boolean;
 }
 
 /** Never below zero and never above one, whatever it is handed. */
@@ -34,8 +36,18 @@ function fractionOf(hp: number, maxHp: number): number {
  *
  * `ROLL` rather than the attack's name: the player has 1.4 seconds and needs to
  * know what to *do*, not what it is called.
+ *
+ * `ARRIVING` is the same principle applied to a rule instead of an attack. The
+ * boss cannot be hurt while it flies in, and a full bar that refuses to move is
+ * indistinguishable from a broken game unless it says why — and this wording says
+ * both why and for how long, because "arriving" is a thing that ends.
  */
-export function HealthBar({ hp, maxHp, aiming = false }: HealthBarProps) {
+export function HealthBar({
+  hp,
+  maxHp,
+  aiming = false,
+  shielded = false,
+}: HealthBarProps) {
   const fraction = fractionOf(hp, maxHp);
 
   return (
@@ -43,15 +55,17 @@ export function HealthBar({ hp, maxHp, aiming = false }: HealthBarProps) {
       <div
         className={styles.track}
         role="progressbar"
-        aria-label="Boss health"
+        aria-label={shielded ? 'Boss health, shielded' : 'Boss health'}
         aria-valuemin={0}
         aria-valuemax={maxHp}
         aria-valuenow={Math.max(hp, 0)}
-        data-low={fraction <= 0.25 ? '' : undefined}
+        data-low={!shielded && fraction <= 0.25 ? '' : undefined}
+        data-shielded={shielded ? '' : undefined}
       >
         <div className={styles.fill} style={{ width: `${fraction * 100}%` }} />
       </div>
 
+      {shielded && <p className={styles.note}>ARRIVING</p>}
       {aiming && <p className={styles.warning}>ROLL</p>}
     </div>
   );

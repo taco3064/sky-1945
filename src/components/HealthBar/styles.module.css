@@ -42,6 +42,48 @@
   transition: width 0.09s linear;
 }
 
+/*
+ * Shielded: the boss is still flying in and damage is refused.
+ *
+ * Hatched rather than dimmed. A dimmed bar reads as "not important right now",
+ * and this is the opposite — it is the bar telling the player their fire is going
+ * nowhere. The stripes move, because a static pattern reads as a texture and a
+ * travelling one reads as a state.
+ */
+.track[data-shielded] {
+  border-color: #4a6a8a;
+  border-style: dashed;
+}
+
+.track[data-shielded] .fill {
+  background: repeating-linear-gradient(
+    115deg,
+    #3d5f7d 0 6px,
+    rgb(20 10 18 / 90%) 6px 12px
+  );
+  animation: sweep 0.6s linear infinite;
+}
+
+@keyframes sweep {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 26px 0;
+  }
+}
+
+/* The rule, in the fewest words that also say it ends. */
+.note {
+  margin-top: 0.35rem;
+  color: #9dc3e6;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-shadow: 0 0 8px rgb(61 95 125 / 80%);
+}
+
 /* The last quarter. Hotter, so "nearly dead" is visible without reading a
    number — the player is watching the field, not the HUD. */
 .track[data-low] .fill {
@@ -87,5 +129,10 @@
   .warning {
     animation: none;
     opacity: 1;
+  }
+
+  /* The hatching stays — it is the state. Only its travel stops. */
+  .track[data-shielded] .fill {
+    animation: none;
   }
 }
