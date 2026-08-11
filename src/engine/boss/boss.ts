@@ -13,11 +13,9 @@ import {
 } from '../entities';
 import { FIELD_HEIGHT, FIELD_WIDTH } from '../field';
 import type { Point } from '../field';
-import type { BulletSpawn } from '../patterns';
-import type { BossAttack, BossStance } from './attacks';
 import { durationOf, windUpOf } from './attacks';
 import { attackOf, newDuel, stepStance } from './stances';
-import type { Duel } from './stances';
+import type { BossField, BossRecord, Duel } from './types';
 
 /** Where it comes in from, just above the field. */
 const ENTRY_Y = -BOSS_STATS.radius;
@@ -37,62 +35,6 @@ const ARRIVAL_SECONDS = (BOSS_ALTITUDE - ENTRY_Y) / BOSS_ENTRY_SPEED;
 /** How low the ram carries the boss's centre, and how far it recoils first. */
 const RAM_FLOOR = FIELD_HEIGHT - 40;
 const RAM_RECOIL = 70;
-
-/** What React is shown. The only hit points in the game that leave the engine. */
-export interface BossSnapshot {
-  /** The body's id, so whoever draws the bar can subscribe to its transform. */
-  id: number;
-  hp: number;
-  maxHp: number;
-  stance: BossStance;
-  /** What it is winding up or firing. Absent while it is still entering. */
-  attack?: BossAttack;
-  /** The body size it was rolled at, so the drawing matches the hit circle. */
-  scale: number;
-}
-
-export interface BossAdvance {
-  /** Its stance or the beam's existence changed — React needs telling. */
-  changed: boolean;
-  /** Volleys fired this frame, for the bullet field to carry. */
-  shots: BulletSpawn[];
-}
-
-/** One thing the boss put on the field. */
-export interface BossRecord {
-  id: number;
-  /** The beam is a roster entry of its own: React draws it, so React is told. */
-  kind: 'boss' | 'beam';
-}
-
-/** What the boss needs to know about this frame. */
-export interface BossConditions {
-  /** Multiplies bullet damage. From the round. */
-  power: number;
-  /** The player's column. Read by the ram, at one instant, and by nothing else. */
-  playerX: number;
-}
-
-export interface BossField {
-  /** Put the boss on the field for a round, at a rolled size. Twice is a no-op. */
-  summon: (round: number, scale?: number) => void;
-  /** True if this body id is the boss's, so damage reaches the right owner. */
-  owns: (id: number) => boolean;
-  /** Subtract hit points. Returns where the wreck was if that killed it, else null. */
-  damage: (amount: number) => Point | null;
-  /** Move, wind up, and fire what is due. */
-  advance: (elapsed: number, conditions: BossConditions) => BossAdvance;
-  /** Live bodies — the boss and, while it is firing one, its beam. */
-  bodies: () => Body[];
-  /** What is on the field and what each thing is, for the roster. */
-  records: () => BossRecord[];
-  /** What React is shown, or null when there is no boss. */
-  snapshot: () => BossSnapshot | null;
-  /** True between summon and death. */
-  present: () => boolean;
-  /** Remove everything. */
-  clear: () => void;
-}
 
 /** Hit points for a round, at a body size. Linear in both. */
 export function bossHpFor(round: number, scale: number): number {

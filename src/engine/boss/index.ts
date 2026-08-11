@@ -7,12 +7,5 @@ export {
   durationOf,
   windUpOf,
 } from './attacks';
-export type { BossAttack, BossStance } from './attacks';
 export { bossHpFor, createBossField } from './boss';
-export type {
-  BossAdvance,
-  BossConditions,
-  BossField,
-  BossRecord,
-  BossSnapshot,
-} from './boss';
+export type { BossField, BossSnapshot } from './types';

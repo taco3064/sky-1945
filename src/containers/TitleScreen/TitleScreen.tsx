@@ -2,11 +2,7 @@ import { useAnyKey } from '~app/hooks/useAnyKey';
 
 import logo from './logo.webp';
 import styles from './styles.module.css';
-
-export interface TitleScreenProps {
-  /** Leaves the title for the loadout screen. */
-  onStart: () => void;
-}
+import type { TitleScreenProps } from './types';
 
 /** The opening screen. Any key or a tap anywhere starts the run. */
 export function TitleScreen({ onStart }: TitleScreenProps) {

@@ -16,7 +16,7 @@ import { TouchStick } from '~app/components/TouchStick';
 import { GameProvider } from '~app/contexts/GameContext';
 import type { BossSnapshot } from '~app/engine/boss';
 import type { CombatSnapshot } from '~app/engine/combat';
-import type { EntityKind, EntityRecord, World } from '~app/engine/world';
+import type { EntityKind, EntityRecord } from '~app/engine/world';
 import { useEntityRoster } from '~app/hooks/useEntityRoster';
 import { useFrameRate } from '~app/hooks/useFrameRate';
 import { useGameRound } from '~app/hooks/useGameRound';
@@ -27,6 +27,7 @@ import { usePlayerInput } from '~app/hooks/usePlayerInput';
 import { useStageScale } from '~app/hooks/useStageScale';
 
 import styles from './styles.module.css';
+import type { FieldProps } from './types';
 
 /** Which silhouette an enemy kind draws with. */
 const VARIANTS: Record<string, EnemyVariant> = {
@@ -87,20 +88,6 @@ function draw(entity: EntityRecord, combat: CombatSnapshot, boss: BossSnapshot |
   }
 
   return <Enemy key={entity.id} id={entity.id} variant={variantFor(entity.kind)} />;
-}
-
-/** Where the run is, as one value rather than a pile of booleans. */
-export type StagePhase = 'playing' | 'paused' | 'gameover';
-
-export interface FieldProps {
-  /** A world that is already built and is this component's for its lifetime. */
-  world: World;
-  /** How fast the speed lines travel — the loadout's speed boost, 1–3. */
-  pace: number;
-  phase: StagePhase;
-  onPause: () => void;
-  onQuit: () => void;
-  onGameOver: () => void;
 }
 
 /** Everything that watches a running world, so every hook here takes a `World`. */

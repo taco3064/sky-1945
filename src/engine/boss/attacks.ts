@@ -1,22 +1,8 @@
 import type { PatternKind } from '../patterns';
-
-/** The boss's moves: the three shapes the trash mobs use, plus two of its own. */
-export type BossAttack = PatternKind | 'beam' | 'ram';
-
-/** What the boss is doing right now. Every attack is announced by `winding`. */
-export type BossStance = 'entering' | 'winding' | 'firing' | 'recovering';
+import type { AttackShape, BossAttack } from './types';
 
 /** How long the boss rests between attacks, whichever attack it was. */
 export const RECOVER_SECONDS = 0.4;
-
-interface AttackShape {
-  /** Seconds of tell before anything leaves the boss. */
-  windUp: number;
-  /** Seconds the attack lasts once it starts. */
-  duration: number;
-  /** Seconds between volleys while it fires. The beam ignores this. */
-  cadence: number;
-}
 
 const SHAPES: Record<BossAttack, AttackShape> = {
   straight: { windUp: 0.45, duration: 1.5, cadence: 0.08 },

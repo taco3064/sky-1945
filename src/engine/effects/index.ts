@@ -1,9 +1,2 @@
 export { BURST_DURATION, createEffectField } from './effects';
-export type {
-  BurstPlacement,
-  BurstRecord,
-  BurstSize,
-  BurstStyle,
-  BurstTone,
-  EffectField,
-} from './effects';
+export type { BurstSize, BurstTone, EffectField } from './types';

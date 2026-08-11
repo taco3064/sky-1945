@@ -2,7 +2,7 @@ import { Body, Composite, Engine } from 'matter-js';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createCollisionWatch } from './collisions';
-import type { CollisionWatch } from './collisions';
+import type { CollisionWatch } from './types';
 import {
   createBeam,
   createBoss,

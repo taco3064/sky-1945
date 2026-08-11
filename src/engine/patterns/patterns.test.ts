@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { PATTERN_SIZE, shotsFor } from './patterns';
-import type { PatternKind, PatternOptions } from './patterns';
+import type { PatternKind, PatternOptions } from './types';
 
 const ALL_KINDS: PatternKind[] = ['straight', 'spread', 'radial'];
 

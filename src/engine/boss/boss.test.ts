@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { ALL_ATTACKS, attackAt, durationOf, windUpOf } from './attacks';
 import { bossHpFor, createBossField } from './boss';
-import type { BossField, BossSnapshot } from './boss';
 import {
   BEAM_WIDTH,
   BOSS_ALTITUDE,
@@ -14,6 +13,7 @@ import {
 } from '../entities';
 import { FIELD_HEIGHT, FIELD_WIDTH, isOutside } from '../field';
 import type { BulletSpawn } from '../patterns';
+import type { BossField, BossSnapshot } from './types';
 
 /** Even power, and a player sitting in the middle of the field. */
 const FULL_POWER = { power: 1, playerX: FIELD_WIDTH / 2 };

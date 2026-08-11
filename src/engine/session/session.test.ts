@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { INITIAL_SESSION, nextSession } from './session';
-import type { SessionEvent, SessionState } from './session';
+import type { SessionEvent, SessionState } from './types';
 
 // Restated here because the source keeps the transition table private. A
 // state or event added there without a line here leaves the new pair

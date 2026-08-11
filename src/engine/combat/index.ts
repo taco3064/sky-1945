@@ -12,4 +12,4 @@ export {
   isRolling,
   startRoll,
 } from './combat';
-export type { Combat, CombatSnapshot } from './combat';
+export type { Combat, CombatSnapshot } from './types';

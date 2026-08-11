@@ -9,7 +9,7 @@ import {
   boostsFromPoints,
   toPoints,
 } from './boosts';
-import type { LoadoutPoints } from './boosts';
+import type { LoadoutPoints } from './types';
 
 // Every member of the union, restated. A twelfth point added to the type
 // without a line here would go untested by all four sweeps below.

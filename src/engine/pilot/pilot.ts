@@ -11,7 +11,7 @@ import {
   isRolling,
   startRoll,
 } from '../combat';
-import type { Combat, CombatSnapshot } from '../combat';
+import type { Combat } from '../combat';
 import {
   BULLET_BASE_DAMAGE,
   BULLET_SPEED,
@@ -28,6 +28,7 @@ import {
 import { FIELD_HEIGHT, FIELD_WIDTH } from '../field';
 import { shotsFor } from '../patterns';
 import type { BulletSpawn } from '../patterns';
+import type { Pilot, PilotOptions } from './types';
 
 /** Up the screen, in the degrees `patterns` speaks. */
 const UPWARD = -90;
@@ -40,32 +41,6 @@ const ENTRY_Y = FIELD_HEIGHT - PLAYER_ENTRY_INSET;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
-}
-
-export interface PilotOptions {
-  /** The loadout's speed multiplier, 1–3. */
-  speedMultiplier: number;
-  /** The loadout's power multiplier, 1–3. */
-  powerMultiplier: number;
-}
-
-export interface Pilot {
-  readonly id: number;
-  readonly body: Body;
-  /** Point it. Any vector; length is normalised away. */
-  point: (x: number, y: number) => void;
-  /** Move, advance the cadence, and hand back whatever fired this frame. */
-  advance: (elapsed: number) => BulletSpawn[];
-  /** Attempt a roll. True if one started. */
-  roll: () => boolean;
-  /** Rolling and invulnerable, right now. */
-  snapshot: () => CombatSnapshot;
-  /** Whether a contact right now would be fatal. */
-  isVulnerable: () => boolean;
-  /** Killed by contact. Returns the wreck, and sends a fresh aircraft in protected. */
-  kill: () => { x: number; y: number };
-  /** True while it is still flying in and input is not its own yet. */
-  isArriving: () => boolean;
 }
 
 export function createPilot(engine: Engine, options: PilotOptions): Pilot {

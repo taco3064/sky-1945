@@ -1,15 +1,7 @@
 import { useEntityTransform } from '~app/hooks/useEntityTransform';
 
 import styles from './styles.module.css';
-
-/** Which silhouette to draw. A plain union — components do not read engine types. */
-export type EnemyVariant = 'small' | 'medium' | 'large';
-
-export interface EnemyProps {
-  /** The engine's id for this aircraft. */
-  id: number;
-  variant: EnemyVariant;
-}
+import type { EnemyProps } from './types';
 
 /** Drawn nose-up; the engine's 180° angle turns them over. */
 function SmallCraft() {

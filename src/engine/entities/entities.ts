@@ -1,7 +1,8 @@
 import { Bodies } from 'matter-js';
 import type { Body } from 'matter-js';
 
-import type { BulletSpawn, PatternKind } from '../patterns';
+import type { BulletSpawn } from '../patterns';
+import type { BulletPayload, EnemyKind, EnemyStats } from './types';
 
 /* ---------------------------------------------------------------- player */
 
@@ -61,13 +62,6 @@ export const PLAYER_MUZZLE_OFFSET = 26;
 /** How far either side of centre the two cannons sit. They fire parallel. */
 export const PLAYER_WING_SPAN = 13;
 
-/** What a bullet carries beyond its position. */
-interface BulletPayload {
-  damage: number;
-  vx: number;
-  vy: number;
-}
-
 /** A bullet, with its damage and velocity baked in at spawn. */
 export function createBullet(spawn: BulletSpawn): Body {
   const bullet = Bodies.circle(spawn.x, spawn.y, BULLET_HIT_RADIUS, {
@@ -101,23 +95,6 @@ export function velocityOf(body: Body): { vx: number; vy: number } {
 }
 
 /* --------------------------------------------------------------- enemies */
-
-export type EnemyKind = 'small' | 'medium' | 'large';
-
-export interface EnemyStats {
-  /** Collision radius, in world units. */
-  radius: number;
-  /** How much damage it takes to kill. Never leaves the engine. */
-  hp: number;
-  /** Downward speed at 100%, world units per second. */
-  speed: number;
-  /** Bullet damage at 100%. */
-  damage: number;
-  /** Seconds between volleys at 100%. Divided by the round's speed boost. */
-  fireInterval: number;
-  /** Which trajectory its fire takes. */
-  pattern: PatternKind;
-}
 
 /** The three silhouettes. Where each one flies is a path, not a stat. */
 export const ENEMY_STATS: Record<EnemyKind, EnemyStats> = {

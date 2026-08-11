@@ -1,9 +1,3 @@
-/** A point in the field's coordinates. */
-export interface Point {
-  x: number;
-  y: number;
-}
-
 /** Fixed on every device; the screen is fitted to them by `useStageScale`. */
 export const FIELD_WIDTH = 540;
 export const FIELD_HEIGHT = 960;

@@ -5,109 +5,32 @@ import { createBossField } from '../boss';
 import type { BossSnapshot } from '../boss';
 import { createBulletField } from '../bullets';
 import { createChannel, createKeyedChannel } from '../channel';
-import type { Channel, KeyedChannel } from '../channel';
+import type { Channel } from '../channel';
 import { STARTING_LIVES } from '../combat';
 import type { CombatSnapshot } from '../combat';
 import { createCollisionWatch } from '../collisions';
 import { createDirector } from '../director';
 import { createEffectField } from '../effects';
-import type { BurstSize, BurstTone } from '../effects';
 import { createEnemyField } from '../enemies';
 import { stepFrame } from '../frame';
 import type { FrameParts, FrameResult } from '../frame';
 import { createPilot } from '../pilot';
+import type {
+  Channels,
+  EntityId,
+  EntityRecord,
+  FrameChannel,
+  FrameListener,
+  FrameRate,
+  Latest,
+  Meter,
+  Transform,
+  World,
+  WorldOptions,
+} from './types';
 
 /** One frame at 60Hz, and the ceiling on any single step. */
 const MAX_STEP_SECONDS = 1 / 60;
-
-/** Matter body ids, and burst ids — which count down from -1. */
-export type EntityId = number;
-
-/** Everything that can be on the field, flat enough for a lookup table. */
-export type EntityKind
-  = | 'player'
-    | 'player-bullet'
-    | 'enemy-bullet'
-    | 'enemy-small'
-    | 'enemy-medium'
-    | 'enemy-large'
-    | 'enemy-boss'
-    | 'enemy-beam'
-    | 'burst';
-
-export interface EntityRecord {
-  id: EntityId;
-  kind: EntityKind;
-  /** Bursts only: how big, and whose wreckage it is. */
-  burst?: { size: BurstSize; tone: BurstTone };
-}
-
-export interface Vector2 {
-  /** World units from the field's left edge. */
-  x: number;
-  /** World units from the field's top edge. */
-  y: number;
-}
-
-export interface Transform extends Vector2 {
-  /** Degrees, ready for a CSS rotate(). */
-  angle: number;
-}
-
-export type FrameListener = (transform: Transform) => void;
-export type RosterListener = (entities: EntityRecord[]) => void;
-export type CombatListener = (snapshot: CombatSnapshot) => void;
-export type RoundListener = (round: number) => void;
-export type LivesListener = (remaining: number) => void;
-export type BossListener = (boss: BossSnapshot | null) => void;
-export type FrameRateListener = (rate: FrameRate) => void;
-
-/** What the frame meter reports, once per window. */
-export interface FrameRate {
-  /** Frames per second, averaged across the window. */
-  fps: number;
-  /** The longest single frame in the window, in milliseconds. */
-  worst: number;
-}
-export type GameOverListener = () => void;
-
-export interface WorldOptions {
-  /** The loadout's speed multiplier, 1–3. */
-  speedMultiplier: number;
-  /** The loadout's power multiplier, 1–3. */
-  powerMultiplier: number;
-}
-
-export interface World {
-  /** The player body's id, for subscribing to it. */
-  readonly playerId: EntityId;
-  /** Begin stepping. Also resumes from `pause`. Twice is a no-op. */
-  start: () => void;
-  /** Stop stepping, keeping every body. `start` resumes without a jump. */
-  pause: () => void;
-  /** Stop the loop and release everything. Safe to call more than once. */
-  dispose: () => void;
-  /** Watch an entity's transform. Returns its own unsubscribe. */
-  subscribe: (id: EntityId, onFrame: FrameListener) => () => void;
-  /** Watch which entities exist. Fires on spawn and despawn, not per frame. */
-  subscribeRoster: (onChange: RosterListener) => () => void;
-  /** Watch the player's combat state. Fires on change, not per frame. */
-  subscribeCombat: (onChange: CombatListener) => () => void;
-  /** Watch the round number. Fires when a round is cleared. */
-  subscribeRound: (onChange: RoundListener) => () => void;
-  /** Watch how many aircraft the run has left. */
-  subscribeLives: (onChange: LivesListener) => () => void;
-  /** Fires when the last life is gone. */
-  subscribeGameOver: (onGameOver: GameOverListener) => () => void;
-  /** Watch the frame rate. Fires twice a second, not every frame. */
-  subscribeFrameRate: (onChange: FrameRateListener) => () => void;
-  /** Watch the boss: its hit points, its stance, and null when there is none. */
-  subscribeBoss: (onChange: BossListener) => () => void;
-  /** Point the player. Any vector; length is normalised away. */
-  setPlayerDirection: (x: number, y: number) => void;
-  /** Attempt a barrel roll. Ignored while one is already running. */
-  roll: () => void;
-}
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -147,11 +70,6 @@ function rosterOf(parts: FrameParts): EntityRecord[] {
     })),
   ];
 }
-
-type FrameChannel = KeyedChannel<EntityId, Transform>;
-
-/** Every live position as of the last frame, so a new subscriber can be told. */
-type Latest = Map<EntityId, Transform>;
 
 /** Send every position on the field down the transform channel. */
 function publishFrames(parts: FrameParts, frames: FrameChannel, latest: Latest): void {
@@ -202,8 +120,7 @@ function sameCombat(a: CombatSnapshot, b: CombatSnapshot): boolean {
     && a.ready === b.ready;
 }
 
-/** Every channel the outside can listen on. */
-function createChannels() {
+function createChannels(): Channels {
   return {
     frames: createKeyedChannel<EntityId, Transform>(),
     roster: createChannel<EntityRecord[]>(),
@@ -216,16 +133,8 @@ function createChannels() {
   };
 }
 
-type Channels = ReturnType<typeof createChannels>;
-
 /** How long the frame meter averages over, in milliseconds. */
 const METER_WINDOW = 500;
-
-interface Meter {
-  frames: number;
-  elapsed: number;
-  worst: number;
-}
 
 /** Fold one frame into the meter, and hand back a reading when the window closes. */
 function meterFrame(meter: Meter, ms: number): FrameRate | null {

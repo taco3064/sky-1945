@@ -3,12 +3,7 @@ import { useCallback, useState } from 'react';
 import { INITIAL_SESSION, nextSession } from '~app/engine/session';
 import type { SessionEvent, SessionState } from '~app/engine/session';
 
-export interface GameSession {
-  /** Which screen the run is on. */
-  state: SessionState;
-  /** Apply an event. One the current state refuses is a no-op. */
-  send: (event: SessionEvent) => void;
-}
+import type { GameSession } from './types';
 
 /** Holds the session machine for React. The transition rules stay in the engine. */
 export function useGameSession(): GameSession {

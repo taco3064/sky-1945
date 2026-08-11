@@ -4,7 +4,7 @@ import { createWorld } from './world';
 import { bossHpFor } from '../boss';
 import { STARTING_LIVES } from '../combat';
 import { FIELD_HEIGHT, FIELD_WIDTH } from '../field';
-import type { EntityRecord, Transform, World } from './world';
+import type { EntityRecord, Transform, World } from './types';
 
 /** Advance far enough for several frames to run. */
 function runFrames(ms = 200): void {
