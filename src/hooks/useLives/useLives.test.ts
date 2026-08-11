@@ -3,24 +3,17 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { useLives } from './useLives';
 import { STARTING_LIVES } from '~app/engine/combat';
-import type { GameOverListener, LivesListener, World } from '~app/engine/world';
+import type { GameOverListener, LivesListener } from '~app/engine/world';
+import { stubWorld } from '~app/fixtures/world.fixtures';
 
 function drivenWorld() {
   const lifeWatchers = new Set<LivesListener>();
   const overWatchers = new Set<GameOverListener>();
 
-  const world: World = {
-    playerId: 1,
-    start: vi.fn(),
-    pause: vi.fn(),
-    dispose: vi.fn(),
-    subscribe: vi.fn(() => () => {}),
-    subscribeRoster: vi.fn(() => () => {}),
-    subscribeCombat: vi.fn(() => () => {}),
-    subscribeRound: vi.fn(() => () => {}),
-    subscribeBoss: vi.fn(() => () => {}),
-    setPlayerDirection: vi.fn(),
-    roll: vi.fn(),
+  // The ninth copy of the stub, missed by #27 because it was written inline rather
+  // than as a `stubWorld` helper — so the search that found the other eight walked
+  // straight past it.
+  const world = stubWorld({
     subscribeLives: vi.fn((onChange) => {
       lifeWatchers.add(onChange);
 
@@ -35,7 +28,7 @@ function drivenWorld() {
         overWatchers.delete(onGameOver);
       };
     }),
-  };
+  });
 
   return {
     world,

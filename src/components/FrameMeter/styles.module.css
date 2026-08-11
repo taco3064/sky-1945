@@ -1,0 +1,28 @@
+/*
+ * The frame readout, bottom left.
+ *
+ * Deliberately quiet. It is on screen for the whole run, so it has to be legible on
+ * demand and invisible the rest of the time — dim, small, monospaced digits that do
+ * not reflow as the numbers change.
+ *
+ * It turns amber when the average drops below the threshold, because the moment
+ * anyone looks at this is the moment something felt wrong, and finding the number
+ * should not require reading it carefully.
+ */
+
+.meter {
+  position: absolute;
+  bottom: 0.7rem;
+  left: 0.85rem;
+  color: rgb(150 215 255 / 45%);
+  font-size: 0.62rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+}
+
+.meter[data-slow] {
+  color: #ffb37a;
+  text-shadow: 0 0 8px rgb(255 179 122 / 45%);
+}
