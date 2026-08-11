@@ -1,0 +1,1 @@
+export { useFrameRate } from './useFrameRate';

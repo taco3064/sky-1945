@@ -45,6 +45,7 @@ export function stubWorld(overrides: Partial<World> = {}): World {
     subscribeLives: vi.fn(() => () => {}),
     subscribeGameOver: vi.fn(() => () => {}),
     subscribeBoss: vi.fn(() => () => {}),
+    subscribeFrameRate: vi.fn(() => () => {}),
     setPlayerDirection: vi.fn(),
     roll: vi.fn(),
     ...overrides,

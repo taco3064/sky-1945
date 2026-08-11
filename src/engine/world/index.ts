@@ -7,6 +7,8 @@ export type {
   EntityKind,
   EntityRecord,
   FrameListener,
+  FrameRate,
+  FrameRateListener,
   LivesListener,
   RosterListener,
   RoundListener,

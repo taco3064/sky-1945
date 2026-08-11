@@ -8,6 +8,7 @@ import { Burst } from '~app/components/Burst';
 import { Enemy } from '~app/components/Enemy';
 import type { EnemyVariant } from '~app/components/Enemy';
 import { Fighter } from '~app/components/Fighter';
+import { FrameMeter } from '~app/components/FrameMeter';
 import { HealthBar } from '~app/components/HealthBar';
 import { LifeIcon } from '~app/components/LifeIcon';
 import { SpeedLines } from '~app/components/SpeedLines';
@@ -17,6 +18,7 @@ import type { BossSnapshot } from '~app/engine/boss';
 import type { CombatSnapshot } from '~app/engine/combat';
 import type { EntityKind, EntityRecord, World } from '~app/engine/world';
 import { useEntityRoster } from '~app/hooks/useEntityRoster';
+import { useFrameRate } from '~app/hooks/useFrameRate';
 import { useGameRound } from '~app/hooks/useGameRound';
 import { useHitPoints } from '~app/hooks/useHitPoints';
 import { useLives } from '~app/hooks/useLives';
@@ -121,6 +123,7 @@ export function Field({ world, pace, phase, onPause, onQuit, onGameOver }: Field
   const combat = usePlayerCombat(world);
   const round = useGameRound(world);
   const boss = useHitPoints(world);
+  const rate = useFrameRate(world);
   const lives = useLives(world, onGameOver);
 
   useEffect(() => {
@@ -157,6 +160,8 @@ export function Field({ world, pace, phase, onPause, onQuit, onGameOver }: Field
               shielded={boss.stance === 'entering'}
             />
           )}
+
+          <FrameMeter fps={rate.fps} worst={rate.worst} />
 
           {phase !== 'gameover' && (
             <button

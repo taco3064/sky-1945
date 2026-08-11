@@ -730,3 +730,67 @@ describe('createWorld · a new subscriber is placed immediately', () => {
     expect(onFrame).not.toHaveBeenCalled();
   });
 });
+
+describe('createWorld · the frame meter', () => {
+  /*
+   * Twice a second, not sixty times. A reading per frame would be a React render per
+   * frame — exactly what the transform channel exists to avoid — where a window of
+   * 500ms is two renders of one small element.
+   */
+  it('reports at the window rate, not per frame', () => {
+    world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
+
+    const onRate = vi.fn();
+
+    world.subscribeFrameRate(onRate);
+    world.start();
+    runFrames(2000);
+
+    expect(onRate.mock.calls.length).toBeGreaterThan(1);
+    expect(onRate.mock.calls.length).toBeLessThan(12);
+  });
+
+  it('reports a plausible rate and a worst frame', () => {
+    world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
+
+    const onRate = vi.fn();
+
+    world.subscribeFrameRate(onRate);
+    world.start();
+    runFrames(1500);
+
+    const [rate] = onRate.mock.calls.at(-1) ?? [];
+
+    expect(rate.fps).toBeGreaterThan(0);
+    expect(rate.worst).toBeGreaterThanOrEqual(0);
+  });
+
+  it('says nothing before the first window closes', () => {
+    world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
+
+    const onRate = vi.fn();
+
+    world.subscribeFrameRate(onRate);
+    world.start();
+    runFrames(100);
+
+    expect(onRate).not.toHaveBeenCalled();
+  });
+
+  it('stops reporting once disposed', () => {
+    world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
+
+    const onRate = vi.fn();
+
+    world.subscribeFrameRate(onRate);
+    world.start();
+    runFrames(1200);
+    world.dispose();
+
+    const seen = onRate.mock.calls.length;
+
+    runFrames(2000);
+
+    expect(onRate.mock.calls.length).toBe(seen);
+  });
+});
