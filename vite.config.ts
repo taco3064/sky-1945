@@ -16,6 +16,22 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    /*
+     * Twenty seconds, against vitest's default of five.
+     *
+     * The engine's suite drives whole runs through fake timers — one case simulates
+     * two and a half minutes of play, several simulate a full round — and a round is
+     * thousands of frames at four collision passes each. Half a second on a
+     * developer's machine, several on a shared CI runner, and the gap between those
+     * two numbers is not fixed: it moves with whatever else the runner is doing.
+     *
+     * Both times this bit, it bit *after* a merge or on an unrelated branch, which
+     * is the tell that the threshold was wrong rather than the tests. Raising it
+     * globally beats adding a timeout per case as each one happens to be the slowest
+     * on the day — and twenty is still far below anything that has actually hung, so
+     * a genuine deadlock still fails rather than waiting out the job.
+     */
+    testTimeout: 20_000,
     // Unmounts what each test rendered. Not optional with `globals` off —
     // see the comment in the file.
     setupFiles: ['./src/test-setup.ts'],
