@@ -1,3 +1,4 @@
+import { ControlHints } from '~app/components/ControlHints';
 import { StatBar } from '~app/components/StatBar';
 import {
   BOOST_MAX_PERCENT,
@@ -87,6 +88,12 @@ export function LoadoutScreen({
           onChange={(event) => onPoints(Number(event.target.value))}
         />
         <span className={styles.end}>SPEED</span>
+      </div>
+
+      {/* Same shape as the StatBar wrappers above: the component draws itself,
+          the screen says where it sits and how wide it gets. */}
+      <div className={styles.hints}>
+        <ControlHints />
       </div>
 
       <button className={styles.start} type="button" onClick={onConfirm}>
