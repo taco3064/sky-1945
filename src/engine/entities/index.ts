@@ -32,4 +32,4 @@ export {
   enemyMuzzleOffset,
   velocityOf,
 } from './entities';
-export type { EnemyKind, EnemyStats } from './types';
+export type { EnemyKind } from './types';

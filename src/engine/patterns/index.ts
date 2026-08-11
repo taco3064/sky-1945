@@ -1,2 +1,2 @@
 export { PATTERN_SIZE, shotsFor } from './patterns';
-export type { BulletSpawn, PatternKind, PatternOptions, Side } from './types';
+export type { BulletSpawn, PatternKind } from './types';

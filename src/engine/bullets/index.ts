@@ -1,2 +1,2 @@
 export { createBulletField } from './bullets';
-export type { BulletField, BulletRecord } from './types';
+export type { BulletField } from './types';
