@@ -2,11 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- No favicon yet — the Vite template's was its own logo, and a wrong
-         icon is worse than none. The empty data: URI is not decoration: drop
-         this line and the browser falls back to guessing /favicon.ico, which
-         404s into the console on every load. Replace it when there is art. -->
-    <link rel="icon" href="data:," />
+    <!--
+      The .ico is first because it is also the path the browser guesses on its
+      own, so shipping one turns the old 404 into a hit whether or not a tag
+      points at it. It packs 16/32/48; the PNG covers high-DPI tabs.
+
+      The art is the square icon render, not the title screen's logo — that
+      one is a wide lockup and there is nothing left of it at 32px.
+    -->
+    <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <!--
       viewport-fit=cover is what makes env(safe-area-inset-*) report real
       numbers — without it the insets are 0 and the notch clips the field.
@@ -17,7 +23,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
     />
-    <title>sky-1945</title>
+    <title>尬電 1945</title>
   </head>
   <body>
     <div id="root"></div>
