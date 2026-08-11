@@ -175,8 +175,14 @@ describe('usePointerControls · a quick tap also rolls', () => {
 });
 
 describe('usePointerControls · the knob stays inside its ring', () => {
-  // Dragging far past the ring keeps steering in that direction — the stick
-  // is a direction, not a leash — but the dot has to stop at the edge.
+  /*
+   * Dragging far past the ring keeps steering in that direction — the stick is a
+   * direction, not a leash — but the dot has to stop at the ring's edge.
+   *
+   * 26px: the ring is 1.2 knob radii and the knob's *centre* travels to its edge,
+   * so most of the dot sits outside the ring at full deflection. That is the gate,
+   * not an overflow. It was 56 — a whole ring's width of thumb movement to turn.
+   */
   it('caps the dot at the ring while the direction keeps going', () => {
     const world = stubWorld();
     const { surface, stick } = mount(world);
@@ -184,8 +190,35 @@ describe('usePointerControls · the knob stays inside its ring', () => {
     fire(surface, 'pointerdown', { pointerId: 1, clientX: 100, clientY: 500 });
     fire(surface, 'pointermove', { pointerId: 1, clientX: 400, clientY: 500 });
 
-    expect(stick.style.getPropertyValue('--knob-x')).toBe('56px');
+    expect(stick.style.getPropertyValue('--knob-x')).toBe('26px');
     expect(lastDirection(world)).toEqual([300, 0]);
+  });
+
+  // The short throw is the whole point: full deflection has to cost a thumb's
+  // twitch, because that is what dodging a bullet is.
+  it('reaches full deflection in a thumb movement', () => {
+    const world = stubWorld();
+    const { surface, stick } = mount(world);
+
+    fire(surface, 'pointerdown', { pointerId: 1, clientX: 100, clientY: 500 });
+    fire(surface, 'pointermove', { pointerId: 1, clientX: 126, clientY: 500 });
+
+    expect(stick.style.getPropertyValue('--knob-x')).toBe('26px');
+  });
+
+  // Small enough to steer with, large enough that a resting thumb does not.
+  it('ignores a wander smaller than the deadzone', () => {
+    const world = stubWorld();
+    const { surface } = mount(world);
+
+    fire(surface, 'pointerdown', { pointerId: 1, clientX: 100, clientY: 500 });
+    fire(surface, 'pointermove', { pointerId: 1, clientX: 103, clientY: 500 });
+
+    expect(lastDirection(world)).toEqual([0, 0]);
+
+    fire(surface, 'pointermove', { pointerId: 1, clientX: 108, clientY: 500 });
+
+    expect(lastDirection(world)).toEqual([8, 0]);
   });
 });
 
