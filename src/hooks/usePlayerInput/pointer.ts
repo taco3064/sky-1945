@@ -3,40 +3,13 @@ import type { RefObject } from 'react';
 
 import type { World } from '~app/engine/world';
 
-/**
- * The filled knob's radius, in screen pixels. Mirrors the TouchStick's CSS.
- *
- * Two places, deliberately: `components` cannot import from `hooks`, so the
- * drawing and the gesture cannot share a constant. What keeps them honest is that
- * the ring's radius is knob + throw, so a mismatch is immediately visible — the
- * knob either escapes the ring or never reaches it.
- */
+/** The filled knob's radius, in screen pixels. Mirrors the TouchStick's CSS. */
 const KNOB_RADIUS = 22;
 
-/**
- * The ring's radius, which is also the whole throw.
- *
- * Reported twice from play on a phone: turning the aircraft took a large,
- * deliberate thumb movement, which is the wrong shape of effort for a game where
- * the answer to a bullet is a twitch. The first attempt shortened the throw but
- * left the ring at its old size, which fixed the effort and not the picture.
- *
- * So the ring shrank to 1.2 knob radii, and the knob's *centre* travels to its
- * edge — meaning most of the dot sits outside the ring at full deflection. That is
- * the intent rather than an overflow: the ring is a gate the thumb presses against,
- * not a cup the dot rattles inside. Full deflection is now 26px of thumb, down
- * from 56.
- */
+/** The ring's radius, which is also the whole throw. The knob's centre reaches it. */
 const RING_RADIUS = Math.round(KNOB_RADIUS * 1.2);
 
-/**
- * How far a thumb may wander before it counts as a direction, in pixels.
- *
- * Absolute rather than a fraction of the throw. It answers to the hand — how still
- * a thumb rests, and how much a screen jitters — not to how far the stick happens
- * to travel. Kept as a fraction it would have shrunk along with the throw above,
- * and five pixels of a 26px throw is already a fifth of it.
- */
+/** How far a thumb may wander before it counts as a direction. Absolute, not a ratio. */
 const DEADZONE_PX = 5;
 
 /** A press shorter than this, that stayed inside the deadzone, was a tap. */
@@ -110,15 +83,7 @@ function bindPointer(surface: HTMLElement, stick: HTMLElement, world: World): ()
       return;
     }
 
-    /*
-     * A press that was brief and never left the deadzone was a tap, not a steer —
-     * the one-handed way to roll.
-     *
-     * Measured against the deadzone rather than a slop of its own. There used to be
-     * a separate 12px threshold, which was two numbers for one idea: a movement too
-     * small to be a direction is exactly a movement small enough to be a tap. One
-     * constant cannot disagree with itself.
-     */
+    // Brief and inside the deadzone was a tap, not a steer — the one-handed roll.
     if (event.timeStamp - origin.at < TAP_MS && origin.moved < DEADZONE_PX) {
       world.roll();
     }
@@ -149,25 +114,7 @@ export interface PointerControls {
   stick: RefObject<HTMLDivElement | null>;
 }
 
-/**
- * The touch half of the player's controls.
- *
- * The two gestures are told apart by **which finger**, never by how long one
- * is held. A long-press-versus-tap split needs a 150–200ms threshold to
- * disambiguate, which buys a 150ms lag on either movement or the dodge — and
- * movement lag is fatal in a bullet-hell game. Distinguishing by finger costs
- * nothing, and is what multi-touch is for.
- *
- * - first touch → the stick appears where it landed; movement starts on
- *   contact, with no delay at all
- * - a second touch while the first is held → roll
- * - a quick tap with nothing else down → also a roll, so one-handed play can
- *   still dodge
- *
- * The stick reports **direction only**. Offset distance does not scale speed:
- * speed already belongs to the loadout, and letting the stick scale it too
- * would put two systems in charge of one number.
- */
+/** The touch half of the controls: first finger steers, a second one rolls. */
 export function usePointerControls(world: World): PointerControls {
   const surface = useRef<HTMLDivElement>(null);
   const stick = useRef<HTMLDivElement>(null);

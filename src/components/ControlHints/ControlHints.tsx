@@ -1,21 +1,6 @@
 import styles from './styles.module.css';
 
-/**
- * How to fly, as a table of action × device.
- *
- * A table rather than a list because the bindings have two axes: what the
- * player wants to do, and what they are holding. A list would have to pick one
- * device and hide the other, which is what the title screen's prompt does —
- * correctly, because a call to action the player cannot follow is noise. This
- * block is reference, and both columns show everywhere: the touch bindings are
- * the half nobody can guess, and a player on a phone has no key to press to
- * discover that a drag anywhere steers.
- *
- * No props. The copy has exactly one caller and describes the input layer the
- * whole game shares, so parameterising it would invent a seam that nothing is
- * pulling on. Where it sits and how wide it is belong to the screen around it,
- * which is why nothing here sets a width.
- */
+/** How to fly, as a table of action × device. Both columns show everywhere. */
 export function ControlHints() {
   return (
     <table className={styles.controls}>

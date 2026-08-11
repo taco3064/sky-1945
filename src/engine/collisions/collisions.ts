@@ -3,25 +3,7 @@ import type { Body, Engine, IEventCollision } from 'matter-js';
 
 import { damageOf } from '../entities';
 
-/**
- * What touched what, and what it means.
- *
- * This is the only module that reads Matter's collision events, and all it
- * does is classify them — it damages nothing and kills nobody. The world
- * drains the list each frame and decides consequences, which keeps "who can
- * hurt whom" in one readable place instead of spread across event handlers.
- *
- * Every body in the game is a sensor, so Matter reports contacts and applies
- * no forces. Nothing here is ever pushed.
- */
-
-/**
- * A contact worth acting on.
- *
- * `player-hit` carries nothing: there is one player, and contact is fatal
- * regardless of what caused it — an enemy, its bullet, it makes no difference
- * to the outcome. A field for damage would only invite someone to subtract it.
- */
+/** A contact worth acting on. `player-hit` carries nothing: contact is fatal. */
 export type Hit
   = | { kind: 'enemy-damaged'; enemyId: number; bulletId: number; damage: number }
     | { kind: 'player-hit' };
@@ -33,26 +15,12 @@ export interface CollisionWatch {
   dispose: () => void;
 }
 
-/**
- * Everything on the enemy side kills the player on contact.
- *
- * One rule for aircraft, bullets and the boss's beam alike, because the outcome
- * is the same for all three and the label prefix already says whose they are.
- * This replaced a list of "an enemy, or an enemy's bullet" that would have had
- * to grow an entry every time the enemy side gained a new kind of thing.
- */
+/** Everything on the enemy side kills the player on contact. */
 function isThreat(body: Body): boolean {
   return body.label.startsWith('enemy-');
 }
 
-/**
- * Enemy-side things that threaten but cannot be shot.
- *
- * A bullet is not a target, and neither is the boss's beam: player fire passes
- * straight through both. Without the beam listed here, the player's own shots
- * would be swallowed by the column they are trying to shoot past, and each one
- * would report damage against a body that owns no hit points.
- */
+/** Enemy-side things that threaten but cannot be shot — player fire passes through. */
 const HAZARDS = new Set(['enemy-bullet', 'enemy-beam']);
 
 /** Enemy-side and shootable — an aircraft, up to and including the boss. */

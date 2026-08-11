@@ -11,18 +11,6 @@ import {
 } from './attacks';
 import type { BossAttack, BossStance } from './attacks';
 
-/**
- * The fight's state machine: enter, wind up, fire, rest, repeat.
- *
- * Split out of `boss.ts` when the factory holding the bodies passed its line
- * budget. The division it fell along is a real one — this owns *what happens
- * next* and touches no body at all, while `boss.ts` owns the bodies and the
- * hit points. The one thing the machine has to reach out for is the beam, which
- * arrives as two functions rather than as a body.
- *
- * Same shape as the split between `../frame` and `../world`, one layer down.
- */
-
 /** Down the screen, in the degrees `../patterns` speaks. */
 const DOWNWARD = 90;
 
@@ -48,34 +36,15 @@ export interface Duel {
   volleys: number;
   /** The round it was summoned for, so its attacks differ between rounds. */
   round: number;
-  /**
-   * The body size it was rolled at, 0.8–2.0.
-   *
-   * Two consequences, pulling in opposite directions so neither size is simply
-   * better: a small boss patrols faster (`../boss` divides its patrol *rate* by
-   * this), and a large one fires more (the cadence below is divided by it, so a
-   * long attack lands proportionally more volleys).
-   */
+  /** The body size it was rolled at, 0.8–2.0. Divides the patrol rate and cadence. */
   scale: number;
-  /**
-   * The column a ram is committed to, locked when its wind-up ends.
-   *
-   * Null except during a ram. Locked at the *end* of the tell rather than tracked
-   * continuously: a dive that followed the player would be unavoidable, and the
-   * whole point of a one-second wind-up is that moving out of the way is the
-   * answer.
-   */
+  /** The column a ram is committed to, locked when its wind-up ends. Null otherwise. */
   aimedX: number | null;
 }
 
-/**
- * The beam, as the two things the machine can do to it.
- *
- * Not the body: this module has no business creating one, and handing it a
- * `Body | null` would make every step have to know whether one exists.
- */
+/** The beam, as the two things the machine can do to it — never as a body. */
 export interface BeamControl {
-  /** Takes the muzzle position, not the boss's centre — see the note in `boss.ts`. */
+  /** Takes the muzzle position, not the boss's centre. */
   open: (muzzle: Point) => void;
   close: () => void;
 }
@@ -132,36 +101,14 @@ function enter(duel: Duel, stance: BossStance): void {
   duel.volleys = 0;
 }
 
-/**
- * Whether the current attack owes a volley right now.
- *
- * The cadence is divided by the body size, so a large boss fires more inside the
- * same attack — that is what "bigger means more bullets" is, and it costs no new
- * table: one division, and the duration decides the rest.
- */
+/** Whether the current attack owes a volley right now. */
 function volleyDue(duel: Duel): boolean {
-  // The first one is never held back. Otherwise the wind-up finishes and
-  // nothing happens for a whole cadence — up to half a second on the radial
-  // burst, which makes the tell look like a lie.
+  // The first one is never held back, or the tell would look like a lie.
   return duel.volleys === 0
     || duel.sinceVolley >= cadenceOf(attackOf(duel)) / duel.scale;
 }
 
-/**
- * One volley of whichever shape is firing.
- *
- * Two of the five attacks throw no bullets at all: the beam *is* its own hazard,
- * and the ram makes a projectile of the boss. Checked by listing the ones that do
- * fire rather than the ones that do not, so a sixth attack has to opt in — the
- * failure mode of the other spelling is a new attack silently firing a shape it
- * was never given.
- *
- * A radial burst leaves the **centre**; the aimed shapes leave the muzzle. That is
- * not a detail: a ring fired from the nose has its centre hanging below the
- * aircraft, which at a rolled size of 2 puts it 132 units clear of the body and
- * reads as a ring that belongs to nothing. A burst is the aircraft coming apart in
- * every direction, and it has to come from the middle of it.
- */
+/** One volley of whichever shape is firing. A radial burst leaves the centre. */
 function volley(step: StanceStep): BulletSpawn[] {
   const attack = attackOf(step.duel);
 
@@ -210,17 +157,13 @@ function stepWinding(step: StanceStep): StanceResult {
     });
   }
 
-  // The ram commits to a column here and nowhere else. Read once, at the instant
-  // the tell ends, which is the last moment the player could still have moved.
+  // The ram commits to a column here and nowhere else: the last moment to move.
   step.duel.aimedX = opening === 'ram' ? step.playerX : null;
 
   return { changed: true, shots: [] };
 }
 
-/**
- * Firing. The beam is one body held for the attack's whole duration; the other
- * three throw a volley every cadence.
- */
+/** Firing: the beam is held throughout, the shapes throw a volley per cadence. */
 function stepFiring(step: StanceStep): StanceResult {
   if (step.duel.since >= durationOf(attackOf(step.duel))) {
     step.beam.close();
@@ -252,13 +195,7 @@ function stepRecovering(duel: Duel): StanceResult {
   return { changed: true, shots: [] };
 }
 
-/**
- * Advance the fight by one slice.
- *
- * `arrived` is the caller's answer, not this module's: where the boss is takes
- * the field's dimensions, and the machine deliberately knows nothing about
- * them.
- */
+/** Advance the fight by one slice. `arrived` is the caller's answer, not ours. */
 export function stepStance(step: StanceStep, arrived: boolean): StanceResult {
   if (step.duel.stance === 'entering') {
     return stepEntering(step.duel, arrived);

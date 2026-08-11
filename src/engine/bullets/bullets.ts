@@ -5,15 +5,6 @@ import { createBullet, velocityOf } from '../entities';
 import { isOutside } from '../field';
 import type { BulletSpawn } from '../patterns';
 
-/**
- * Every bullet in flight, from either side.
- *
- * It knows nothing about cadence — when to fire belongs to whoever is firing
- * (the pilot, an enemy), and this module only carries what has already been
- * fired. Velocity rides on each body, so a radial burst and a straight shot
- * advance through exactly the same code.
- */
-
 /** Bullets outside the field by this much are gone for good. */
 const CULL_MARGIN = 24;
 
@@ -69,8 +60,7 @@ export function createBulletField(engine: Engine): BulletField {
       }
 
       for (const id of gone) {
-        // Out of the physics world as well as the map. A body left behind is
-        // a leak the collision phase pays for every frame, forever.
+        // Out of the physics world as well as the map, or the broad phase pays forever.
         Composite.remove(engine.world, live.get(id) as Body);
         live.delete(id);
       }

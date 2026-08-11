@@ -3,23 +3,8 @@ import type { ReactNode } from 'react';
 
 import type { World } from '~app/engine/world';
 
-/**
- * Carries the running simulation down to whatever needs to read it.
- *
- * This layer defines and provides, and does nothing else — `useContext`
- * belongs to the hooks layer, so the reader lives there
- * (`useEntityTransform`). The split is the blueprint's, and it is what keeps
- * a component from ever holding the world: components may not import this
- * layer at all, so the only way down to the simulation is through a hook.
- */
-// The template's fast-refresh rule wants the context in its own file, away
-// from the provider. The blueprint's module shape says a context module
-// exposes both through one entry, and the blueprint is the source of truth
-// for structure (agent-contract, "When another tool disagrees"). Cost of
-// ignoring the rule: one extra full reload when *this* file is edited during
-// development. Cost of obeying it: a module shape that contradicts the
-// contract every other module in the repo follows.
-// eslint-disable-next-line react-refresh/only-export-components -- the shape above wins
+/** Carries the running simulation down. Only a hook may read it — see the handbook. */
+// eslint-disable-next-line react-refresh/only-export-components -- one module entry
 export const GameContext = createContext<World | null>(null);
 
 export interface GameProviderProps {

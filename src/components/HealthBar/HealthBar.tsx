@@ -20,28 +20,7 @@ function fractionOf(hp: number, maxHp: number): number {
   return Math.min(Math.max(hp / maxHp, 0), 1);
 }
 
-/**
- * The boss's health, across the top of the field.
- *
- * The one bar in the game, and the reason any hit points leave the engine at
- * all. A trash mob needs none: the player reads "it is still there". A fight
- * that lasts half a minute needs one, or there is no way to tell a boss at 90%
- * from one about to die, and no reason to keep taking risks.
- *
- * Width is a percentage rather than a transform, which is the opposite of how
- * every aircraft is moved (#4). It can be: this changes tens of times a second
- * at most and there is one of it, where positions change 60 times a second
- * across roughly 200 elements. The playbook's `measurable-perf` cuts both ways
- * — the cheap thing is only worth doing where the cost was real.
- *
- * `ROLL` rather than the attack's name: the player has 1.4 seconds and needs to
- * know what to *do*, not what it is called.
- *
- * `ARRIVING` is the same principle applied to a rule instead of an attack. The
- * boss cannot be hurt while it flies in, and a full bar that refuses to move is
- * indistinguishable from a broken game unless it says why — and this wording says
- * both why and for how long, because "arriving" is a thing that ends.
- */
+/** The boss's health, across the top. The labels say what to do, not what it is. */
 export function HealthBar({
   hp,
   maxHp,

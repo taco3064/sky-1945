@@ -1,12 +1,3 @@
-/**
- * The two stat boosts every aircraft carries — friend and enemy alike.
- *
- * The player's come from spending points on the loadout screen; an enemy's
- * come from the round's difficulty (#7). Two sources, one shape: "harder
- * round" is a function of the round number rather than a new enemy table per
- * round, which is what keeps the director small.
- */
-
 /** Points a run distributes between the two stats. */
 export const LOADOUT_POINTS = 10;
 
@@ -19,11 +10,7 @@ export const BOOST_MIN_PERCENT = 100;
 /** Every point on one stat: 100 + 10 × 10. */
 export const BOOST_MAX_PERCENT = BOOST_MIN_PERCENT + LOADOUT_POINTS * PERCENT_PER_POINT;
 
-/**
- * A legal allocation. Eleven values, so the type says what a `number` could
- * not: 11 points is not a loadout, and nothing downstream has to defend
- * against one.
- */
+/** A legal allocation. Eleven values, so 11 points is not a loadout the type admits. */
 export type LoadoutPoints = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 
 /** Half each — where a run starts before the player touches anything. */
@@ -43,43 +30,23 @@ export interface Boosts {
   power: Boost;
 }
 
-/**
- * The one place a raw number becomes a legal allocation: rounded, then held
- * inside 0–10.
- *
- * This is not the 100–200 range being clamped — that range needs no guard,
- * because ten points at ten percent each reaches exactly 200 and cannot
- * pass it. This clamps the *slider*, whose ends are a different question:
- * dragging past either end should stop, not wrap or throw.
- */
+/** The one place a raw number becomes a legal allocation: rounded, then held to 0–10. */
 export function toPoints(value: number): LoadoutPoints {
   const rounded = Math.round(value);
   const held = Math.min(LOADOUT_POINTS, Math.max(0, rounded));
 
-  // The only assertion in the module, and the tests below sweep every input
-  // that reaches it — the clamp above is what makes it true.
+  // The clamp above is what makes this assertion true.
   return held as LoadoutPoints;
 }
 
-/**
- * Percent first, multiplier derived from it.
- *
- * Deliberately not `1 + points * 0.1`: that produces 1.7000000000000002 at
- * seven points, which then renders as "170.00000000000003%" and fails an
- * equality assertion. Whole-percent arithmetic stays exact, and dividing by
- * 100 lands on the same double the literal 1.7 does.
- */
+/** Percent first, multiplier derived from it — whole-percent arithmetic stays exact. */
 function boost(points: number): Boost {
   const percent = BOOST_MIN_PERCENT + points * PERCENT_PER_POINT;
 
   return { percent, multiplier: percent / 100 };
 }
 
-/**
- * Both boosts for an allocation. `power` is derived from the same number
- * `speed` is — the remainder — so there is no second field to keep in sync
- * and no way for the pair to disagree about how many points were spent.
- */
+/** Both boosts for an allocation. `power` is the remainder, so they cannot disagree. */
 export function boostsFromPoints(points: LoadoutPoints): Boosts {
   return {
     speed: boost(points),
@@ -87,18 +54,7 @@ export function boostsFromPoints(points: LoadoutPoints): Boosts {
   };
 }
 
-/**
- * The round's difficulty, in the same shape a loadout produces.
- *
- * Deliberately **not** zero-sum, unlike the player's allocation: a harder
- * round is faster *and* hits harder, where spending a point on the player's
- * speed costs them power. Same shape, different arithmetic — which is what
- * "one model, two sources" actually means, and why this is a second function
- * rather than a reused one.
- *
- * Round 1 is 100% on both. Each round adds one point's worth, and it stops at
- * 200% — the same ceiling the player has, reached at round 11.
- */
+/** The round's difficulty, in a loadout's shape but not zero-sum. Caps at round 11. */
 export function boostsForRound(round: number): Boosts {
   const points = Math.min(Math.max(round - 1, 0), LOADOUT_POINTS);
   const same = boost(points);

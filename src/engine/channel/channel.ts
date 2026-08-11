@@ -1,14 +1,4 @@
-/**
- * One subscribe-and-broadcast shape, used three times by the world.
- *
- * It exists because the same eight lines were written out for transforms, for
- * the roster, and for combat state — three sets, three loops, three
- * unsubscribes. Same-layer sharing means the shared part wants a home of its
- * own, and this is the smallest one that fits.
- *
- * No `now`, no timers, no bodies: it forwards values and holds nothing else.
- */
-
+/** One subscribe-and-broadcast shape. It forwards values and holds nothing else. */
 export interface Channel<T> {
   /** Listen. Returns its own unsubscribe. */
   subscribe: (listener: (value: T) => void) => () => void;

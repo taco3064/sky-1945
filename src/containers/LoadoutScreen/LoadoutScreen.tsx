@@ -22,17 +22,7 @@ export interface LoadoutScreenProps {
   onConfirm: () => void;
 }
 
-/**
- * Ten points across two stats, spent on one slider.
- *
- * One number of state gets one control. Two sets of +/- buttons would let the
- * player think of the stats as independent, which they are not — every point
- * on speed is a point off power, and a single handle sliding between them
- * says so without a word of explanation.
- *
- * The boosts are derived here rather than handed down: this screen is the
- * only place that needs both of them.
- */
+/** Ten points across two stats, spent on one slider — one number, one control. */
 export function LoadoutScreen({
   speedPoints,
   onPoints,
@@ -90,8 +80,7 @@ export function LoadoutScreen({
         <span className={styles.end}>SPEED</span>
       </div>
 
-      {/* Same shape as the StatBar wrappers above: the component draws itself,
-          the screen says where it sits and how wide it gets. */}
+      {/* The component draws itself; the screen says where it sits. */}
       <div className={styles.hints}>
         <ControlHints />
       </div>

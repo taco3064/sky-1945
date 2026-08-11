@@ -1,13 +1,3 @@
-/**
- * Bullet trajectories, as pure arithmetic.
- *
- * This module builds no bodies and touches no physics — it turns "fire a
- * spread from here" into a list of positions and velocities. That is what
- * keeps it below `entities` in the engine's own dependency order: entities
- * needs these types to describe what it is creating, so this module must not
- * need entities back (`cycles` is an error, and rightly).
- */
-
 /** Which shape a volley takes. */
 export type PatternKind = 'straight' | 'spread' | 'radial';
 
@@ -68,12 +58,7 @@ function straight(options: PatternOptions): BulletSpawn[] {
   return [shotAt(options, options.heading)];
 }
 
-/**
- * A fan centred on the heading.
- *
- * Read as a threat it says "move sideways", where a straight shot says "move
- * a little" — which is the point of having more than one pattern.
- */
+/** A fan centred on the heading. Read as a threat, it says "move sideways". */
 function spread(options: PatternOptions): BulletSpawn[] {
   const step = SPREAD_ARC / (SPREAD_COUNT - 1);
   const first = options.heading - SPREAD_ARC / 2;
@@ -84,12 +69,7 @@ function spread(options: PatternOptions): BulletSpawn[] {
   );
 }
 
-/**
- * The full circle, evenly divided.
- *
- * Says "there is no sideways" — the answer is the gap between two bullets, or
- * a roll (#10) straight through.
- */
+/** The full circle, evenly divided. Says "there is no sideways": see #10. */
 function radial(options: PatternOptions): BulletSpawn[] {
   const step = 360 / RADIAL_COUNT;
 

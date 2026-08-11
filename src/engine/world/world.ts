@@ -17,29 +17,7 @@ import { stepFrame } from '../frame';
 import type { FrameParts, FrameResult } from '../frame';
 import { createPilot } from '../pilot';
 
-/**
- * The simulation's lifetime, and the channels the outside world listens on.
- *
- * What happens inside a frame lives in `../frame`; the field's dimensions in
- * `../field`; the player in `../pilot`; enemies, bullets and bursts in their
- * own fields. This module creates them, runs the one animation loop the repo
- * is allowed (the blueprint's `engine` layer owns `requestAnimationFrame`),
- * and publishes what changed.
- *
- * Matter runs in sensor mode throughout: gravity off, every body a sensor,
- * every position written directly. Matter reports contacts; nothing here is
- * ever pushed by anything.
- */
-
-/**
- * One frame at 60Hz, and the ceiling on any single step.
- *
- * Matter warns above 16.667ms and its solver degrades past it, so a long gap
- * — a backgrounded tab, a stalled frame — is served as one normal step rather
- * than one huge one. The game slows down instead of teleporting, which in a
- * bullet-hell game is the kinder failure: a player can react to slow motion,
- * and cannot react to being moved 300 units into a wall of bullets.
- */
+/** One frame at 60Hz, and the ceiling on any single step. */
 const MAX_STEP_SECONDS = 1 / 60;
 
 /** Matter body ids, and burst ids — which count down from -1. */
@@ -117,34 +95,13 @@ export interface World {
   subscribeCombat: (onChange: CombatListener) => () => void;
   /** Watch the round number. Fires when a round is cleared. */
   subscribeRound: (onChange: RoundListener) => () => void;
-  /**
-   * Watch how many aircraft the run has left.
-   *
-   * Lives live here rather than in React because they and the death that
-   * spends them are one decision: the world knows the player was hit, so it is
-   * the only place that can subtract a life and respawn in the same breath.
-   * Holding a copy upstairs would be two numbers that can disagree.
-   */
+  /** Watch how many aircraft the run has left. */
   subscribeLives: (onChange: LivesListener) => () => void;
   /** Fires when the last life is gone. */
   subscribeGameOver: (onGameOver: GameOverListener) => () => void;
-  /**
-   * Watch the frame rate. Fires twice a second, not every frame.
-   *
-   * Published from here because the engine owns the only animation loop in the repo
-   * — the `engine` layer declares `requestAnimationFrame` in its `owns`, so a hook
-   * cannot open a second one to count frames with. Which is the right answer anyway:
-   * the loop that does the work is the one that knows how long it took.
-   */
+  /** Watch the frame rate. Fires twice a second, not every frame. */
   subscribeFrameRate: (onChange: FrameRateListener) => () => void;
-  /**
-   * Watch the boss: its hit points, its stance, and null when there is none.
-   *
-   * The one place the engine hands its hit points upstairs. A trash mob's stay
-   * down here because nothing draws them — the player reads "it is still there".
-   * The boss has a bar, so React has to know the number, and this is the whole
-   * of that exception rather than a general HP channel.
-   */
+  /** Watch the boss: its hit points, its stance, and null when there is none. */
   subscribeBoss: (onChange: BossListener) => () => void;
   /** Point the player. Any vector; length is normalised away. */
   setPlayerDirection: (x: number, y: number) => void;
@@ -156,12 +113,7 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-/**
- * Subscribe, and deliver the current value straight away.
- *
- * A listener that had to wait for the next change to learn the present state
- * would render a round counter showing nothing until the round ended.
- */
+/** Subscribe, and deliver the current value straight away. */
 function openWith<T>(channel: Channel<T>, current: () => T) {
   return (onChange: (value: T) => void) => {
     const stop = channel.subscribe(onChange);
@@ -172,12 +124,7 @@ function openWith<T>(channel: Channel<T>, current: () => T) {
   };
 }
 
-/**
- * Everything on the field, right now.
- *
- * Reads the parts rather than closing over them, so it lives out here with the
- * other pure helpers instead of inside the factory.
- */
+/** Everything on the field, right now. */
 function rosterOf(parts: FrameParts): EntityRecord[] {
   return [
     { id: parts.pilot.id, kind: 'player' },
@@ -201,21 +148,14 @@ function rosterOf(parts: FrameParts): EntityRecord[] {
   ];
 }
 
-/**
- * Send every position on the field down the transform channel.
- *
- * Reads the parts rather than closing over them, like `rosterOf` above — which
- * is what keeps it out here rather than inside the factory, where it was the
- * fifteen lines that pushed `createWorld` past its budget.
- */
 type FrameChannel = KeyedChannel<EntityId, Transform>;
 
 /** Every live position as of the last frame, so a new subscriber can be told. */
 type Latest = Map<EntityId, Transform>;
 
+/** Send every position on the field down the transform channel. */
 function publishFrames(parts: FrameParts, frames: FrameChannel, latest: Latest): void {
-  // Rebuilt from scratch each frame, so it holds exactly what is alive — a map
-  // that only grew would keep every bullet ever fired.
+  // Rebuilt each frame, so it holds exactly what is alive.
   latest.clear();
 
   const at = (id: EntityId, transform: Transform): void => {
@@ -235,29 +175,13 @@ function publishFrames(parts: FrameParts, frames: FrameChannel, latest: Latest):
     at(body.id, transformOf(body));
   }
 
-  // Bursts do not move, but a subscriber mounting after one began still has to
-  // hear a position from somewhere.
+  // Bursts do not move, but a subscriber mounting mid-burst still needs a position.
   for (const { id, x, y } of parts.effects.placements()) {
     at(id, { x, y, angle: 0 });
   }
 }
 
-/**
- * Subscribe to a transform and deliver the last one known straight away.
- *
- * The transform channel is push-only, and for most of the game that is
- * invisible: a bullet mounts, waits 16ms, and is placed. It stopped being
- * invisible with the boss's beam, which is 88×1000 units — for one frame the
- * whole column sat at the field's origin instead of under the boss, and if the
- * run ended on that frame it stayed there. Reported from play as "the beam looks
- * wrong".
- *
- * Every other channel already opened with its current value (`openWith` below).
- * This is that same fix for the one channel that did not, and it is why
- * `publishFrames` now runs *after* the simulation step rather than before it —
- * the position has to be recorded before the roster that mounts its component
- * goes out.
- */
+/** Subscribe to a transform and deliver the last one known straight away. */
 function openTransform(frames: FrameChannel, latest: Latest) {
   return (id: EntityId, onFrame: FrameListener) => {
     const stop = frames.subscribe(id, onFrame);
@@ -271,13 +195,7 @@ function openTransform(frames: FrameChannel, latest: Latest) {
   };
 }
 
-/**
- * Whether two combat snapshots say the same thing.
- *
- * Field by field rather than by reference: the pilot builds a fresh object every
- * frame, so reference equality would publish sixty times a second, and the whole
- * point of the gate is that this channel fires on change.
- */
+/** Whether two combat snapshots say the same thing — field by field, not by reference. */
 function sameCombat(a: CombatSnapshot, b: CombatSnapshot): boolean {
   return a.rolling === b.rolling
     && a.invulnerable === b.invulnerable
@@ -309,18 +227,7 @@ interface Meter {
   worst: number;
 }
 
-/**
- * Fold one frame into the meter, and hand back a reading when the window closes.
- *
- * Measured from the **raw** gap between frames, before `MAX_STEP_SECONDS` clamps it.
- * The clamp is what stops a backgrounded tab teleporting the aircraft, and reading
- * the simulation's own elapsed time would therefore report a steady 60 through
- * exactly the stalls this is meant to catch.
- *
- * The window is why the meter can exist at all. A reading per frame would be a React
- * render per frame — the thing the whole transform channel exists to avoid — where
- * twice a second is two renders of one small element.
- */
+/** Fold one frame into the meter, and hand back a reading when the window closes. */
 function meterFrame(meter: Meter, ms: number): FrameRate | null {
   meter.frames += 1;
   meter.elapsed += ms;
@@ -364,33 +271,14 @@ function assemble(engine: Engine, options: WorldOptions): FrameParts {
   };
 }
 
-/**
- * Everything the outside is told, and the run state only the telling owns.
- *
- * Split out of `createWorld` the fourth time that factory hit its line budget, and
- * unlike the three extractions before it this one is a seam rather than a shaving:
- * `createWorld` builds the simulation and runs the loop, and this decides what any
- * of that is worth announcing.
- *
- * `lives` lives here for the same reason. It is not simulation state — the engine
- * has no opinion about how many attempts a player gets — it is a fact about the run
- * that exists only because someone is being told about it.
- */
+/** Everything the outside is told, and the run state only the telling owns. */
 function createBroadcast(parts: FrameParts, channels: Channels) {
   let published: CombatSnapshot = { rolling: false, invulnerable: false, ready: true };
   let lives = STARTING_LIVES;
 
-  /**
-   * Spend a life, and end the run if that was the last one.
-   *
-   * The fresh aircraft is already up and already protected — `pilot.kill()` does
-   * both, because a frame resolves in several collision passes and a craft left
-   * unprotected between them would die again on the next one.
-   */
+  /** Spend a life, and end the run if that was the last one. */
   const spendLife = (): void => {
-    // The run is already over. Whoever is watching stops the world when they hear
-    // about it, but the engine holds the invariant itself rather than trusting that
-    // to arrive before the next contact does.
+    // The engine holds this itself rather than trusting the listener to stop first.
     if (lives === 0) {
       return;
     }
@@ -451,26 +339,10 @@ export function createWorld(options: WorldOptions): World {
   const latest: Latest = new Map();
   const meter: Meter = { frames: 0, elapsed: 0, worst: 0 };
 
-  /*
-   * The last combat state published, not just the last `rolling` flag.
-   *
-   * It was `wasRolling`, and that was a real bug rather than a simplification: the
-   * gate below only fired when *rolling* changed, so the end of a respawn's
-   * protection was never announced. React kept the state it was handed on the
-   * entrance and the aircraft blinked for the whole run. Reported as exactly that.
-   *
-   * The roll's own protection hid it — rolling and invulnerable start and stop
-   * together, so as long as protection only ever came from a roll, watching one flag
-   * looked equivalent to watching all of them. Respawn protection outlives the roll,
-   * and a recovery window (added in this branch) outlives both.
-   */
   const broadcast = createBroadcast(parts, channels);
 
   const step = (now: number): void => {
-    // Held inside [0, MAX]. The ceiling covers a backgrounded tab; the floor
-    // covers a clock that hands back a timestamp older than the last one —
-    // rare in a browser, routine under fake timers, and a negative elapsed
-    // flies the aircraft backwards rather than failing loudly.
+    // Held inside [0, MAX]: the floor covers a clock that hands back an older stamp.
     const raw = now - loop.previous;
     const elapsed = clamp(raw / 1000, 0, MAX_STEP_SECONDS);
     const rate = meterFrame(meter, raw);
@@ -481,9 +353,8 @@ export function createWorld(options: WorldOptions): World {
 
     loop.previous = now;
 
-    // Simulate, then record where everything ended up, then announce what
-    // changed. In that order: a component mounted by the roster below has to be
-    // able to ask for a position that already exists.
+    // Simulate, record, then announce: the roster mounts components that ask for
+    // a position, so the position has to already be there.
     const result = stepFrame(parts, elapsed);
 
     publishFrames(parts, channels.frames, latest);
@@ -546,8 +417,7 @@ export function createWorld(options: WorldOptions): World {
 
     setPlayerDirection: (x, y) => parts.pilot.point(x, y),
 
-    // Announced here rather than left to the next frame's publish: the
-    // animation should start on the keypress, not 16ms after it.
+    // Announced on the keypress, not 16ms later at the next frame's publish.
     roll() {
       if (!parts.pilot.roll()) {
         return;

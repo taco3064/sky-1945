@@ -3,49 +3,17 @@ import { useEntityTransform } from '~app/hooks/useEntityTransform';
 import styles from './styles.module.css';
 
 export interface FighterProps {
-  /**
-   * The engine's id for this aircraft.
-   *
-   * A plain number rather than the engine's `EntityId`, because `components`
-   * may not import `engine` at all — and that ban is exactly why this
-   * component can only ever draw. It receives an id and a ref; it never
-   * learns that physics exists.
-   */
+  /** The engine's id. A plain number: `components` cannot import `engine`. */
   id: number;
-  /**
-   * True while a barrel roll is running.
-   *
-   * A boolean rather than anything the engine owns — this component is told
-   * what to draw, never where the state came from.
-   */
+  /** True while a barrel roll is running. */
   rolling?: boolean;
-  /**
-   * True while the aircraft cannot be hit — after a respawn, or mid-roll.
-   *
-   * Drawn as a blink rather than left invisible: the player has to be able to
-   * tell "I am safe" from "I am about to die", and a craft that looks normal
-   * while protected teaches the wrong lesson about what is survivable.
-   */
+  /** True while the aircraft cannot be hit. Drawn as a blink, never as invisible. */
   invulnerable?: boolean;
-  /**
-   * False while the roll is recovering and another would be refused.
-   *
-   * Drawn on the thrust, because a player who presses the key and sees nothing
-   * happen has been told the game is broken. The engine refuses the roll either
-   * way; this is the difference between a rule and a bug.
-   */
+  /** False while the roll is recovering. Drawn on the thrust, so the refusal shows. */
   ready?: boolean;
 }
 
-/**
- * The player's aircraft, in HTML and CSS.
- *
- * Two elements deep on purpose. The outer one is written by the engine every
- * frame (`translate3d` + `rotate`); the inner one is where attitude
- * animations go — the barrel roll's `rotateY` in #10, hit flashes, tilt.
- * Both writing `transform` on the same element would overwrite each other
- * sixty times a second.
- */
+/** The player's aircraft. Two elements: the engine owns the outer transform. */
 export function Fighter({
   id,
   rolling = false,
