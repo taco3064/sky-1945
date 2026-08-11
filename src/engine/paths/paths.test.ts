@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { ALL_EDGES, ALL_PATHS, edgeFor, entryFor, pathFor, positionOn } from './paths';
-import type { Edge, PathKind } from './paths';
 import { FIELD_HEIGHT, FIELD_WIDTH, isOutside } from '../field';
+import type { Edge, PathKind } from './types';
 
 /** Every edge paired with every shape — the whole product, since it is now free. */
 const COMBINATIONS = ALL_EDGES.flatMap(

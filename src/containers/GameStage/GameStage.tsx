@@ -1,26 +1,12 @@
 import { useEffect, useState } from 'react';
 
 import { boostsFromPoints } from '~app/engine/boosts';
-import type { LoadoutPoints } from '~app/engine/boosts';
 import { createWorld } from '~app/engine/world';
 import type { World } from '~app/engine/world';
 
 import { Field } from './field';
-import type { StagePhase } from './field';
 import styles from './styles.module.css';
-
-export interface GameStageProps {
-  /** The run's allocation. Both boosts are derived here. */
-  speedPoints: LoadoutPoints;
-  /** Playing, paused, or finished. Anything but `playing` stops the world. */
-  phase: StagePhase;
-  /** Pause, or resume from paused. */
-  onPause: () => void;
-  /** Leave the run for the title screen. */
-  onQuit: () => void;
-  /** The last life is gone. */
-  onGameOver: () => void;
-}
+import type { GameStageProps } from './types';
 
 /** Owns the simulation's lifetime. One world per mount, built inside the effect. */
 export function GameStage({ speedPoints, ...rest }: GameStageProps) {

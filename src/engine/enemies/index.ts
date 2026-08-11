@@ -5,4 +5,4 @@ export type {
   EnemyField,
   EnemyRecord,
   EnemySpec,
-} from './enemies';
+} from './types';

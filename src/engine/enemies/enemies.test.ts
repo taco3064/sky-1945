@@ -2,11 +2,11 @@ import { Engine } from 'matter-js';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createEnemyField } from './enemies';
-import type { EnemyField } from './enemies';
 import { ENEMY_BULLET_LEAD, ENEMY_STATS } from '../entities';
 import type { EnemyKind } from '../entities';
 import { FIELD_HEIGHT } from '../field';
 import type { PathKind } from '../paths';
+import type { EnemyField } from './types';
 
 const EVEN = { speed: 1, power: 1 };
 

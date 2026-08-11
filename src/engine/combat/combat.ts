@@ -1,3 +1,5 @@
+import type { Combat } from './types';
+
 /** How long a barrel roll runs, and how long it protects. */
 export const ROLL_DURATION = 1.2;
 
@@ -9,23 +11,6 @@ export const STARTING_LIVES = 3;
 
 /** How long a fresh aircraft cannot be hit, entrance included. */
 export const RESPAWN_INVULNERABILITY = 3;
-
-/** What the aircraft is doing, as opposed to where it is. */
-export interface CombatSnapshot {
-  rolling: boolean;
-  invulnerable: boolean;
-  /** False during the recovery after a roll, when another is refused. */
-  ready: boolean;
-}
-
-export interface Combat {
-  /** Time until which the player cannot be hit. Writers take the later, never the sum. */
-  invulnerableUntil: number;
-  /** Time until which the roll itself is running. Respawn never touches it. */
-  rollingUntil: number;
-  /** Time until which a new roll is refused. Always `rollingUntil + ROLL_COOLDOWN`. */
-  readyAt: number;
-}
 
 /** Nothing running, nothing protecting, and free to roll. */
 export function createCombat(): Combat {

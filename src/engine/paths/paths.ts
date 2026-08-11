@@ -1,34 +1,10 @@
 import { FIELD_HEIGHT, FIELD_WIDTH } from '../field';
 import type { Point } from '../field';
-
-/** Which edge a craft comes in from. */
-export type Edge = 'top' | 'left' | 'right';
-
-/** The shape it flies once it is in. Every shape must eventually leave the field. */
-export type PathKind = 'dive' | 'weave' | 'arc' | 'hover' | 'feint';
+import type { Edge, Offset, PathKind, PathState } from './types';
 
 /** Every edge and every shape, for callers that have to cover them all. */
 export const ALL_EDGES: Edge[] = ['top', 'left', 'right'];
 export const ALL_PATHS: PathKind[] = ['dive', 'weave', 'arc', 'hover', 'feint'];
-
-export interface PathState {
-  /** Which edge it came in from, which sets the direction of travel. */
-  edge: Edge;
-  /** Where the craft entered the field. */
-  entry: Point;
-  /** How far it has travelled along its path, in world units. */
-  travelled: number;
-  /** Seconds since it entered — what an oscillation is a function of. */
-  age: number;
-}
-
-/** A position in the path's own terms, before it is rotated into the field. */
-interface Offset {
-  /** Distance along the heading. */
-  along: number;
-  /** Distance perpendicular to it. */
-  across: number;
-}
 
 /** The unit vector a craft advances along, per edge. */
 const HEADINGS: Record<Edge, Point> = {

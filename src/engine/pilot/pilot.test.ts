@@ -2,10 +2,10 @@ import { Engine } from 'matter-js';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createPilot } from './pilot';
-import type { Pilot } from './pilot';
 import { ROLL_COOLDOWN, ROLL_DURATION } from '../combat';
 import { PLAYER_BOUNDS_INSET, PLAYER_START_INSET } from '../entities';
 import { FIELD_HEIGHT, FIELD_WIDTH } from '../field';
+import type { Pilot } from './types';
 
 let engine: Engine;
 let pilot: Pilot;

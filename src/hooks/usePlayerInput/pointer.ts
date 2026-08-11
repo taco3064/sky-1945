@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
-import type { RefObject } from 'react';
 
 import type { World } from '~app/engine/world';
+
+import type { Origin, PointerControls } from './types';
 
 /** The filled knob's radius, in screen pixels. Mirrors the TouchStick's CSS. */
 const KNOB_RADIUS = 22;
@@ -14,14 +15,6 @@ const DEADZONE_PX = 5;
 
 /** A press shorter than this, that stayed inside the deadzone, was a tap. */
 const TAP_MS = 200;
-
-interface Origin {
-  pointerId: number;
-  x: number;
-  y: number;
-  at: number;
-  moved: number;
-}
 
 function bindPointer(surface: HTMLElement, stick: HTMLElement, world: World): () => void {
   let origin: Origin | null = null;
@@ -105,13 +98,6 @@ function bindPointer(surface: HTMLElement, stick: HTMLElement, world: World): ()
     surface.removeEventListener('pointercancel', onUp);
     world.setPlayerDirection(0, 0);
   };
-}
-
-export interface PointerControls {
-  /** Attach to the element that should catch touches — the whole viewport. */
-  surface: RefObject<HTMLDivElement | null>;
-  /** Attach to the on-screen stick. It positions and hides itself. */
-  stick: RefObject<HTMLDivElement | null>;
 }
 
 /** The touch half of the controls: first finger steers, a second one rolls. */

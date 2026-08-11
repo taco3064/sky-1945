@@ -1,2 +1,2 @@
 export { stepFrame } from './frame';
-export type { FrameParts, FrameResult } from './frame';
+export type { FrameParts, FrameResult } from './types';

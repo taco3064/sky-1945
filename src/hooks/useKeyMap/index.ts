@@ -1,2 +1,2 @@
 export { useKeyMap } from './useKeyMap';
-export type { KeyHandlers } from './useKeyMap';
+export type { KeyHandlers } from './types';

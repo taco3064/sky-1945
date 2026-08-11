@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-/** Keyboard `event.key` values mapped to what they do. */
-export type KeyHandlers = Readonly<Record<string, () => void>>;
+import type { KeyHandlers } from './types';
 
 /** Binds keys globally while mounted. A handled key has its default prevented. */
 export function useKeyMap(handlers: KeyHandlers): void {

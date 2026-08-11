@@ -2,13 +2,13 @@ export { createWorld } from './world';
 export type {
   BossListener,
   CombatListener,
-  GameOverListener,
   EntityId,
   EntityKind,
   EntityRecord,
   FrameListener,
   FrameRate,
   FrameRateListener,
+  GameOverListener,
   LivesListener,
   RosterListener,
   RoundListener,
@@ -16,4 +16,4 @@ export type {
   Vector2,
   World,
   WorldOptions,
-} from './world';
+} from './types';

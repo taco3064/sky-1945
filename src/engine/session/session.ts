@@ -1,15 +1,4 @@
-/** Every screen a run can be on. */
-export type SessionState = 'title' | 'loadout' | 'playing' | 'paused' | 'gameover';
-
-/** Everything that can move a run between screens. */
-export type SessionEvent
-  = | 'start'
-    | 'confirm'
-    | 'pause'
-    | 'resume'
-    | 'abort'
-    | 'die'
-    | 'reset';
+import type { SessionEvent, SessionState } from './types';
 
 /** The whole machine. A state's absent event is a refused event. */
 const TRANSITIONS: Record<SessionState, Partial<Record<SessionEvent, SessionState>>> = {

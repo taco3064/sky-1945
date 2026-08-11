@@ -7,4 +7,4 @@ export {
   boostsFromPoints,
   toPoints,
 } from './boosts';
-export type { Boost, Boosts, LoadoutPoints } from './boosts';
+export type { Boost, Boosts, LoadoutPoints } from './types';

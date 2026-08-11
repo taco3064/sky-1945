@@ -1,2 +1,2 @@
 export { StatBar } from './StatBar';
-export type { StatBarProps } from './StatBar';
+export type { StatBarProps } from './types';

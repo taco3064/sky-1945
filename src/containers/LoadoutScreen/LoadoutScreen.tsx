@@ -6,21 +6,10 @@ import {
   LOADOUT_POINTS,
   boostsFromPoints,
 } from '~app/engine/boosts';
-import type { LoadoutPoints } from '~app/engine/boosts';
 import { useKeyMap } from '~app/hooks/useKeyMap';
 
 import styles from './styles.module.css';
-
-export interface LoadoutScreenProps {
-  /** Points currently on speed, 0–10. */
-  speedPoints: LoadoutPoints;
-  /** Set the allocation outright — what the slider sends. */
-  onPoints: (value: number) => void;
-  /** Move the allocation — what an arrow key sends. */
-  onAdjust: (delta: number) => void;
-  /** Take the allocation into the run. */
-  onConfirm: () => void;
-}
+import type { LoadoutScreenProps } from './types';
 
 /** Ten points across two stats, spent on one slider — one number, one control. */
 export function LoadoutScreen({

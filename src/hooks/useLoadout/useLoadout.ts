@@ -3,14 +3,7 @@ import { useCallback, useState } from 'react';
 import { DEFAULT_POINTS, toPoints } from '~app/engine/boosts';
 import type { LoadoutPoints } from '~app/engine/boosts';
 
-export interface Loadout {
-  /** Points on movement speed, 0–10. The remainder is attack power. */
-  speedPoints: LoadoutPoints;
-  /** Set the allocation outright — what the slider does. */
-  setSpeedPoints: (value: number) => void;
-  /** Move the allocation — what an arrow key does. */
-  adjustSpeedPoints: (delta: number) => void;
-}
+import type { Loadout } from './types';
 
 /** Holds the allocation, and nothing else — boosts are derived where they are used. */
 export function useLoadout(): Loadout {

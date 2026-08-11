@@ -6,4 +6,4 @@ export type {
   BurstStyle,
   BurstTone,
   EffectField,
-} from './effects';
+} from './types';

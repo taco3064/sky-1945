@@ -2,10 +2,10 @@ import { Engine } from 'matter-js';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createBulletField } from './bullets';
-import type { BulletField } from './bullets';
 import { damageOf } from '../entities';
 import { FIELD_HEIGHT, FIELD_WIDTH } from '../field';
 import type { BulletSpawn } from '../patterns';
+import type { BulletField } from './types';
 
 /** One bullet heading straight up from mid-field. */
 function upward(overrides: Partial<BulletSpawn> = {}): BulletSpawn {

@@ -2,8 +2,8 @@ import { Engine } from 'matter-js';
 import { describe, expect, it, vi } from 'vitest';
 
 import { stepFrame } from './frame';
-import type { FrameParts } from './frame';
 import type { Hit } from '../collisions';
+import type { FrameParts } from './types';
 
 /**
  * Frame is tested against stubs rather than the real fields.

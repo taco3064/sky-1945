@@ -2,18 +2,7 @@ import { Events } from 'matter-js';
 import type { Body, Engine, IEventCollision } from 'matter-js';
 
 import { damageOf } from '../entities';
-
-/** A contact worth acting on. `player-hit` carries nothing: contact is fatal. */
-export type Hit
-  = | { kind: 'enemy-damaged'; enemyId: number; bulletId: number; damage: number }
-    | { kind: 'player-hit' };
-
-export interface CollisionWatch {
-  /** Everything that collided since the last call. Empties the buffer. */
-  drain: () => Hit[];
-  /** Stop listening. */
-  dispose: () => void;
-}
+import type { CollisionWatch, Hit } from './types';
 
 /** Everything on the enemy side kills the player on contact. */
 function isThreat(body: Body): boolean {

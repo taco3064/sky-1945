@@ -9,7 +9,7 @@ import {
   durationOf,
   windUpOf,
 } from './attacks';
-import type { BossAttack } from './attacks';
+import type { BossAttack } from './types';
 
 /** The three the trash mobs also fire. Restated, so dropping one turns red. */
 const SHAPED: BossAttack[] = ['straight', 'spread', 'radial'];

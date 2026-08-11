@@ -1,35 +1,8 @@
 import { Engine } from 'matter-js';
 
 import { boostsForRound } from '../boosts';
-import type { BossField } from '../boss';
-import type { BulletField } from '../bullets';
-import type { CollisionWatch, Hit } from '../collisions';
-import type { Director } from '../director';
-import type { EffectField } from '../effects';
-import type { EnemyField } from '../enemies';
-import type { Pilot } from '../pilot';
-
-export interface FrameParts {
-  engine: Engine;
-  pilot: Pilot;
-  bullets: BulletField;
-  enemies: EnemyField;
-  effects: EffectField;
-  collisions: CollisionWatch;
-  director: Director;
-  boss: BossField;
-}
-
-export interface FrameResult {
-  /** Something appeared or disappeared — React needs to hear about it. */
-  rosterChanged: boolean;
-  /** The player was killed this frame. Lives are counted outside the engine. */
-  playerDied: boolean;
-  /** The round was cleared and the next one has begun. */
-  roundAdvanced: boolean;
-  /** The boss's bar needs redrawing: damage, stance, arrival or death. */
-  bossChanged: boolean;
-}
+import type { Hit } from '../collisions';
+import type { FrameParts, FrameResult, Resolution } from './types';
 
 /** How many collision passes one frame is split into, so nothing tunnels through. */
 const COLLISION_PASSES = 4;
@@ -38,12 +11,6 @@ const COLLISION_PASSES = 4;
 const ENEMY_WRECK = { size: 'small', tone: 'enemy' } as const;
 const BOSS_WRECK = { size: 'large', tone: 'enemy' } as const;
 const PLAYER_WRECK = { size: 'large', tone: 'ally' } as const;
-
-interface Resolution {
-  rosterChanged: boolean;
-  playerDied: boolean;
-  bossChanged: boolean;
-}
 
 /** Damage, delivered to whichever field owns the target. Ownership is asked first. */
 function applyDamage(parts: FrameParts, hit: Extract<Hit, { kind: 'enemy-damaged' }>) {
