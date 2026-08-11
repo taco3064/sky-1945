@@ -1,14 +1,19 @@
-# Publish the game to GitHub Pages whenever main moves.
+# Verify every change, and publish the ones that land on main.
 #
 # The verify job is not decoration beside the deploy — it gates it. Every gate in
-# this repo (lint, tsc, the 100% coverage floor, and blueprint's layer nets) has
-# until now run only on a developer's machine, behind a hook that can be skipped.
-# This is the first place they run somewhere nobody can bypass, and a green
-# deployment badge is meant to mean all of them held.
+# this repo (lint, tsc, the 100% coverage floor, blueprint's layer nets, and the
+# bundle) runs here, where nobody can skip it the way a local hook can be skipped.
+#
+# It runs on **pull requests** as well, and that was missing: the first version only
+# fired after a merge, so a test that passed locally and timed out on a shared runner
+# was found by breaking main rather than by failing a review. A check that only runs
+# after the decision is not a check, it is a postmortem.
 name: Pages
 
 on:
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
   # A redeploy without a commit: useful when the Pages settings change, or to
   # republish after a failed run.
@@ -21,11 +26,15 @@ permissions:
   # token rather than a stored secret.
   id-token: write
 
-# One deployment at a time, and never cancel one that is already publishing —
-# a half-finished deploy would leave the site serving a mix of two builds.
+# One run per ref, so a pull request cannot cancel main's deployment or another
+# pull request's checks.
+#
+# Superseded pull-request runs are cancelled — pushing twice in a minute should not
+# queue two full verifications of the older commit. A deployment never is: cutting
+# one off half-way leaves the site serving a mix of two builds.
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: pages-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   verify:
@@ -57,8 +66,18 @@ jobs:
       - name: Architecture contract
         run: npm run inspect
 
+      # Root-relative, because this one is only asking whether the bundle builds.
+      # The deploy below rebuilds it with the Pages prefix; doing it here too means a
+      # pull request that breaks the build says so, rather than being found by the
+      # deployment that follows the merge.
+      - name: Bundle
+        run: npx vite build
+
   build:
     needs: verify
+    # Pull requests stop at verify. There is one Pages site and it belongs to main;
+    # publishing a branch to it would replace the live game with a proposal.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -83,6 +102,7 @@ jobs:
 
   deploy:
     needs: build
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

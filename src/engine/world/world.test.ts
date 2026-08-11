@@ -579,7 +579,7 @@ describe('createWorld · lives', () => {
    * Standing still is now the reliable way to die: the aircraft respawns in the
    * centre of the lower field, and both the waves and the boss fire down it.
    */
-  it('spends a life on contact, and ends the run when they are gone', () => {
+  it('spends a life on contact, and ends the run when they are gone', { timeout: 30_000 }, () => {
     world = createWorld({ speedMultiplier: 3, powerMultiplier: 1 });
 
     const onLives = vi.fn();
@@ -590,14 +590,18 @@ describe('createWorld · lives', () => {
     world.start();
 
     /*
-     * Two and a half minutes, measured rather than reasoned: 45 seconds spent
-     * exactly one life, 150 spends all three.
+     * Two and a half minutes of simulated time, measured rather than reasoned: 45
+     * seconds spent exactly one life, 150 spends all three.
      *
      * It is slow because nothing here is *playing*. The aircraft stands where it
      * spawned — it does not dodge, does not chase the boss, and does not clear a
      * path. That is the point of the setup, since standing still is what makes the
-     * contact reliable, but it is also why the clock has to be this long. Real play
-     * reaches far higher rounds in far less time.
+     * contact reliable, but it is also why the clock has to be this long.
+     *
+     * Hence the explicit timeout above. This runs about 9,000 frames at four
+     * collision passes each, which is half a second on a developer's machine and
+     * comfortably past vitest's 5s default on a shared CI runner — where it failed,
+     * after merging, because nothing had run the suite on the pull request.
      */
     runFrames(150_000);
 
