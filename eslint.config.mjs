@@ -19,6 +19,63 @@ import tseslint from 'typescript-eslint';
 
 import blueprint from './blueprint.config.mjs';
 
+/**
+ * Type declarations belong in a module's `types.ts` — see #34.
+ *
+ * A local rule object rather than a `no-restricted-syntax` entry, and that is
+ * not a style preference. `no-restricted-syntax` is one of the rules blueprint
+ * manages, and this project genuinely uses it: `contexts` declares
+ * `selfOnly`, so the re-export ban is emitted through it over
+ * `src/hooks/**`. A second `no-restricted-syntax` entry matching those files
+ * would REPLACE blueprint's version for them rather than merge with it, and
+ * the ban would vanish while lint stayed green. Its own rule id cannot
+ * collide, so this route overrides nothing.
+ *
+ * `blueprint doctor` is what proves that claim — its "emitted rules survive
+ * the eslint config" check resolves the config per layer and compares the
+ * selfOnly selectors against what the blueprint expects.
+ */
+const typesInTypesFile = {
+  meta: {
+    type: 'problem',
+    docs: { description: "A top-level type declaration belongs in its module's types.ts." },
+    messages: {
+      misplaced:
+        '\n🚫 "{{name}}" is a top-level {{kind}} outside `types.ts` — move it into the'
+        + " module's `types.ts` and import it back with `import type`.",
+    },
+  },
+  create(context) {
+    return {
+      // Program body only: a type declared inside a function or a block is
+      // local to an expression, not a module's vocabulary.
+      Program(program) {
+        for (const statement of program.body) {
+          const node
+            = statement.type === 'ExportNamedDeclaration'
+            || statement.type === 'ExportDefaultDeclaration'
+              ? statement.declaration
+              : statement;
+
+          if (
+            node?.type === 'TSInterfaceDeclaration'
+            || node?.type === 'TSTypeAliasDeclaration'
+          ) {
+            context.report({
+              node,
+              messageId: 'misplaced',
+              data: {
+                name: node.id.name,
+                kind: node.type === 'TSInterfaceDeclaration' ? 'interface' : 'type alias',
+              },
+            });
+          }
+        }
+      },
+    };
+  },
+};
+
 export default [
   // Parser setup — needed when THIS file is the live config. Merging
   // into an existing config that already wires parsers? Skip these
@@ -80,5 +137,25 @@ export default [
       // carries the disable that says why.
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
+  },
+  // The lock for #34. The exemptions are decided here rather than discovered:
+  //
+  // - `types.ts` itself, which is the whole point.
+  // - Test files, on the same two globs the blueprint counts as tests
+  //   (`architecture.testFiles`, whose second entry this project added for
+  //   `src/fixtures/`). Blueprint exempts tests from structure by design, and a
+  //   test needing a local type should not have to route it through a module's
+  //   public vocabulary. No test file declares a type today — this is about the
+  //   next one.
+  //
+  // Deliberately NOT exempt: `src/main.tsx` and `src/test-setup.ts`. They sit
+  // outside every layer net, but they are also wiring — if either ever wants a
+  // type declaration, that is a signal the code belongs in a layer, not a
+  // signal this list is missing an entry.
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/**/types.ts', 'src/**/*.{test,spec}.{ts,tsx}', 'src/**/*.fixtures.ts'],
+    plugins: { local: { rules: { 'types-in-types-file': typesInTypesFile } } },
+    rules: { 'local/types-in-types-file': 'error' },
   },
 ];
