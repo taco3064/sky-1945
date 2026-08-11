@@ -57,11 +57,11 @@
    *
    * The bank is negated for the same reason as the enemies' — every enemy body
    * carries a 180° angle, so the drawing is upside down. Shallower than theirs
-   * because the silhouette is wide: the same angle on a 140-unit body reads as the
-   * whole aircraft sliding rather than tipping.
+   * because the silhouette is wide: the same angle swings a 140-unit body much
+   * further at its wingtips than it does a 34-unit one.
    */
   scale: var(--boss-scale, 1);
-  transform: perspective(520px) rotateY(calc(var(--lean, 0) * -16deg));
+  transform: rotate(calc(var(--lean, 0) * -9deg));
 }
 
 .craft > *,

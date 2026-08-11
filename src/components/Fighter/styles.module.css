@@ -45,14 +45,17 @@
    * Banking into a turn. `--lean` is written by `useEntityTransform` from
    * frame-to-frame sideways travel: -1 hard left, +1 hard right.
    *
-   * Not negated, unlike the enemies' — the player's craft is drawn the way it
-   * flies. Rotating in Y because a craft seen from above banks by showing one wing
-   * more than the other; turning in Z would swing the nose like a car.
+   * Not negated, unlike the enemies' — the player's craft is drawn the way it flies.
+   *
+   * Rotating in **Z**, and the first attempt at Y was simply wrong: these craft are
+   * a flat stack of divs, so a Y rotation only narrows them by `cos(angle)` — 26° is
+   * a 7% squeeze, which is invisible. Reported from play as no bank at all. Z swings
+   * the whole airframe, which is what a bank looks like from directly above.
    *
    * The roll animation below overrides this outright, which is correct: mid-roll
    * there is no meaningful bank to show.
    */
-  transform: perspective(320px) rotateY(calc(var(--lean, 0) * 26deg));
+  transform: rotate(calc(var(--lean, 0) * 14deg));
   transform-style: preserve-3d;
 }
 

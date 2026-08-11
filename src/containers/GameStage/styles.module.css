@@ -1,4 +1,27 @@
 /*
+ * `--lean`, registered once for the whole document.
+ *
+ * Every aircraft banks by `rotate(calc(var(--lean) * Ndeg))`, and that silently did
+ * nothing until this block existed. An *unregistered* custom property is an
+ * untyped token: substituting it into `transform` leaves a declaration that is
+ * invalid at computed-value time, so the whole transform resolves to `none` — no
+ * error, no warning, just no bank. Reported from play twice as exactly that.
+ *
+ * Registering it gives the property a type, an inherited value, and a starting
+ * point, which is what makes the `calc` above resolve.
+ *
+ * It lives here because this is the container every aircraft is drawn inside, so it
+ * cannot be missing when one needs it — `@property` is document-scoped, and putting
+ * it in one component's stylesheet would make the other two depend on that
+ * component having rendered.
+ */
+@property --lean {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+/*
  * The field is 540 × 960 world units on every device, and the screen is
  * fitted to it — never the other way round. A field sized to the viewport
  * would be a wider field on a tablet, and a wider field is an easier one:

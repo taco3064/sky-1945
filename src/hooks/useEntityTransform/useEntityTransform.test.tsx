@@ -119,3 +119,100 @@ describe('useEntityTransform', () => {
     expect(() => renderHook(() => useEntityTransform(7))).toThrow(/GameProvider/);
   });
 });
+
+describe('useEntityTransform · leaning into a turn', () => {
+  /** Attach an element to a driven world and hand back both. */
+  function banking(id: number) {
+    const { world, emit } = drivenWorld();
+
+    const { result } = renderHook(() => useEntityTransform(id), {
+      wrapper: wrapperFor(world),
+    });
+
+    const element = document.createElement('div');
+
+    result.current.current = element;
+
+    return { element, emit };
+  }
+
+  function leanOf(element: HTMLElement): number {
+    return +element.style.getPropertyValue('--lean');
+  }
+
+  // The first frame has nothing to compare against, so there is no lean yet.
+  it('reports no lean from a single frame', () => {
+    const { element, emit } = banking(7);
+
+    emit(7, 100, 400);
+
+    expect(leanOf(element)).toBe(0);
+  });
+
+  it('leans right when the entity slides right, left when it slides left', () => {
+    const { element, emit } = banking(7);
+
+    emit(7, 100, 400);
+
+    for (let step = 1; step < 30; step += 1) {
+      emit(7, 100 + step * 6, 400);
+    }
+
+    const right = leanOf(element);
+
+    for (let step = 1; step < 60; step += 1) {
+      emit(7, 300 - step * 6, 400);
+    }
+
+    expect(right).toBeGreaterThan(0.5);
+    expect(leanOf(element)).toBeLessThan(-0.5);
+  });
+
+  // Never past full deflection, however fast the thing is travelling.
+  it('never reports more than a full lean', () => {
+    const { element, emit } = banking(7);
+
+    emit(7, 0, 400);
+
+    for (let step = 1; step < 40; step += 1) {
+      emit(7, step * 400, 400);
+    }
+
+    expect(leanOf(element)).toBeLessThanOrEqual(1);
+  });
+
+  /*
+   * Eased rather than read raw. Frame-to-frame displacement is far too jumpy to draw
+   * with — a player tapping left would flicker instead of banking.
+   */
+  it('eases toward the reading instead of snapping to it', () => {
+    const { element, emit } = banking(7);
+
+    emit(7, 100, 400);
+    emit(7, 140, 400);
+
+    const first = leanOf(element);
+
+    emit(7, 180, 400);
+
+    expect(first).toBeGreaterThan(0);
+    expect(first).toBeLessThan(1);
+    expect(leanOf(element)).toBeGreaterThan(first);
+  });
+
+  it('settles back to level when the sliding stops', () => {
+    const { element, emit } = banking(7);
+
+    emit(7, 100, 400);
+
+    for (let step = 1; step < 30; step += 1) {
+      emit(7, 100 + step * 6, 400);
+    }
+
+    for (let step = 0; step < 80; step += 1) {
+      emit(7, 274, 400);
+    }
+
+    expect(Math.abs(leanOf(element))).toBeLessThan(0.02);
+  });
+});
