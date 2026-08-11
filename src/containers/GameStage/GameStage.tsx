@@ -64,5 +64,12 @@ export function GameStage({ speedPoints, ...rest }: GameStageProps) {
     return <div className={styles.viewport} />;
   }
 
-  return <Field world={world} {...rest} />;
+  /*
+   * The streaks travel at the loadout's speed boost, worked out here and handed
+   * down once. It is the same number the pilot flies at, so the field reads as
+   * moving at the speed the player chose.
+   */
+  const { speed } = boostsFromPoints(speedPoints);
+
+  return <Field world={world} pace={speed.multiplier} {...rest} />;
 }

@@ -126,6 +126,18 @@
 /* Engine bloom, under everything so the hull occludes its top edge — the
    light comes from behind the aircraft, not off its surface. #9 animates
    this element. */
+/*
+ * The exhaust, and the flame it throws.
+ *
+ * The flicker is `scaleY` from the top edge, so the plume lengthens and shortens
+ * off the tail rather than growing in both directions. Fast and slightly irregular:
+ * 90ms alternating is short enough to read as combustion instead of a pulse, and
+ * the blur keeps it from looking like a hard-edged shape being resized.
+ *
+ * `will-change` is deliberate here and nowhere else on this craft. It is the one
+ * element animating continuously for the entire run, so it earns a layer; the
+ * others animate in bursts, where promoting them costs memory for nothing.
+ */
 .thrust {
   bottom: -4%;
   left: 28%;
@@ -135,6 +147,31 @@
     radial-gradient(ellipse 55% 100% at 30% 0%, var(--glow) 0%, transparent 70%),
     radial-gradient(ellipse 55% 100% at 70% 0%, var(--glow) 0%, transparent 70%);
   opacity: 0.85;
+  filter: blur(1.5px);
+  transform-origin: 50% 0%;
+  will-change: transform;
+  animation: burn 90ms ease-in-out infinite alternate;
+}
+
+@keyframes burn {
+  from {
+    transform: scaleY(0.78);
+    opacity: 0.72;
+  }
+
+  to {
+    transform: scaleY(1.28);
+    opacity: 0.95;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Held at its mean rather than switched off — a dead exhaust reads as a stalled
+     aircraft, which is worse information than a steady one. */
+  .thrust {
+    animation: none;
+    transform: scaleY(1.03);
+  }
 }
 
 /* Faceted planform: dark face, lit leading edge. */

@@ -22,6 +22,19 @@
 }
 
 /*
+ * `--pace`, the speed boost the streaks travel at. Registered for the same reason
+ * as `--lean` above: it is substituted into a `calc()` — an animation duration here
+ * rather than an angle — and an untyped token there makes the whole declaration
+ * invalid at computed-value time. That failure is silent, which is what makes it
+ * worth the four lines.
+ */
+@property --pace {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 1;
+}
+
+/*
  * The field is 540 × 960 world units on every device, and the screen is
  * fitted to it — never the other way round. A field sized to the viewport
  * would be a wider field on a tablet, and a wider field is an easier one:
