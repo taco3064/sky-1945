@@ -9,12 +9,22 @@
   cursor: pointer;
 }
 
+/* No type properties left on it: the heading's text node became an image, and
+   a font-size that styles nothing is a lie about what sizes this screen. The
+   width cap on .logo is what does that job now. */
 .title {
   margin: 0;
-  font-size: clamp(2.5rem, 12vw, 5rem);
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  line-height: 1;
+  line-height: 0;
+}
+
+/* The artwork is a wide banner with its transparent margin already cropped, so
+   it is sized by width and not by a font-size clamp. 32rem lands at 1024
+   device pixels on a 2× desktop, which is exactly the file's own width — past
+   that it would be upscaling. */
+.logo {
+  display: block;
+  width: min(88vw, 32rem);
+  height: auto;
 }
 
 .prompt {

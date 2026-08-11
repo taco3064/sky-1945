@@ -1,5 +1,6 @@
 import { useAnyKey } from '~app/hooks/useAnyKey';
 
+import logo from './logo.webp';
 import styles from './styles.module.css';
 
 export interface TitleScreenProps {
@@ -18,7 +19,14 @@ export function TitleScreen({ onStart }: TitleScreenProps) {
 
   return (
     <div className={styles.screen} onPointerDown={onStart}>
-      <h1 className={styles.title}>SKY-1945</h1>
+      {/*
+        The heading stays a heading — the artwork replaces its text node, not
+        the element. `alt` carries the name that used to be that text, so the
+        document outline and the accessibility tree both survive the swap.
+      */}
+      <h1 className={styles.title}>
+        <img className={styles.logo} src={logo} alt="SKY-1945" />
+      </h1>
       <p className={styles.prompt}>
         {/*
           Which line shows is a CSS decision, not a JS one — no user-agent
