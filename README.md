@@ -1,2 +1,140 @@
 # sky-1945
-A vertical bullet-hell shooter built React + TypeScript, governed by @kekkai/blueprint from commit one — an experiment in what architecture-as-code grows when the domain is a 60fps game loop.
+
+A vertical bullet-hell shooter with no canvas. Every aircraft, bullet and
+explosion is a `div`, moved by a physics engine that is only allowed to answer one
+question.
+
+**[▶ Play it](https://taco3064.github.io/sky-1945/)** — arrows to fly, space to
+barrel-roll, escape to pause. On a phone: hold anywhere for a stick, tap to roll.
+
+It also exists to answer a question: **what does an architecture contract written
+for CRUD front ends grow when the domain is a 60fps game loop?**
+[@kekkai/blueprint](https://www.npmjs.com/package/@kekkai/blueprint) has governed
+this repository since its first commit and has not been edited since. What follows
+is what that produced.
+
+## How it is built
+
+React + TypeScript, bundled by Vite, with Matter.js for collision and Vitest for
+the suite. Versions live in `package.json`, which is the only place they can be
+correct.
+
+**Pure DOM.** There is no `<canvas>`, no `<svg>` and no WebGL in `src`. An aircraft
+is a handful of `div`s with `clip-path` and gradients; a bullet is one. Positions
+are written straight to `style.transform` by the engine and never through React
+state — React owns birth and death, the engine owns position.
+
+**Matter.js runs in sensor mode.** Gravity is off, every body is a sensor, and
+every position is written with `Body.setPosition`. Nothing is integrated: there is
+no `applyForce` and no `setVelocity` in the repo. Matter is here for one thing —
+broad-phase collision detection. Everything about *how* a craft moves is
+arithmetic in `src/engine`.
+
+That is a choice, not a shortcut. Inertia on a dodge is indistinguishable from
+input lag, so the player's aircraft is driven directly from input. What a
+simulation like this actually needs from a physics library is "did these two things
+touch", and that is all it is asked for.
+
+## What the contract is
+
+One file, `blueprint.config.mjs`, compiles to three things: ESLint rules, a
+handbook (`docs/architecture-handbook.md`), and a contract an agent reads
+(`CLAUDE.md`). The React preset's `principles`, `componentShape`, `playbook` and
+`rules` are spread in **unchanged** — editing them to suit a game would have ended
+the experiment. Only `architecture` is this project's own, in two ways: the
+preset's `services` layer became `engine`, which owns `matter-js` and
+`requestAnimationFrame`; and `zustand` was dropped, because a contract naming a
+package the repo does not install describes nothing.
+
+The layers run one way: `pages → containers → components → hooks → contexts →
+engine`. The gates — module line budgets, function length, parameter and statement
+counts, cyclomatic complexity — come from the preset and are listed in the
+handbook, which is generated, so it cannot drift from the config.
+
+## What the contract produced
+
+**It was never loosened.** `git log -- blueprint.config.mjs` is the shortest
+summary of this experiment: the config has one commit, the first one. There is no
+`eslint-disable` in `src`. When the contract and the code disagreed, the code
+moved.
+
+**The boundaries are machine-checked, not remembered.** `matter-js` is reachable
+only from `engine`. The animation loop lives in one module because the layer owns
+the global. No `components` file imports the engine. These are `owns` and
+`allowedImporters` declarations that fail lint, so they cannot quietly rot.
+
+**Modules exist that would not otherwise.** Each time a file hit its line budget,
+the split it forced turned out to be a real seam rather than an arbitrary cut:
+
+- `engine/frame` came out of `engine/world` — what happens *in* a frame, versus the
+  simulation's *lifetime*. Neither half needs much of the other.
+- `boss/stances` came out of `boss/boss` — the fight's state machine, which touches
+  no physics body at all, versus the bodies and hit points.
+- `engine/channel` exists because the same subscribe-and-broadcast block had been
+  written out three times over: for transforms, for the roster, and for combat
+  state.
+
+**A parameter limit improved an interface.** `enemies.spawn` took a kind, a path
+and an entry point; adding an entry *edge* would have been one argument too many.
+It takes a single `EnemySpec` now — declared by `enemies`, because that is the side
+that has to fly it, and aliased as the scheduler's output type so there is one
+contract rather than two structurally identical declarations that can drift.
+
+**Coverage is a floor, not a target.** The threshold is 100% on `engine` and
+`hooks`, and the scope is deliberate: those layers are pure functions and state
+machines, where a test holds something. A unit test cannot tell you whether an
+aircraft *looks* right — the browser can, and that is where components are checked.
+
+## What the contract did not catch
+
+The honest half, and the more interesting one. Every defect that reached play was
+found by a person watching the screen, not by the suite and not by any lint rule:
+
+- The boss finished its entrance in the centre and then jumped sideways on its
+  first patrolling frame, because its patrol read a clock that had been running
+  since it spawned.
+- The beam's charge line grew *upward*, out of the boss's back — enemy craft are
+  drawn nose-up and rotated by the transform, so the CSS top edge is the bottom of
+  the screen.
+- Raising the enemy count pressed the outermost lanes against the field edges, and
+  a weaving craft swung off the field and was culled: an enemy the player never got
+  to shoot.
+
+None of those was a structural violation. The layers were correct, the boundaries
+held, and coverage was at its floor the whole time. Every assertion that existed
+looked at *one frame at a time*, or *one lane at a time*, and a discontinuity is
+invisible from a single sample.
+
+So an architecture contract buys structure, and structure is not correctness. What
+it did buy is that each fix was cheap and local — the jump was one subtraction in
+one pure function — and each one arrived with the regression test that had been
+missing, written against the dimension the old assertions could not see.
+
+## One thing that came from the domain, not the contract
+
+There is no `Math.random` in the engine. Enemy formations, flight shapes, entry
+edges and the boss's attack order are all derived from the round and a slot number
+— an integer hash where the player should not be able to memorise the sequence, a
+short repeating sum where they should.
+
+Two reasons, and the second is the real one: a test cannot assert against a die,
+and a player cannot learn a level that rolls one. Someone clears round four on the
+third attempt because they remember what comes next. Randomness would have turned
+learning into gambling.
+
+## Running it
+
+```bash
+npm install
+npm run dev
+```
+
+Every gate, in the order CI runs them. CI gates the deploy, so a published build is
+one where all four passed:
+
+```bash
+npm run lint       # oxlint + eslint, including blueprint's emitted rules
+npx tsc -b         # types
+npm run coverage   # tests, against the coverage floor
+npm run inspect    # blueprint's own survey of the layer graph
+```
