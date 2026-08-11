@@ -114,14 +114,20 @@ export const ENEMY_BULLET_LEAD = 1.5;
 export const BULLET_BASE_DAMAGE = 7.5;
 
 /**
- * Seconds between the player's shots.
+ * How many volleys a second the player throws.
  *
- * The guns never stop (#5 removed the fire button), so this is the whole
- * firing model: ten a second, steady. A steady rate is also what makes the
- * worst case computable — peak bullet count is rate × time-on-screen, not
- * whatever a player's mashing produces.
+ * Was ten, cut to 75% of that once the aircraft grew a second cannon. Stated as a
+ * rate rather than as an interval because the rate is the number anyone reasons
+ * about — "seven and a half a second" says something, `0.1333` does not.
+ *
+ * The guns never stop (#5 removed the fire button), so this is the whole firing
+ * model: steady, and steady is what makes the worst case computable — peak bullet
+ * count is rate × time-on-screen, not whatever a player's mashing produces.
  */
-export const PLAYER_FIRE_INTERVAL = 0.1;
+const PLAYER_VOLLEYS_PER_SECOND = 7.5;
+
+/** Seconds between the player's volleys. Two shots leave on each one. */
+export const PLAYER_FIRE_INTERVAL = 1 / PLAYER_VOLLEYS_PER_SECOND;
 
 /** How far ahead of the player's centre a shot appears. */
 export const PLAYER_MUZZLE_OFFSET = 26;

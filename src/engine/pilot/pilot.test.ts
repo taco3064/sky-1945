@@ -194,17 +194,17 @@ describe('pilot · the guns fire themselves', () => {
   });
 
   /*
-   * 60 frames pass in that second, the cadence is one volley every 0.1s, and a
-   * volley is two shots — one per wing. So twenty, not sixty and not ten.
+   * 60 frames pass in that second, the rate is seven and a half volleys, and a volley
+   * is two shots — one per wing. So fifteen, not sixty and not seven.
    *
-   * Asserted as a range around twenty rather than exactly it: where the leftover
-   * cadence falls depends on the frame the second starts on.
+   * Asserted as a range rather than exactly fifteen: where the leftover cadence
+   * falls depends on the frame the second starts on.
    */
   it('fires on the cadence, not on every frame', () => {
     const shots = run(1);
 
-    expect(shots.length).toBeLessThan(24);
-    expect(shots.length).toBeGreaterThan(16);
+    expect(shots.length).toBeLessThan(18);
+    expect(shots.length).toBeGreaterThan(12);
   });
 
   // Two cannons, one per wing, firing parallel rather than converging.

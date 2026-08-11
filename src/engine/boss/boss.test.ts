@@ -75,18 +75,18 @@ function runUntilFiring(attack: string): boolean {
 
 describe('bossHpFor', () => {
   it('is the base pool in round one', () => {
-    expect(bossHpFor(1)).toBe(BOSS_STATS.hp);
+    expect(bossHpFor(1, 1)).toBe(BOSS_STATS.hp);
   });
 
   it('grows every round', () => {
-    expect(bossHpFor(4)).toBeGreaterThan(bossHpFor(3));
-    expect(bossHpFor(3)).toBeGreaterThan(bossHpFor(2));
+    expect(bossHpFor(4, 1)).toBeGreaterThan(bossHpFor(3, 1));
+    expect(bossHpFor(3, 1)).toBeGreaterThan(bossHpFor(2, 1));
   });
 
   // Round 0 is not reachable, but the clamp is what stops a caller's off-by-one
   // handing the boss less health than the base pool.
   it('never falls below the base pool', () => {
-    expect(bossHpFor(0)).toBe(BOSS_STATS.hp);
+    expect(bossHpFor(0, 1)).toBe(BOSS_STATS.hp);
   });
 });
 
@@ -99,7 +99,7 @@ describe('summon', () => {
   });
 
   it('puts one body in the physics world', () => {
-    boss.summon(1);
+    boss.summon(1, 1);
 
     expect(boss.present()).toBe(true);
     expect(boss.bodies()).toHaveLength(1);
@@ -107,28 +107,28 @@ describe('summon', () => {
   });
 
   it('gives it the round’s hit points', () => {
-    boss.summon(5);
+    boss.summon(5, 1);
 
-    expect(boss.snapshot()?.maxHp).toBe(bossHpFor(5));
-    expect(boss.snapshot()?.hp).toBe(bossHpFor(5));
+    expect(boss.snapshot()?.maxHp).toBe(bossHpFor(5, 1));
+    expect(boss.snapshot()?.hp).toBe(bossHpFor(5, 1));
   });
 
   // The frame asks every pass of every frame; the second one must not restart
   // the fight or add a second body.
   it('is a no-op the second time', () => {
-    boss.summon(1);
+    boss.summon(1, 1);
 
     const first = boss.snapshot()?.id;
 
-    boss.summon(9);
+    boss.summon(9, 1);
 
     expect(boss.snapshot()?.id).toBe(first);
-    expect(boss.snapshot()?.maxHp).toBe(bossHpFor(1));
+    expect(boss.snapshot()?.maxHp).toBe(bossHpFor(1, 1));
     expect(boss.bodies()).toHaveLength(1);
   });
 
   it('reports itself as a boss on the roster', () => {
-    boss.summon(1);
+    boss.summon(1, 1);
 
     expect(boss.records()).toEqual([{ id: boss.snapshot()?.id, kind: 'boss' }]);
   });
@@ -143,7 +143,7 @@ describe('advance · with no boss', () => {
 
 describe('advance · entering', () => {
   beforeEach(() => {
-    boss.summon(1);
+    boss.summon(1, 1);
   });
 
   it('names no attack while it is still on its way in', () => {
@@ -168,7 +168,7 @@ describe('advance · entering', () => {
    */
   it('takes no damage while it arrives', () => {
     expect(boss.damage(500)).toBeNull();
-    expect(boss.snapshot()?.hp).toBe(bossHpFor(1));
+    expect(boss.snapshot()?.hp).toBe(bossHpFor(1, 1));
     expect(boss.snapshot()?.stance).toBe('entering');
   });
 
@@ -176,7 +176,7 @@ describe('advance · entering', () => {
     land();
 
     expect(boss.damage(100)).toBeNull();
-    expect(boss.snapshot()?.hp).toBe(bossHpFor(1) - 100);
+    expect(boss.snapshot()?.hp).toBe(bossHpFor(1, 1) - 100);
   });
 
   // Quick, because an entrance is a cue rather than a phase of the fight — and
@@ -267,7 +267,7 @@ describe('advance · entering', () => {
 
 describe('advance · patrolling', () => {
   beforeEach(() => {
-    boss.summon(1);
+    boss.summon(1, 1);
     land();
   });
 
@@ -298,7 +298,7 @@ describe('advance · patrolling', () => {
 
 describe('advance · the tell', () => {
   beforeEach(() => {
-    boss.summon(1);
+    boss.summon(1, 1);
     land();
   });
 
@@ -334,7 +334,7 @@ describe('advance · the tell', () => {
 
 describe('advance · firing bullets', () => {
   beforeEach(() => {
-    boss.summon(1);
+    boss.summon(1, 1);
     land();
   });
 
@@ -400,7 +400,7 @@ describe('advance · firing bullets', () => {
 
 describe('advance · the beam', () => {
   beforeEach(() => {
-    boss.summon(1);
+    boss.summon(1, 1);
     land();
   });
 
@@ -495,15 +495,15 @@ describe('damage', () => {
   });
 
   it('subtracts hit points without killing', () => {
-    boss.summon(1);
+    boss.summon(1, 1);
     land();
 
     expect(boss.damage(50)).toBeNull();
-    expect(boss.snapshot()?.hp).toBe(bossHpFor(1) - 50);
+    expect(boss.snapshot()?.hp).toBe(bossHpFor(1, 1) - 50);
   });
 
   it('owns its own body and nothing else', () => {
-    boss.summon(1);
+    boss.summon(1, 1);
 
     const id = boss.snapshot()?.id as number;
 
@@ -512,11 +512,11 @@ describe('damage', () => {
   });
 
   it('returns the wreck where it fell, and leaves the field', () => {
-    boss.summon(1);
+    boss.summon(1, 1);
     land();
 
     const at = { ...boss.bodies()[0].position };
-    const wreck = boss.damage(bossHpFor(1));
+    const wreck = boss.damage(bossHpFor(1, 1));
 
     expect(wreck?.x).toBeCloseTo(at.x, 5);
     expect(wreck?.y).toBeCloseTo(at.y, 5);
@@ -528,9 +528,9 @@ describe('damage', () => {
   // The killing shot takes the pool negative, and the bar is published from the
   // same frame that reports the death.
   it('never publishes a negative bar', () => {
-    boss.summon(1);
+    boss.summon(1, 1);
     land();
-    boss.damage(bossHpFor(1) - 1);
+    boss.damage(bossHpFor(1, 1) - 1);
 
     expect(boss.snapshot()?.hp).toBe(1);
 
@@ -540,25 +540,25 @@ describe('damage', () => {
   });
 
   it('takes the beam with it when it dies mid-attack', () => {
-    boss.summon(1);
+    boss.summon(1, 1);
     land();
     runUntilFiring('beam');
     boss.advance(1 / 60, FULL_POWER);
 
     expect(beamBody()).toBeDefined();
 
-    boss.damage(bossHpFor(1));
+    boss.damage(bossHpFor(1, 1));
 
     expect(Composite.allBodies(engine.world)).toEqual([]);
   });
 
   it('stops owning its id the moment it dies', () => {
-    boss.summon(1);
+    boss.summon(1, 1);
     land();
 
     const id = boss.snapshot()?.id as number;
 
-    boss.damage(bossHpFor(1));
+    boss.damage(bossHpFor(1, 1));
 
     expect(boss.owns(id)).toBe(false);
   });
@@ -566,7 +566,7 @@ describe('damage', () => {
 
 describe('clear', () => {
   it('removes the boss and its beam', () => {
-    boss.summon(1);
+    boss.summon(1, 1);
     land();
     runUntilFiring('beam');
     boss.advance(1 / 60, FULL_POWER);
@@ -582,11 +582,11 @@ describe('clear', () => {
   });
 
   it('lets the next round summon a fresh one', () => {
-    boss.summon(1);
+    boss.summon(1, 1);
     boss.clear();
-    boss.summon(3);
+    boss.summon(3, 1);
 
-    expect(boss.snapshot()?.maxHp).toBe(bossHpFor(3));
+    expect(boss.snapshot()?.maxHp).toBe(bossHpFor(3, 1));
   });
 });
 
@@ -607,7 +607,7 @@ describe('advance · the ram', () => {
   }
 
   beforeEach(() => {
-    boss.summon(1);
+    boss.summon(1, 1);
     land();
   });
 
@@ -866,5 +866,33 @@ describe('advance · where the shots leave from', () => {
 
     expect(large.shots[0].y - large.at.y)
       .toBeGreaterThan((small.shots[0].y - small.at.y) * 1.5);
+  });
+});
+
+describe('bossHpFor · size', () => {
+  /*
+   * The correction. It was first left out on the guess that a larger body is an
+   * easier target — but the cannons are 26 units apart and the smallest hit circle
+   * is 41 in radius, so both trails connect at every size. Hit *rate* does not move
+   * with size; time on target does, because a large boss patrols slower.
+   */
+  it('gives a larger body more hit points', () => {
+    expect(bossHpFor(1, BOSS_SCALE_MAX)).toBeGreaterThan(bossHpFor(1, BOSS_SCALE_MIN));
+  });
+
+  it('scales linearly, so the size is readable off the bar', () => {
+    expect(bossHpFor(1, 2)).toBe(bossHpFor(1, 1) * 2);
+  });
+
+  it('still grows with the round at any size', () => {
+    for (const scale of [BOSS_SCALE_MIN, 1, BOSS_SCALE_MAX]) {
+      expect(bossHpFor(5, scale)).toBeGreaterThan(bossHpFor(4, scale));
+    }
+  });
+
+  it('gives the summoned boss the pool for its own size', () => {
+    boss.summon(3, BOSS_SCALE_MAX);
+
+    expect(boss.snapshot()?.maxHp).toBe(bossHpFor(3, BOSS_SCALE_MAX));
   });
 });

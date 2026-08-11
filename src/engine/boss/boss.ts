@@ -172,9 +172,24 @@ export interface BossField {
   clear: () => void;
 }
 
-/** Hit points for a round. Linear, like every other difficulty curve here. */
-export function bossHpFor(round: number): number {
-  return BOSS_STATS.hp + Math.max(round - 1, 0) * HP_PER_ROUND;
+/**
+ * Hit points for a round, at a body size. Linear in both, like every other
+ * difficulty curve here.
+ *
+ * Scaling by size is a correction, not a flourish. The reasoning that left it out
+ * was wrong twice over: the guess was that a larger body is an easier target, so
+ * more of the player's fire connects — but the two cannons sit 26 units apart and
+ * the *smallest* hit circle is 41 in radius, so both trails connect at every size.
+ * Hit rate does not move with size at all.
+ *
+ * What does move is time on target. A large boss patrols slower (its rate is
+ * divided by this), so the player can hold a column under it and keep firing, where
+ * a small one has to be chased. Without this, the size that fires the most was also
+ * the size that died the soonest — the trade ran the same way twice instead of
+ * pulling against itself.
+ */
+export function bossHpFor(round: number, scale: number): number {
+  return (BOSS_STATS.hp + Math.max(round - 1, 0) * HP_PER_ROUND) * scale;
 }
 
 /** True once it has flown far enough to be at its station. */
@@ -330,7 +345,7 @@ export function createBossField(engine: Engine): BossField {
       }
 
       body = createBoss(FIELD_WIDTH / 2, ENTRY_Y, scale);
-      duel = newDuel(round, bossHpFor(round), scale);
+      duel = newDuel(round, bossHpFor(round, scale), scale);
 
       Composite.add(engine.world, body);
     },

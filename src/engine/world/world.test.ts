@@ -536,7 +536,8 @@ describe('createWorld · rounds', () => {
     const summoned = onBoss.mock.calls.map(([boss]) => boss).filter(Boolean);
 
     expect(summoned.length).toBeGreaterThan(0);
-    expect(summoned[0].maxHp).toBe(bossHpFor(1));
+    // Its own rolled size, since the pool now scales with it.
+    expect(summoned[0].maxHp).toBe(bossHpFor(1, summoned[0].scale));
     expect(onRound.mock.calls.at(-1)?.[0]).toBeGreaterThan(1);
   });
 
