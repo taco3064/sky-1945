@@ -4,15 +4,17 @@ import type { Engine } from 'matter-js';
 import {
   BEAM_LENGTH,
   BOSS_ALTITUDE,
+  BOSS_ENTRY_SPEED,
   BOSS_STATS,
   bossMuzzleOffset,
   createBeam,
   createBoss,
 } from '../entities';
-import { FIELD_WIDTH } from '../field';
+import { FIELD_HEIGHT, FIELD_WIDTH } from '../field';
 import type { Point } from '../field';
 import type { BulletSpawn } from '../patterns';
 import type { BossAttack, BossStance } from './attacks';
+import { durationOf, windUpOf } from './attacks';
 import { attackOf, newDuel, stepStance } from './stances';
 import type { Duel } from './stances';
 
@@ -37,9 +39,21 @@ import type { Duel } from './stances';
 /** Where it comes in from, just above the field. */
 const ENTRY_Y = -BOSS_STATS.radius;
 
-/** How far it patrols either side of centre, and how slowly. */
-const PATROL_REACH = 150;
-const PATROL_RATE = 0.09;
+/**
+ * The patrol box, and the two rates that trace it.
+ *
+ * One sine per axis at rates that do not divide into each other, so the path is a
+ * Lissajous figure rather than a line: it wanders the box and does not repeat on
+ * any short cycle. A boss that only slid left and right could be parked under —
+ * the player picks a column, holds it, and the fight becomes a stationary trade.
+ *
+ * Both reaches are bounded, which is what keeps the invariant that the boss never
+ * leaves the field: it is the one craft in the game with no exit.
+ */
+const PATROL_REACH_X = 150;
+const PATROL_REACH_Y = 90;
+const PATROL_RATE_X = 0.09;
+const PATROL_RATE_Y = 0.14;
 
 /** What each round past the first adds to its hit points. */
 const HP_PER_ROUND = 650;
@@ -56,7 +70,18 @@ const HP_PER_ROUND = 650;
  * centre and then teleported 143 units to the right on its first patrolling
  * frame. Reported from play, and the tell is that it only ever jumped once.
  */
-const ARRIVAL_SECONDS = (BOSS_ALTITUDE - ENTRY_Y) / BOSS_STATS.speed;
+const ARRIVAL_SECONDS = (BOSS_ALTITUDE - ENTRY_Y) / BOSS_ENTRY_SPEED;
+
+/**
+ * How far down the ram carries the boss, and how far it recoils first.
+ *
+ * The dive stops short of the player's own row: it has to be survivable by moving
+ * sideways, not only by being somewhere else entirely. The recoil is the tell —
+ * the boss pulls *back* before it commits, which is the opposite motion to the
+ * attack and therefore unmistakable.
+ */
+const RAM_DEPTH = FIELD_HEIGHT * 0.55;
+const RAM_RECOIL = 70;
 
 /** What React is shown. The only hit points in the game that leave the engine. */
 export interface BossSnapshot {
@@ -83,9 +108,18 @@ export interface BossRecord {
   kind: 'boss' | 'beam';
 }
 
-export interface BossBoosts {
+/**
+ * What the boss needs to know about this frame.
+ *
+ * Not called `BossBoosts` any more, and the rename is the point: the ram has to
+ * know where the player is, and a player's position is not a difficulty
+ * multiplier. One is a property of the round, the other of the moment.
+ */
+export interface BossConditions {
   /** Multiplies bullet damage. From the round. */
   power: number;
+  /** The player's column. Read by the ram, at one instant, and by nothing else. */
+  playerX: number;
 }
 
 export interface BossField {
@@ -102,7 +136,7 @@ export interface BossField {
    */
   damage: (amount: number) => Point | null;
   /** Move, wind up, and fire what is due. */
-  advance: (elapsed: number, boosts: BossBoosts) => BossAdvance;
+  advance: (elapsed: number, conditions: BossConditions) => BossAdvance;
   /** Live bodies — the boss and, while it is firing one, its beam. */
   bodies: () => Body[];
   /** What is on the field and what each thing is, for the roster. */
@@ -123,6 +157,51 @@ export function bossHpFor(round: number): number {
 /** True once it has flown far enough to be at its station. */
 function hasArrived(duel: Duel): boolean {
   return ENTRY_Y + duel.travelled >= BOSS_ALTITUDE;
+}
+
+/**
+ * How far the ram has displaced the boss from its patrol, this frame.
+ *
+ * An offset added on top of the patrol rather than a position of its own, so it
+ * composes with the two-axis wander instead of replacing it — and so the boss is
+ * back on its patrol the instant the attack ends, with no seam to reconcile.
+ *
+ * Out and back on half a sine: it accelerates in, reaches its depth at the middle
+ * of the attack, and returns. A dive that snapped back would read as a teleport,
+ * and this engine has already shipped one of those.
+ */
+function ramOffset(duel: Duel, patrolX: number): Point {
+  if (attackOf(duel) !== 'ram') {
+    return { x: 0, y: 0 };
+  }
+
+  if (duel.stance === 'winding') {
+    return { x: 0, y: -RAM_RECOIL * Math.min(duel.since / windUpOf('ram'), 1) };
+  }
+
+  if (duel.stance !== 'firing' || duel.aimedX === null) {
+    return { x: 0, y: 0 };
+  }
+
+  const progress = Math.min(duel.since / durationOf('ram'), 1);
+  const reach = Math.sin(progress * Math.PI);
+
+  return {
+    /*
+     * Out and back on both axes, from the same half sine.
+     *
+     * The sideways slide used to be `× progress`, which put the boss exactly on
+     * the player's column at the end of the dive and then snapped it back to its
+     * patrol on the next frame — a 138-unit jump, caught by the continuity test
+     * rather than by any assertion about the ram itself. Sharing `reach` means
+     * the dive and the return are one motion, and the attack ends where the
+     * patrol already is.
+     */
+    x: (duel.aimedX - patrolX) * reach,
+    // The recoil is bled off linearly across the dive, so the position picks up
+    // exactly where the wind-up left it instead of stepping back to zero.
+    y: RAM_DEPTH * reach - RAM_RECOIL * (1 - progress),
+  };
 }
 
 /**
@@ -148,10 +227,19 @@ function positionOf(duel: Duel): Point {
 
   const onStation = duel.age - ARRIVAL_SECONDS;
 
-  return {
-    x: FIELD_WIDTH / 2 + Math.sin(onStation * PATROL_RATE * Math.PI * 2) * PATROL_REACH,
-    y: BOSS_ALTITUDE,
-  };
+  const patrolX = FIELD_WIDTH / 2
+    + Math.sin(onStation * PATROL_RATE_X * Math.PI * 2) * PATROL_REACH_X;
+
+  // Starts at its altitude and only ever dips below it: `1 - cos` runs 0→2, so
+  // the boss cannot back out through the top of the field on the vertical axis.
+  const patrolY = BOSS_ALTITUDE
+    + (1 - Math.cos(onStation * PATROL_RATE_Y * Math.PI * 2)) * (PATROL_REACH_Y / 2);
+
+  // The ram is an offset on top of the patrol, never a position of its own, so
+  // the boss is back on its wander the instant the attack ends.
+  const dive = ramOffset(duel, patrolX);
+
+  return { x: patrolX + dive.x, y: patrolY + dive.y };
 }
 
 export function createBossField(engine: Engine): BossField {
@@ -206,6 +294,23 @@ export function createBossField(engine: Engine): BossField {
         return null;
       }
 
+      /*
+       * Shielded while it arrives.
+       *
+       * It used to descend at its patrol speed, unable to move or fire, and be
+       * shot the whole way down — at full loadout power that was half its health
+       * before the fight started. Reported from play as being handed a free
+       * target.
+       *
+       * Discarded rather than banked: damage dealt to something that cannot fight
+       * back should not arrive later either. The bar has to say so, or a health
+       * bar that does not move reads as a broken game rather than as a rule —
+       * which is why `snapshot` publishes the stance alongside it.
+       */
+      if (duel.stance === 'entering') {
+        return null;
+      }
+
       duel.hp -= amount;
 
       if (duel.hp > 0) {
@@ -219,7 +324,7 @@ export function createBossField(engine: Engine): BossField {
       return wreck;
     },
 
-    advance(elapsed, boosts) {
+    advance(elapsed, conditions) {
       if (!duel || !body) {
         return { changed: false, shots: [] };
       }
@@ -227,7 +332,11 @@ export function createBossField(engine: Engine): BossField {
       duel.age += elapsed;
       duel.since += elapsed;
       duel.sinceVolley += elapsed;
-      duel.travelled += BOSS_STATS.speed * elapsed;
+      // The flight in has its own speed: quicker than the patrol, because an
+      // entrance is a cue rather than a phase of the fight.
+      const pace = hasArrived(duel) ? BOSS_STATS.speed : BOSS_ENTRY_SPEED;
+
+      duel.travelled += pace * elapsed;
 
       const at = positionOf(duel);
 
@@ -241,7 +350,13 @@ export function createBossField(engine: Engine): BossField {
         Body.setPosition(beam, { x: at.x, y: at.y + hang });
       }
 
-      const step = { duel, at, power: boosts.power, beam: control };
+      const step = {
+        duel,
+        at,
+        power: conditions.power,
+        playerX: conditions.playerX,
+        beam: control,
+      };
 
       return stepStance(step, hasArrived(duel));
     },

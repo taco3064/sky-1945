@@ -179,7 +179,12 @@ function onePass(parts: FrameParts, elapsed: number): FrameResult {
     power: boosts.power.multiplier,
   });
 
-  const fromBoss = parts.boss.advance(elapsed, { power: boosts.power.multiplier });
+  // The boss's ram aims at the player, so where the player is travels with the
+  // round's difficulty — one is a property of the moment, the other of the round.
+  const fromBoss = parts.boss.advance(elapsed, {
+    power: boosts.power.multiplier,
+    playerX: parts.pilot.body.position.x,
+  });
 
   const fired = parts.bullets.add([
     ...parts.pilot.advance(elapsed),

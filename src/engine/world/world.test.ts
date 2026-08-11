@@ -11,6 +11,18 @@ function runFrames(ms = 200): void {
   vi.advanceTimersByTime(ms);
 }
 
+/**
+ * Start the world and let the aircraft finish flying in.
+ *
+ * Every case about steering or reporting the player's position needs this: the
+ * craft now arrives from below the bottom edge, and until it is at station the
+ * entrance owns its position and input is ignored.
+ */
+function settle(subject: World): void {
+  subject.start();
+  runFrames(600);
+}
+
 /** Read the player's transform without waiting for a subscriber callback. */
 function positionOf(world: World): Transform {
   let seen: Transform = { x: 0, y: 0, angle: 0 };
@@ -125,7 +137,7 @@ describe('createWorld · the loop', () => {
 describe('createWorld · subscriptions', () => {
   it('reports the player in world units', () => {
     world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
-    world.start();
+    settle(world);
 
     const { x, y } = positionOf(world);
 
@@ -182,7 +194,7 @@ describe('createWorld · subscriptions', () => {
 describe('createWorld · movement', () => {
   it('stays put with no direction set', () => {
     world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
-    world.start();
+    settle(world);
 
     const before = positionOf(world);
 
@@ -196,7 +208,7 @@ describe('createWorld · movement', () => {
 
   it('moves the way it is pointed', () => {
     world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
-    world.start();
+    settle(world);
 
     const before = positionOf(world);
 
@@ -215,7 +227,7 @@ describe('createWorld · movement', () => {
   it('does not move faster on the diagonal', () => {
     const straight = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
 
-    straight.start();
+    settle(straight);
 
     const straightFrom = positionOf(straight);
 
@@ -227,7 +239,7 @@ describe('createWorld · movement', () => {
     straight.dispose();
 
     world = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
-    world.start();
+    settle(world);
 
     const diagonalFrom = positionOf(world);
 
@@ -247,7 +259,7 @@ describe('createWorld · movement', () => {
   it('covers more ground with a higher speed multiplier', () => {
     const slow = createWorld({ speedMultiplier: 1, powerMultiplier: 1 });
 
-    slow.start();
+    settle(slow);
 
     const slowFrom = positionOf(slow);
 
@@ -259,7 +271,7 @@ describe('createWorld · movement', () => {
     slow.dispose();
 
     world = createWorld({ speedMultiplier: 3, powerMultiplier: 1 });
-    world.start();
+    settle(world);
 
     const fastFrom = positionOf(world);
 
@@ -292,7 +304,7 @@ describe('createWorld · pause', () => {
 
     const at = trackerFor(world);
 
-    world.start();
+    settle(world);
     world.setPlayerDirection(1, 0);
     runFrames(100);
 
@@ -310,7 +322,7 @@ describe('createWorld · pause', () => {
 
     const at = trackerFor(world);
 
-    world.start();
+    settle(world);
     world.setPlayerDirection(1, 0);
     runFrames(100);
     world.pause();
@@ -413,7 +425,11 @@ describe('createWorld · the roll', () => {
     runFrames(50);
     world.roll();
 
-    expect(onCombat).toHaveBeenLastCalledWith({ rolling: true, invulnerable: true });
+    expect(onCombat).toHaveBeenLastCalledWith({
+      rolling: true,
+      invulnerable: true,
+      ready: false,
+    });
 
     runFrames(1500);
 
@@ -549,8 +565,19 @@ describe('createWorld · lives', () => {
     expect(onLives).toHaveBeenCalledWith(STARTING_LIVES);
   });
 
-  // Flying upward into the descending wave is the reliable way to make contact
-  // happen — waiting to be shot depends on where the wave lines up.
+  /*
+   * Left where it spawns, and shot down where it stands.
+   *
+   * It used to climb into the descending waves, which stopped working: a fresh
+   * craft now flies in from below and ignores input for the first third of a
+   * second, and three seconds of protection cover most of what follows — so a
+   * heading sent between deaths is absent for most of the run. Flown to the top
+   * edge it also ends up *above* the boss, where nothing aimed down the screen can
+   * reach it.
+   *
+   * Standing still is now the reliable way to die: the aircraft respawns in the
+   * centre of the lower field, and both the waves and the boss fire down it.
+   */
   it('spends a life on contact, and ends the run when they are gone', () => {
     world = createWorld({ speedMultiplier: 3, powerMultiplier: 1 });
 
@@ -562,18 +589,16 @@ describe('createWorld · lives', () => {
     world.start();
 
     /*
-     * The heading is re-sent each time, because kill() clears it — a fresh
-     * aircraft does not inherit the last one's input.
+     * Two and a half minutes, measured rather than reasoned: 45 seconds spent
+     * exactly one life, 150 spends all three.
      *
-     * Long enough to cover more than one round of waves. A round now runs its
-     * waves and then a boss, and the boss cannot reach an aircraft pinned to the
-     * top edge — so the contacts that spend lives only happen while mobs are
-     * descending, and there has to be time for the next round's to arrive.
+     * It is slow because nothing here is *playing*. The aircraft stands where it
+     * spawned — it does not dodge, does not chase the boss, and does not clear a
+     * path. That is the point of the setup, since standing still is what makes the
+     * contact reliable, but it is also why the clock has to be this long. Real play
+     * reaches far higher rounds in far less time.
      */
-    for (let attempt = 0; attempt < 30; attempt += 1) {
-      world.setPlayerDirection(0, -1);
-      runFrames(4000);
-    }
+    runFrames(150_000);
 
     const spent = onLives.mock.calls.map(([remaining]) => remaining as number);
 
@@ -589,10 +614,9 @@ describe('createWorld · lives', () => {
      * Back down into the boss's fire: a fourth contact must not take the count
      * negative or announce a second game over.
      *
-     * Downward rather than up, because by now the aircraft is pinned against the
-     * top edge where the boss — which sits lower — cannot reach it.
+     * It is standing in the lower field with fire coming down at it, so all this
+     * has to do is let more of it arrive.
      */
-    world.setPlayerDirection(0, 1);
     runFrames(12_000);
 
     const after = onLives.mock.calls.map(([remaining]) => remaining as number);

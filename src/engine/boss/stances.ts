@@ -48,6 +48,15 @@ export interface Duel {
   volleys: number;
   /** The round it was summoned for, so its attacks differ between rounds. */
   round: number;
+  /**
+   * The column a ram is committed to, locked when its wind-up ends.
+   *
+   * Null except during a ram. Locked at the *end* of the tell rather than tracked
+   * continuously: a dive that followed the player would be unavoidable, and the
+   * whole point of a one-second wind-up is that moving out of the way is the
+   * answer.
+   */
+  aimedX: number | null;
 }
 
 /**
@@ -68,6 +77,8 @@ export interface StanceStep {
   at: Point;
   /** The round's power multiplier, applied to bullet damage. */
   power: number;
+  /** Where the player is, which only the ram reads, and only once. */
+  playerX: number;
   beam: BeamControl;
 }
 
@@ -93,6 +104,7 @@ export function newDuel(round: number, hp: number): Duel {
     sinceVolley: 0,
     volleys: 0,
     round,
+    aimedX: null,
   };
 }
 
@@ -117,11 +129,19 @@ function volleyDue(duel: Duel): boolean {
   return duel.volleys === 0 || duel.sinceVolley >= cadenceOf(attackOf(duel));
 }
 
-/** One volley of whichever shape is firing. The beam throws no bullets. */
+/**
+ * One volley of whichever shape is firing.
+ *
+ * Two of the five attacks throw no bullets at all: the beam *is* its own hazard,
+ * and the ram makes a projectile of the boss. Checked by listing the ones that do
+ * fire rather than the ones that do not, so a sixth attack has to opt in — the
+ * failure mode of the other spelling is a new attack silently firing a shape it
+ * was never given.
+ */
 function volley(step: StanceStep): BulletSpawn[] {
   const attack = attackOf(step.duel);
 
-  if (attack === 'beam') {
+  if (attack !== 'straight' && attack !== 'spread' && attack !== 'radial') {
     return [];
   }
 
@@ -161,6 +181,10 @@ function stepWinding(step: StanceStep): StanceResult {
     step.beam.open(step.at);
   }
 
+  // The ram commits to a column here and nowhere else. Read once, at the instant
+  // the tell ends, which is the last moment the player could still have moved.
+  step.duel.aimedX = opening === 'ram' ? step.playerX : null;
+
   return { changed: true, shots: [] };
 }
 
@@ -171,6 +195,7 @@ function stepWinding(step: StanceStep): StanceResult {
 function stepFiring(step: StanceStep): StanceResult {
   if (step.duel.since >= durationOf(attackOf(step.duel))) {
     step.beam.close();
+    step.duel.aimedX = null;
     enter(step.duel, 'recovering');
 
     return { changed: true, shots: [] };
