@@ -41,7 +41,7 @@ function LargeCraft() {
 
 const CRAFT = { small: SmallCraft, medium: MediumCraft, large: LargeCraft };
 
-export function Enemy({ id, variant }: EnemyProps) {
+export default function Enemy({ id, variant }: EnemyProps) {
   const ref = useEntityTransform(id);
   const Craft = CRAFT[variant];
 

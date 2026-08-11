@@ -5,7 +5,7 @@ import styles from './styles.module.css';
 import type { TitleScreenProps } from './types';
 
 /** The opening screen. Any key or a tap anywhere starts the run. */
-export function TitleScreen({ onStart }: TitleScreenProps) {
+export default function TitleScreen({ onStart }: TitleScreenProps) {
   useAnyKey(onStart);
 
   return (

@@ -1,2 +1,2 @@
-export { Fighter } from './Fighter';
+export { default } from './Fighter';
 export type { FighterProps } from './types';

@@ -7,7 +7,7 @@ import type { BurstProps, BurstSize } from './types';
 const SHARDS: Record<BurstSize, number> = { small: 6, large: 10 };
 
 /** An aircraft coming apart: a flash, then shards. One implementation for both sides. */
-export function Burst({ id, size, tone }: BurstProps) {
+export default function Burst({ id, size, tone }: BurstProps) {
   const ref = useEntityTransform(id);
 
   return (

@@ -1,1 +1,1 @@
-export { ControlHints } from './ControlHints';
+export { default } from './ControlHints';

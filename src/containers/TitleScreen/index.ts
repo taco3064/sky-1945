@@ -1,2 +1,2 @@
-export { TitleScreen } from './TitleScreen';
+export { default } from './TitleScreen';
 export type { TitleScreenProps } from './types';

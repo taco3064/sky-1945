@@ -1,7 +1,7 @@
 import styles from './styles.module.css';
 
 /** One aircraft in the lives counter. A simplified planform — 14px keeps no detail. */
-export function LifeIcon() {
+export default function LifeIcon() {
   return (
     <span className={styles.icon}>
       <span className={styles.wing} />

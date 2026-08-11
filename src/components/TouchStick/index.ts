@@ -1,2 +1,2 @@
-export { TouchStick } from './TouchStick';
+export { default } from './TouchStick';
 export type { TouchStickProps } from './types';

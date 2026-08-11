@@ -1,2 +1,2 @@
-export { Beam } from './Beam';
+export { default } from './Beam';
 export type { BeamProps } from './types';

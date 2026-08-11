@@ -4,12 +4,12 @@ import { boostsFromPoints } from '~app/engine/boosts';
 import { createWorld } from '~app/engine/world';
 import type { World } from '~app/engine/world';
 
-import { Field } from './field';
+import Field from './field';
 import styles from './styles.module.css';
 import type { GameStageProps } from './types';
 
 /** Owns the simulation's lifetime. One world per mount, built inside the effect. */
-export function GameStage({ speedPoints, ...rest }: GameStageProps) {
+export default function GameStage({ speedPoints, ...rest }: GameStageProps) {
   const [world, setWorld] = useState<World | null>(null);
 
   useEffect(() => {

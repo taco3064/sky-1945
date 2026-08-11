@@ -1,2 +1,2 @@
-export { Burst } from './Burst';
+export { default } from './Burst';
 export type { BurstProps } from './types';
