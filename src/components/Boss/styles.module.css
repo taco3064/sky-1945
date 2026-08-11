@@ -49,7 +49,19 @@
   position: absolute;
   inset: 0;
   transform-origin: 50% 50%;
+
+  /*
+   * Two variations on one element, and they do not collide: `scale` is an individual
+   * transform property and `transform` is its own, so the browser composes them
+   * rather than letting one win.
+   *
+   * The bank is negated for the same reason as the enemies' — every enemy body
+   * carries a 180° angle, so the drawing is upside down. Shallower than theirs
+   * because the silhouette is wide: the same angle on a 140-unit body reads as the
+   * whole aircraft sliding rather than tipping.
+   */
   scale: var(--boss-scale, 1);
+  transform: perspective(520px) rotateY(calc(var(--lean, 0) * -16deg));
 }
 
 .craft > *,
