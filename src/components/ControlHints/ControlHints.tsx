@@ -1,7 +1,7 @@
 import styles from './styles.module.css';
 
 /** How to fly, as a table of action × device. Both columns show everywhere. */
-export function ControlHints() {
+export default function ControlHints() {
   return (
     <table className={styles.controls}>
       <caption className={styles.caption}>CONTROLS</caption>

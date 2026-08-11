@@ -2,7 +2,7 @@ import styles from './styles.module.css';
 import type { StatBarProps } from './types';
 
 /** One stat, drawn as a filled track. The scale ends are the engine's, so props. */
-export function StatBar({ label, percent, min, max }: StatBarProps) {
+export default function StatBar({ label, percent, min, max }: StatBarProps) {
   const fill = (percent - min) / (max - min);
 
   return (

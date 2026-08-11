@@ -1,1 +1,1 @@
-export { LifeIcon } from './LifeIcon';
+export { default } from './LifeIcon';

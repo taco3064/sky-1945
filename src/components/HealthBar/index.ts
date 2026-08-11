@@ -1,2 +1,2 @@
-export { HealthBar } from './HealthBar';
+export { default } from './HealthBar';
 export type { HealthBarProps } from './types';

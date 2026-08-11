@@ -1,11 +1,11 @@
-import { GameStage } from '~app/containers/GameStage';
-import { LoadoutScreen } from '~app/containers/LoadoutScreen';
-import { TitleScreen } from '~app/containers/TitleScreen';
+import GameStage from '~app/containers/GameStage';
+import LoadoutScreen from '~app/containers/LoadoutScreen';
+import TitleScreen from '~app/containers/TitleScreen';
 import { useGameSession } from '~app/hooks/useGameSession';
 import { useLoadout } from '~app/hooks/useLoadout';
 
 /** The one page: it holds the run's state and picks the screen for it. */
-export function Game() {
+export default function Game() {
   const { state, send } = useGameSession();
   const { speedPoints, setSpeedPoints, adjustSpeedPoints } = useLoadout();
 

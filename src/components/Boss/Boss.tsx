@@ -6,7 +6,7 @@ import styles from './styles.module.css';
 import type { BossProps } from './types';
 
 /** The boss. Pose and move go onto data attributes so the CSS can announce the attack. */
-export function Boss({ id, pose, move, size = 1 }: BossProps) {
+export default function Boss({ id, pose, move, size = 1 }: BossProps) {
   const ref = useEntityTransform(id);
 
   return (

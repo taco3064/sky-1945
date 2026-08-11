@@ -4,7 +4,7 @@ import styles from './styles.module.css';
 import type { FighterProps } from './types';
 
 /** The player's aircraft. Two elements: the engine owns the outer transform. */
-export function Fighter({
+export default function Fighter({
   id,
   rolling = false,
   invulnerable = false,

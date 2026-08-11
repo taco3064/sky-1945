@@ -5,7 +5,7 @@ import type { FrameMeterProps } from './types';
 const SMOOTH_ENOUGH = 55;
 
 /** What the game is costing. The average says smooth; the worst frame says stutter. */
-export function FrameMeter({ fps, worst }: FrameMeterProps) {
+export default function FrameMeter({ fps, worst }: FrameMeterProps) {
   const slow = fps > 0 && fps < SMOOTH_ENOUGH;
 
   return (

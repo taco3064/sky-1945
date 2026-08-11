@@ -1,2 +1,2 @@
-export { Enemy } from './Enemy';
+export { default } from './Enemy';
 export type { EnemyProps, EnemyVariant } from './types';

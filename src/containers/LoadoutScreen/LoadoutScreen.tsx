@@ -1,5 +1,5 @@
-import { ControlHints } from '~app/components/ControlHints';
-import { StatBar } from '~app/components/StatBar';
+import ControlHints from '~app/components/ControlHints';
+import StatBar from '~app/components/StatBar';
 import {
   BOOST_MAX_PERCENT,
   BOOST_MIN_PERCENT,
@@ -12,7 +12,7 @@ import styles from './styles.module.css';
 import type { LoadoutScreenProps } from './types';
 
 /** Ten points across two stats, spent on one slider — one number, one control. */
-export function LoadoutScreen({
+export default function LoadoutScreen({
   speedPoints,
   onPoints,
   onAdjust,

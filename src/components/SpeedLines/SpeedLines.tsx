@@ -4,7 +4,7 @@ import styles from './styles.module.css';
 import type { SpeedLinesProps } from './types';
 
 /** The sense of flying forward, with no background art. Two layers, for parallax. */
-export function SpeedLines({ pace = 1 }: SpeedLinesProps) {
+export default function SpeedLines({ pace = 1 }: SpeedLinesProps) {
   return (
     <div
       className={styles.rush}

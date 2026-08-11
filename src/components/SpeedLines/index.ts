@@ -1,2 +1,2 @@
-export { SpeedLines } from './SpeedLines';
+export { default } from './SpeedLines';
 export type { SpeedLinesProps } from './types';

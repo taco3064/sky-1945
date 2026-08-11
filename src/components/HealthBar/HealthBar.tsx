@@ -11,7 +11,7 @@ function fractionOf(hp: number, maxHp: number): number {
 }
 
 /** The boss's health, across the top. The labels say what to do, not what it is. */
-export function HealthBar({
+export default function HealthBar({
   hp,
   maxHp,
   aiming = false,

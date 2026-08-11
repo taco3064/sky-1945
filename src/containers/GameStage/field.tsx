@@ -1,18 +1,18 @@
 import { useEffect } from 'react';
 
-import { Beam } from '~app/components/Beam';
-import { Boss } from '~app/components/Boss';
+import Beam from '~app/components/Beam';
+import Boss from '~app/components/Boss';
 import type { BossMove, BossPose } from '~app/components/Boss';
-import { Bullet } from '~app/components/Bullet';
-import { Burst } from '~app/components/Burst';
-import { Enemy } from '~app/components/Enemy';
+import Bullet from '~app/components/Bullet';
+import Burst from '~app/components/Burst';
+import Enemy from '~app/components/Enemy';
 import type { EnemyVariant } from '~app/components/Enemy';
-import { Fighter } from '~app/components/Fighter';
-import { FrameMeter } from '~app/components/FrameMeter';
-import { HealthBar } from '~app/components/HealthBar';
-import { LifeIcon } from '~app/components/LifeIcon';
-import { SpeedLines } from '~app/components/SpeedLines';
-import { TouchStick } from '~app/components/TouchStick';
+import Fighter from '~app/components/Fighter';
+import FrameMeter from '~app/components/FrameMeter';
+import HealthBar from '~app/components/HealthBar';
+import LifeIcon from '~app/components/LifeIcon';
+import SpeedLines from '~app/components/SpeedLines';
+import TouchStick from '~app/components/TouchStick';
 import { GameProvider } from '~app/contexts/GameContext';
 import type { BossSnapshot } from '~app/engine/boss';
 import type { CombatSnapshot } from '~app/engine/combat';
@@ -91,7 +91,14 @@ function draw(entity: EntityRecord, combat: CombatSnapshot, boss: BossSnapshot |
 }
 
 /** Everything that watches a running world, so every hook here takes a `World`. */
-export function Field({ world, pace, phase, onPause, onQuit, onGameOver }: FieldProps) {
+export default function Field({
+  world,
+  pace,
+  phase,
+  onPause,
+  onQuit,
+  onGameOver,
+}: FieldProps) {
   const viewport = useStageScale();
   const { surface, stick } = usePlayerInput(world, onPause);
   const entities = useEntityRoster(world);
