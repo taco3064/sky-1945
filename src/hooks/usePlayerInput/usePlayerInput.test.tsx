@@ -2,26 +2,8 @@ import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { usePlayerInput } from './usePlayerInput';
+import { stubWorld } from '~app/fixtures/world.fixtures';
 import type { World } from '~app/engine/world';
-
-function stubWorld(overrides: Partial<World> = {}): World {
-  return {
-    playerId: 1,
-    start: vi.fn(),
-    pause: vi.fn(),
-    dispose: vi.fn(),
-    subscribe: vi.fn(() => () => {}),
-    subscribeRoster: vi.fn(() => () => {}),
-    subscribeCombat: vi.fn(() => () => {}),
-    subscribeRound: vi.fn(() => () => {}),
-    subscribeLives: vi.fn(() => () => {}),
-    subscribeGameOver: vi.fn(() => () => {}),
-    subscribeBoss: vi.fn(() => () => {}),
-    setPlayerDirection: vi.fn(),
-    roll: vi.fn(),
-    ...overrides,
-  };
-}
 
 function Controls({ world, onPause }: { world: World; onPause: () => void }) {
   const { surface, stick } = usePlayerInput(world, onPause);

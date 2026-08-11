@@ -5,26 +5,7 @@ import type { ReactNode } from 'react';
 import { useEntityTransform } from './useEntityTransform';
 import { GameProvider } from '~app/contexts/GameContext';
 import type { FrameListener, World } from '~app/engine/world';
-
-/** A world that publishes only when a test tells it to. */
-function stubWorld(overrides: Partial<World> = {}): World {
-  return {
-    playerId: 1,
-    start: vi.fn(),
-    pause: vi.fn(),
-    dispose: vi.fn(),
-    subscribe: vi.fn(() => () => {}),
-    subscribeRoster: vi.fn(() => () => {}),
-    subscribeCombat: vi.fn(() => () => {}),
-    subscribeRound: vi.fn(() => () => {}),
-    subscribeLives: vi.fn(() => () => {}),
-    subscribeGameOver: vi.fn(() => () => {}),
-    subscribeBoss: vi.fn(() => () => {}),
-    setPlayerDirection: vi.fn(),
-    roll: vi.fn(),
-    ...overrides,
-  };
-}
+import { stubWorld } from '~app/fixtures/world.fixtures';
 
 function drivenWorld() {
   const listeners = new Map<number, Set<FrameListener>>();

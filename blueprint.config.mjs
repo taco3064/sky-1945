@@ -61,6 +61,19 @@ export default defineBlueprint({
         allowedImporters: ['containers', 'hooks', 'contexts'],
       },
     ],
+    /*
+     * `*.fixtures.ts` counts as a test file, which is what lets `src/fixtures/`
+     * exist without being an architecture layer.
+     *
+     * Test support is not architecture: declaring a layer for it would put it in
+     * the flow chain, the handbook's layer table and the agent contract, and would
+     * then aim the fixture ban at the fixtures themselves. Widening what counts as
+     * a test file says the true thing instead — these are test files that happen
+     * not to be suites.
+     *
+     * The default is the first entry alone; the second is this project's addition.
+     */
+    testFiles: ['**/*.{test,spec}.{ts,tsx}', '**/*.fixtures.ts'],
     module: { layout: 'folder', entry: 'index', private: ['hooks', 'styles', 'types'] },
     naming: {
       component: 'PascalCase; the implementation file is named after the module',

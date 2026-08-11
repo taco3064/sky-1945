@@ -3,26 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { useHitPoints } from './useHitPoints';
 import type { BossSnapshot } from '~app/engine/boss';
-import type { BossListener, World } from '~app/engine/world';
-
-function stubWorld(overrides: Partial<World> = {}): World {
-  return {
-    playerId: 1,
-    start: vi.fn(),
-    pause: vi.fn(),
-    dispose: vi.fn(),
-    subscribe: vi.fn(() => () => {}),
-    subscribeRoster: vi.fn(() => () => {}),
-    subscribeCombat: vi.fn(() => () => {}),
-    subscribeRound: vi.fn(() => () => {}),
-    subscribeLives: vi.fn(() => () => {}),
-    subscribeGameOver: vi.fn(() => () => {}),
-    subscribeBoss: vi.fn(() => () => {}),
-    setPlayerDirection: vi.fn(),
-    roll: vi.fn(),
-    ...overrides,
-  };
-}
+import type { BossListener } from '~app/engine/world';
+import { stubWorld } from '~app/fixtures/world.fixtures';
 
 function drivenWorld() {
   const watchers = new Set<BossListener>();
