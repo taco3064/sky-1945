@@ -1,15 +1,3 @@
-/**
- * Bursts: the aircraft coming apart, on either side.
- *
- * They have no bodies. A burst collides with nothing, so putting it in the
- * physics world would be paying the broad phase for a decoration — it needs a
- * position, an id, and a lifetime, and that is all this module holds.
- *
- * The dead craft is removed the instant it dies and a burst is left in its
- * place, rather than the craft lingering in a dying state. One less state for
- * every consumer to ask about.
- */
-
 /** How long a burst is on screen. Matches the CSS animation in components/Burst. */
 export const BURST_DURATION = 0.6;
 
@@ -55,13 +43,7 @@ interface Burst extends BurstRecord, BurstPlacement {
 export function createEffectField(): EffectField {
   const live = new Map<number, Burst>();
 
-  /**
-   * Burst ids count down from -1.
-   *
-   * Matter hands out positive ids, and bursts share the transform channel with
-   * real bodies — negative ids cannot collide with those, and a negative id
-   * showing up anywhere it should not is unmistakable.
-   */
+  // Counts down from -1: Matter hands out positive ids, and both share a channel.
   let nextId = -1;
 
   return {

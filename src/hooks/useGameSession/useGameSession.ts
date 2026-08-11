@@ -10,13 +10,7 @@ export interface GameSession {
   send: (event: SessionEvent) => void;
 }
 
-/**
- * Holds the session machine for React.
- *
- * The transition rules stay in the engine — this hook owns nothing but the
- * current state and the way to advance it. Screen changes run at human speed,
- * so React state is the right home; nothing here is in the frame loop.
- */
+/** Holds the session machine for React. The transition rules stay in the engine. */
 export function useGameSession(): GameSession {
   const [state, setState] = useState<SessionState>(INITIAL_SESSION);
 

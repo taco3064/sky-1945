@@ -5,20 +5,11 @@ import styles from './styles.module.css';
 export interface BulletProps {
   /** The engine's id for this bullet. */
   id: number;
-  /**
-   * Enemy fire.
-   *
-   * A boolean rather than a side name: what this component needs is which of
-   * two ways to draw, and it has no business knowing the engine's vocabulary.
-   */
+  /** Enemy fire. A boolean, not a side name — this only decides which way to draw. */
   hostile?: boolean;
 }
 
-/**
- * One shot. Deliberately a single element with its glow painted by a pseudo
- * element: at peak there are around 150 of these, and every DOM node is
- * multiplied by that count. The Fighter can afford six; a bullet cannot.
- */
+/** One shot: a single element, glow painted by a pseudo. There are ~150 at peak. */
 export function Bullet({ id, hostile = false }: BulletProps) {
   const ref = useEntityTransform(id);
 

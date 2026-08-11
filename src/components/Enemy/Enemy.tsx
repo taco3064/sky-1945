@@ -11,18 +11,7 @@ export interface EnemyProps {
   variant: EnemyVariant;
 }
 
-/**
- * Three enemy silhouettes, drawn nose-up.
- *
- * They appear nose-*down* on the field because the engine publishes a 180°
- * angle on every enemy body — the rotation rides on the transform that is
- * already being written, rather than costing a wrapper element per enemy.
- *
- * Node counts are deliberate and unequal: the small craft is three elements
- * because ten of them share the screen, and the large one is six because two
- * do. At peak the field carries roughly 200 elements, and every node here is
- * multiplied by its concurrency ceiling.
- */
+/** Drawn nose-up; the engine's 180° angle turns them over. */
 function SmallCraft() {
   return (
     <>
@@ -66,9 +55,7 @@ export function Enemy({ id, variant }: EnemyProps) {
 
   return (
     <div ref={ref} className={`${styles.mount} ${styles[variant]}`}>
-      {/* The bank lives on an inner element: the mount carries the engine's
-          transform, written sixty times a second, and two sources of geometry on
-          one element is how the boss's drawing came adrift from its hit circle. */}
+      {/* The bank lives on an inner element; the mount carries the transform. */}
       <div className={styles.craft}>
         <Craft />
       </div>

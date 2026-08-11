@@ -13,3 +13,7 @@
 - Hard gates (machine-enforced on the files the layer globs match — a layer holding no code has nothing failing yet, which is runway, not protection): one-way imports, module entries, ownership, relative escapes, `maxLines` = 400, `unusedVars`, `explicitAny`, `codeStyle`, `statementsPerLine`, `statementPadding`, `importBlock`, `fixtureImports`, `usePrefix`, `testFilename` fail the project's lint run; `cycles` is held by `npx blueprint inspect --baseline` instead, so a green lint says nothing about it. When lint fails, fix the structure — never `eslint-disable`, never relocate the violation to a sibling.
 - You are the gate for: no undeclared folders under `~app/` (`blueprint inspect --baseline` verifies — red only on what you introduced). Its finding names two remedies and only one is yours: move the code into a module of an existing layer. If the architecture has genuinely outgrown this config, that is the owner's decision — say so and stop; never declare the layer yourself.
 <!-- BLUEPRINT:END -->
+
+## Comments
+
+Comments carry only what the name, the type, the test, and the commit cannot. What the contract forced goes in the issue, not the source.

@@ -18,17 +18,7 @@ export interface BurstProps {
 /** Small wrecks throw six shards, large ones ten. */
 const SHARDS: Record<BurstSize, number> = { small: 6, large: 10 };
 
-/**
- * An aircraft coming apart.
- *
- * One implementation for both sides — the player breaking up and an enemy
- * exploding are the same move (parts flying apart on different vectors), and
- * they differ only in palette and shard count. Written once because it was
- * always going to be needed twice.
- *
- * Two beats: a white flash that reads as the hit, then the shards scattering.
- * Pure CSS, so nothing here runs per frame.
- */
+/** An aircraft coming apart: a flash, then shards. One implementation for both sides. */
 export function Burst({ id, size, tone }: BurstProps) {
   const ref = useEntityTransform(id);
 

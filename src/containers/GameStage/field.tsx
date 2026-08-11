@@ -39,13 +39,7 @@ function variantFor(kind: EntityKind): EnemyVariant {
   return VARIANTS[kind];
 }
 
-/**
- * Which component draws a roster entry.
- *
- * The boss takes a third argument the others do not need: it is the one thing on
- * the field whose *state* is drawn as well as its position, because every attack
- * has to be announced before it lands.
- */
+/** Which component draws a roster entry. Only the boss draws its state as well. */
 function draw(entity: EntityRecord, combat: CombatSnapshot, boss: BossSnapshot | null) {
   if (entity.kind === 'player') {
     return (
@@ -109,13 +103,7 @@ export interface FieldProps {
   onGameOver: () => void;
 }
 
-/**
- * Everything that watches a running world.
- *
- * Split from the stage so that every hook in here can take a `World` rather
- * than a `World | null` — the stage cannot create one during render (see the
- * note there), so something has to exist that only mounts once there is one.
- */
+/** Everything that watches a running world, so every hook here takes a `World`. */
 export function Field({ world, pace, phase, onPause, onQuit, onGameOver }: FieldProps) {
   const viewport = useStageScale();
   const { surface, stick } = usePlayerInput(world, onPause);
@@ -138,8 +126,7 @@ export function Field({ world, pace, phase, onPause, onQuit, onGameOver }: Field
     <GameProvider world={world}>
       <div ref={viewport} className={styles.viewport}>
         <div className={styles.field}>
-          {/* Under everything, and the only thing on the field that is not an
-              entity — it belongs to the stage rather than to the simulation. */}
+          {/* The only thing on the field that is not an entity. */}
           <SpeedLines pace={pace} />
 
           {entities.map((entity) => draw(entity, combat, boss))}
@@ -175,8 +162,7 @@ export function Field({ world, pace, phase, onPause, onQuit, onGameOver }: Field
           )}
         </div>
 
-        {/* Above the field so it catches every touch, including the margins
-            a wide screen leaves either side of the play area. */}
+        {/* Above the field, so it catches touches in the margins as well. */}
         <div ref={surface} className={styles.surface} />
 
         <TouchStick ref={stick} />
