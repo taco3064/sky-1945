@@ -17,3 +17,7 @@
 ## Comments
 
 Comments carry only what the name, the type, the test, and the commit cannot. What the contract forced goes in the issue, not the source.
+
+## Type declarations
+
+Every `interface` and `type` lives in its module's `types.ts`; implementation files hold code. A local lint rule holds it — `local/types-in-types-file`, in `eslint.config.mjs` rather than the blueprint, which has no way to say this. Only `types.ts` and test files are exempt. What crosses a module boundary still leaves through `index.ts`, and a declaration used in one file only moves too — the rule has no per-file exception.
