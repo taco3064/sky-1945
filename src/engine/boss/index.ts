@@ -11,7 +11,7 @@ export type { BossAttack, BossStance } from './attacks';
 export { bossHpFor, createBossField } from './boss';
 export type {
   BossAdvance,
-  BossBoosts,
+  BossConditions,
   BossField,
   BossRecord,
   BossSnapshot,

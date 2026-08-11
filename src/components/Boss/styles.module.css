@@ -32,7 +32,40 @@
   will-change: transform;
 }
 
-.mount > * {
+/*
+ * The rolled body size, on a wrapper of its own.
+ *
+ * The mount above carries the engine's `translate3d` + `rotate`, written every
+ * frame; the elements below carry the pose animations. Three sources of geometry,
+ * three elements — put the size on the mount and the drawing drifts away from the
+ * hit circle the engine is moving, which showed up in play as shooting an empty
+ * patch of sky and hearing the boss take damage.
+ *
+ * Everything inside stays in the drawing's own units, and this one line is the only
+ * place that knows about size. Same division as the hit circle scaling in
+ * `engine/entities` rather than being recomputed from this file.
+ */
+.craft {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+
+  /*
+   * Two variations on one element, and they do not collide: `scale` is an individual
+   * transform property and `transform` is its own, so the browser composes them
+   * rather than letting one win.
+   *
+   * The bank is negated for the same reason as the enemies' — every enemy body
+   * carries a 180° angle, so the drawing is upside down. Shallower than theirs
+   * because the silhouette is wide: the same angle swings a 140-unit body much
+   * further at its wingtips than it does a 34-unit one.
+   */
+  scale: var(--boss-scale, 1);
+  transform: rotate(calc(var(--lean, 0) * -9deg));
+}
+
+.craft > *,
+.mount > .charge {
   position: absolute;
 }
 

@@ -4,16 +4,23 @@
  *
  * Every value comes from a custom property the input hook writes. Defaults
  * here keep it parked and invisible before the first touch.
+ *
+ * The ring is 1.2 knob radii — barely larger than the dot inside it. That is
+ * deliberate and it is the *gate*, not an enclosure: the knob's centre travels to
+ * the ring's edge and no further, so at full deflection most of the dot sits
+ * outside the ring. It reads as a thumb pressing against a stop rather than as a
+ * ball rattling in a cup, and it means full deflection costs a thumb's twitch
+ * instead of a hand's movement.
  */
 
 .stick {
   position: fixed;
   top: 0;
   left: 0;
-  width: 112px;
-  height: 112px;
-  margin-top: -56px;
-  margin-left: -56px;
+  width: 52px;
+  height: 52px;
+  margin-top: -26px;
+  margin-left: -26px;
   border: 1.5px solid rgb(110 231 255 / 35%);
   border-radius: 50%;
   opacity: 0;

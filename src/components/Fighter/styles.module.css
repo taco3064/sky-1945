@@ -40,6 +40,22 @@
   position: relative;
   width: 100%;
   height: 100%;
+
+  /*
+   * Banking into a turn. `--lean` is written by `useEntityTransform` from
+   * frame-to-frame sideways travel: -1 hard left, +1 hard right.
+   *
+   * Not negated, unlike the enemies' — the player's craft is drawn the way it flies.
+   *
+   * Rotating in **Z**, and the first attempt at Y was simply wrong: these craft are
+   * a flat stack of divs, so a Y rotation only narrows them by `cos(angle)` — 26° is
+   * a 7% squeeze, which is invisible. Reported from play as no bank at all. Z swings
+   * the whole airframe, which is what a bank looks like from directly above.
+   *
+   * The roll animation below overrides this outright, which is correct: mid-roll
+   * there is no meaningful bank to show.
+   */
+  transform: rotate(calc(var(--lean, 0) * 14deg));
   transform-style: preserve-3d;
 }
 
@@ -209,4 +225,21 @@
   background: linear-gradient(155deg, #eafcff 0%, var(--glow) 42%, #14647f 100%);
   border-radius: 52% 52% 40% 40%;
   box-shadow: 0 0 5px var(--glow);
+}
+
+/*
+ * The roll is recharging.
+ *
+ * Shown on the thrust rather than as a meter: the engine refuses a second roll
+ * during this window, and a player who presses the key and sees *nothing* happen
+ * has been told the game is broken rather than told a rule. A guttering exhaust
+ * says "not yet" without asking anyone to read the HUD mid-pattern.
+ *
+ * Deliberately quiet. It is a limit on one action, not a warning — the beam's
+ * charge line is what a warning looks like in this game, and this must not compete
+ * with it.
+ */
+.spent {
+  opacity: 0.35;
+  filter: saturate(0.4);
 }

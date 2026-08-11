@@ -48,6 +48,24 @@ export interface Duel {
   volleys: number;
   /** The round it was summoned for, so its attacks differ between rounds. */
   round: number;
+  /**
+   * The body size it was rolled at, 0.8–2.0.
+   *
+   * Two consequences, pulling in opposite directions so neither size is simply
+   * better: a small boss patrols faster (`../boss` divides its patrol *rate* by
+   * this), and a large one fires more (the cadence below is divided by it, so a
+   * long attack lands proportionally more volleys).
+   */
+  scale: number;
+  /**
+   * The column a ram is committed to, locked when its wind-up ends.
+   *
+   * Null except during a ram. Locked at the *end* of the tell rather than tracked
+   * continuously: a dive that followed the player would be unavoidable, and the
+   * whole point of a one-second wind-up is that moving out of the way is the
+   * answer.
+   */
+  aimedX: number | null;
 }
 
 /**
@@ -57,7 +75,8 @@ export interface Duel {
  * `Body | null` would make every step have to know whether one exists.
  */
 export interface BeamControl {
-  open: (at: Point) => void;
+  /** Takes the muzzle position, not the boss's centre — see the note in `boss.ts`. */
+  open: (muzzle: Point) => void;
   close: () => void;
 }
 
@@ -68,6 +87,8 @@ export interface StanceStep {
   at: Point;
   /** The round's power multiplier, applied to bullet damage. */
   power: number;
+  /** Where the player is, which only the ram reads, and only once. */
+  playerX: number;
   beam: BeamControl;
 }
 
@@ -81,10 +102,11 @@ export interface StanceResult {
 const HELD: StanceResult = { changed: false, shots: [] };
 
 /** A fresh fight, at the top of the screen with nothing charged. */
-export function newDuel(round: number, hp: number): Duel {
+export function newDuel(round: number, hp: number, scale: number): Duel {
   return {
     hp,
     maxHp: hp,
+    scale,
     age: 0,
     travelled: 0,
     stance: 'entering',
@@ -93,6 +115,7 @@ export function newDuel(round: number, hp: number): Duel {
     sinceVolley: 0,
     volleys: 0,
     round,
+    aimedX: null,
   };
 }
 
@@ -109,26 +132,49 @@ function enter(duel: Duel, stance: BossStance): void {
   duel.volleys = 0;
 }
 
-/** Whether the current attack owes a volley right now. */
+/**
+ * Whether the current attack owes a volley right now.
+ *
+ * The cadence is divided by the body size, so a large boss fires more inside the
+ * same attack — that is what "bigger means more bullets" is, and it costs no new
+ * table: one division, and the duration decides the rest.
+ */
 function volleyDue(duel: Duel): boolean {
   // The first one is never held back. Otherwise the wind-up finishes and
   // nothing happens for a whole cadence — up to half a second on the radial
   // burst, which makes the tell look like a lie.
-  return duel.volleys === 0 || duel.sinceVolley >= cadenceOf(attackOf(duel));
+  return duel.volleys === 0
+    || duel.sinceVolley >= cadenceOf(attackOf(duel)) / duel.scale;
 }
 
-/** One volley of whichever shape is firing. The beam throws no bullets. */
+/**
+ * One volley of whichever shape is firing.
+ *
+ * Two of the five attacks throw no bullets at all: the beam *is* its own hazard,
+ * and the ram makes a projectile of the boss. Checked by listing the ones that do
+ * fire rather than the ones that do not, so a sixth attack has to opt in — the
+ * failure mode of the other spelling is a new attack silently firing a shape it
+ * was never given.
+ *
+ * A radial burst leaves the **centre**; the aimed shapes leave the muzzle. That is
+ * not a detail: a ring fired from the nose has its centre hanging below the
+ * aircraft, which at a rolled size of 2 puts it 132 units clear of the body and
+ * reads as a ring that belongs to nothing. A burst is the aircraft coming apart in
+ * every direction, and it has to come from the middle of it.
+ */
 function volley(step: StanceStep): BulletSpawn[] {
   const attack = attackOf(step.duel);
 
-  if (attack === 'beam') {
+  if (attack !== 'straight' && attack !== 'spread' && attack !== 'radial') {
     return [];
   }
+
+  const reach = attack === 'radial' ? 0 : bossMuzzleOffset(step.duel.scale);
 
   return shotsFor({
     kind: attack,
     x: step.at.x,
-    y: step.at.y + bossMuzzleOffset(),
+    y: step.at.y + reach,
     speed: BOSS_BULLET_SPEED,
     damage: BOSS_STATS.damage * step.power,
     side: 'enemy',
@@ -158,8 +204,15 @@ function stepWinding(step: StanceStep): StanceResult {
   enter(step.duel, 'firing');
 
   if (opening === 'beam') {
-    step.beam.open(step.at);
+    step.beam.open({
+      x: step.at.x,
+      y: step.at.y + bossMuzzleOffset(step.duel.scale),
+    });
   }
+
+  // The ram commits to a column here and nowhere else. Read once, at the instant
+  // the tell ends, which is the last moment the player could still have moved.
+  step.duel.aimedX = opening === 'ram' ? step.playerX : null;
 
   return { changed: true, shots: [] };
 }
@@ -171,6 +224,7 @@ function stepWinding(step: StanceStep): StanceResult {
 function stepFiring(step: StanceStep): StanceResult {
   if (step.duel.since >= durationOf(attackOf(step.duel))) {
     step.beam.close();
+    step.duel.aimedX = null;
     enter(step.duel, 'recovering');
 
     return { changed: true, shots: [] };

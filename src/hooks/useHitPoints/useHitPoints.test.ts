@@ -54,6 +54,7 @@ const FIGHTING: BossSnapshot = {
   maxHp: 2000,
   stance: 'winding',
   attack: 'beam',
+  scale: 1,
 };
 
 describe('useHitPoints', () => {

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import type { CombatSnapshot } from '~app/engine/combat';
 import type { World } from '~app/engine/world';
 
-const IDLE: CombatSnapshot = { rolling: false, invulnerable: false };
+const IDLE: CombatSnapshot = { rolling: false, invulnerable: false, ready: true };
 
 /**
  * Whether the player is mid-roll, and whether they can be hit.

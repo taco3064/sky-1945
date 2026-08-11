@@ -38,8 +38,20 @@ export const PLAYER_BASE_SPEED = 300;
  */
 export const PLAYER_BOUNDS_INSET = 24;
 
-/** Where the player starts, measured up from the bottom edge. */
+/** Where the player flies to and holds station, measured up from the bottom. */
 export const PLAYER_START_INSET = 160;
+
+/**
+ * Where the aircraft comes in from, below the bottom edge.
+ *
+ * Far enough out to be fully off screen: the entrance should look like a craft
+ * arriving from somewhere, not like one fading in at the edge of the field.
+ */
+export const PLAYER_ENTRY_INSET = -60;
+
+/** How fast it flies in. Brisker than the player's own speed — it is a cue, not
+ *  a stretch of gameplay, and the run is on hold until it lands. */
+export const PLAYER_ENTRY_SPEED = 620;
 
 /**
  * The player's body.
@@ -85,21 +97,53 @@ export const ENEMY_BULLET_SPEED = 260;
  */
 export const ENEMY_BULLET_LEAD = 1.5;
 
-/** Damage before the loadout's power multiplier. */
-export const BULLET_BASE_DAMAGE = 10;
+/**
+ * Damage before the loadout's power multiplier.
+ *
+ * Cut to 75% of what it was when the aircraft grew a second cannon, and the
+ * interesting part is that this does *not* simply scale output by 1.5. What it
+ * lands on depends on how wide the target is:
+ *
+ * - The boss is wide enough for both trails to connect, so it takes about 1.5x.
+ * - A small craft is narrower than the gap between the cannons, so most of the
+ *   time only one trail reaches it — and it takes 0.75x.
+ *
+ * Which is the right way round for two wing guns, and it happened by arithmetic
+ * rather than by a table of per-enemy modifiers.
+ */
+export const BULLET_BASE_DAMAGE = 7.5;
 
 /**
- * Seconds between the player's shots.
+ * How many volleys a second the player throws.
  *
- * The guns never stop (#5 removed the fire button), so this is the whole
- * firing model: ten a second, steady. A steady rate is also what makes the
- * worst case computable — peak bullet count is rate × time-on-screen, not
- * whatever a player's mashing produces.
+ * Was ten, cut to 75% of that once the aircraft grew a second cannon. Stated as a
+ * rate rather than as an interval because the rate is the number anyone reasons
+ * about — "seven and a half a second" says something, `0.1333` does not.
+ *
+ * The guns never stop (#5 removed the fire button), so this is the whole firing
+ * model: steady, and steady is what makes the worst case computable — peak bullet
+ * count is rate × time-on-screen, not whatever a player's mashing produces.
  */
-export const PLAYER_FIRE_INTERVAL = 0.1;
+const PLAYER_VOLLEYS_PER_SECOND = 7.5;
+
+/** Seconds between the player's volleys. Two shots leave on each one. */
+export const PLAYER_FIRE_INTERVAL = 1 / PLAYER_VOLLEYS_PER_SECOND;
 
 /** How far ahead of the player's centre a shot appears. */
 export const PLAYER_MUZZLE_OFFSET = 26;
+
+/**
+ * How far either side of centre the two cannons sit.
+ *
+ * There are two of them, one per wing, and they fire parallel rather than
+ * converging — a spread would make the aircraft's own width the thing that
+ * decides whether a shot lands, which is not a decision the player can make.
+ *
+ * Sized to the Fighter's wing, so the trails leave the drawing where a gun is
+ * drawn. It is one of the few numbers in here that answers to the art rather
+ * than to the simulation.
+ */
+export const PLAYER_WING_SPAN = 13;
 
 /** What a bullet carries beyond its position. */
 interface BulletPayload {
@@ -271,27 +315,75 @@ export const BOSS_STATS = {
   radius: 52,
   /** Hit points in round 1. `../boss` scales this with the round. */
   hp: 900,
-  /** World units per second, both entering and patrolling. */
+  /**
+   * World units per second while patrolling.
+   *
+   * The flight in uses `BOSS_ENTRY_SPEED` instead, which is faster: the entrance
+   * is a cue, not a phase of the fight.
+   */
   speed: 90,
   /** Damage per bullet at 100%. */
   damage: 14,
 };
 
+/**
+ * How large a boss can be rolled, as a multiple of `BOSS_STATS`.
+ *
+ * The one die in the engine, and the exception is narrow enough to state exactly.
+ * Attack order is derived and never drawn, because a player has to *read* it —
+ * predictability there is what makes the tells mean anything. A body size is
+ * different in kind: it is fully visible from the moment the boss appears, so
+ * nothing has to be remembered to answer it, and rolling it is what stops every
+ * fight in a run being the same fight.
+ */
+export const BOSS_SCALE_MIN = 0.8;
+export const BOSS_SCALE_MAX = 2;
+
+/**
+ * A size for a fresh boss.
+ *
+ * Separate from `summon` so it can be handed in instead: the caller in play rolls,
+ * and every test states the size it means. Randomness at the boundary, arithmetic
+ * everywhere inside.
+ */
+export function rollBossScale(): number {
+  return BOSS_SCALE_MIN + Math.random() * (BOSS_SCALE_MAX - BOSS_SCALE_MIN);
+}
+
 /** The altitude it settles at: high enough to leave the player room to work. */
 export const BOSS_ALTITUDE = 150;
+
+/**
+ * How fast the boss flies in.
+ *
+ * Deliberately quick. It used to arrive at its patrol speed, which took over two
+ * seconds during which it could not move, could not fire, and *could* be shot —
+ * at full loadout power that was half its health gone before the fight began.
+ * Reported from play as being handed a free target.
+ *
+ * The arrival is also invulnerable now (`../boss` refuses damage while entering),
+ * and those two changes answer the same complaint from both ends: less time, and
+ * nothing gained by spending it shooting.
+ */
+export const BOSS_ENTRY_SPEED = 420;
 
 /**
  * The beam's footprint.
  *
  * Long enough to reach past the bottom edge from the boss's altitude, so the
  * only honest answers are sideways or a roll — never "wait underneath it".
+ *
+ * The width is not scaled by the boss's size. A bigger boss is already harder in
+ * two ways it was given deliberately; a wider lethal column on top of that would
+ * take the sideways answer away, and then the beam has only one answer instead of
+ * two.
  */
 export const BEAM_WIDTH = 88;
 export const BEAM_LENGTH = 1000;
 
-/** The boss's body. A sensor and nose-down, like every other enemy. */
-export function createBoss(x: number, y: number): Body {
-  return Bodies.circle(x, y, BOSS_STATS.radius, {
+/** The boss's body, at the size it was rolled. A sensor and nose-down. */
+export function createBoss(x: number, y: number, scale: number): Body {
+  return Bodies.circle(x, y, BOSS_STATS.radius * scale, {
     label: 'enemy-boss',
     isSensor: true,
     frictionAir: 0,
@@ -299,9 +391,23 @@ export function createBoss(x: number, y: number): Body {
   });
 }
 
-/** Where the boss's fire leaves it. */
-export function bossMuzzleOffset(): number {
-  return BOSS_STATS.radius + 8;
+/**
+ * How far ahead of the boss's centre its aimed fire appears, at scale 1.
+ *
+ * Sized from the *drawing* rather than from the hit circle, and that distinction
+ * started mattering the moment the body could be rolled larger. The sprite is 124
+ * tall against a hit radius of 52, so its nose is about 64 from the centre — and
+ * `radius + 8` was near enough to look right at scale 1 and 20 units short at scale
+ * 2, which reads as fire coming out of the middle of the aircraft.
+ *
+ * One of the handful of engine numbers that answers to the art. The drawing's own
+ * dimensions live in the Boss component's CSS and cannot be imported here, so the
+ * check is visual: at any size the trails should leave the aperture.
+ */
+const BOSS_MUZZLE_REACH = 66;
+
+export function bossMuzzleOffset(scale: number): number {
+  return BOSS_MUZZLE_REACH * scale;
 }
 
 /**

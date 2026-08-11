@@ -66,7 +66,12 @@ export function Enemy({ id, variant }: EnemyProps) {
 
   return (
     <div ref={ref} className={`${styles.mount} ${styles[variant]}`}>
-      <Craft />
+      {/* The bank lives on an inner element: the mount carries the engine's
+          transform, written sixty times a second, and two sources of geometry on
+          one element is how the boss's drawing came adrift from its hit circle. */}
+      <div className={styles.craft}>
+        <Craft />
+      </div>
     </div>
   );
 }

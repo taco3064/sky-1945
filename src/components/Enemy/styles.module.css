@@ -21,7 +21,25 @@
   will-change: transform;
 }
 
-.mount > * {
+/*
+ * Banking into a turn.
+ *
+ * `--lean` is written by `useEntityTransform` from frame-to-frame sideways travel:
+ * -1 hard left, +1 hard right. Negated here because every enemy body carries a 180°
+ * angle, so the drawing is upside down and an un-negated bank would tip the wrong
+ * way — the one place in this file that has to think about the rotation.
+ *
+ * Rotating in Z. A Y rotation of a flat stack of divs only narrows it by
+ * `cos(angle)` — invisible at any angle that does not also squash the drawing — so Z
+ * swinging the whole airframe is what reads as a bank from directly above.
+ */
+.craft {
+  position: absolute;
+  inset: 0;
+  transform: rotate(calc(var(--lean, 0) * -14deg));
+}
+
+.craft > * {
   position: absolute;
 }
 

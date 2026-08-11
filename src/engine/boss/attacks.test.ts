@@ -14,6 +14,9 @@ import type { BossAttack } from './attacks';
 /** The three the trash mobs also fire. Restated, so dropping one turns red. */
 const SHAPED: BossAttack[] = ['straight', 'spread', 'radial'];
 
+/** The boss's own two: neither fires a bullet. */
+const COMMITTED: BossAttack[] = ['beam', 'ram'];
+
 describe('attacks · every attack is fully specified', () => {
   // One contract per member: an attack with a missing timing would divide the
   // fight by zero or fire forever, and only its own case would catch it.
@@ -23,16 +26,26 @@ describe('attacks · every attack is fully specified', () => {
     expect(cycleOf(attack)).toBe(windUpOf(attack) + durationOf(attack) + RECOVER_SECONDS);
   });
 
-  it('lists exactly the three shapes plus the beam', () => {
-    expect(ALL_ATTACKS).toEqual([...SHAPED, 'beam']);
+  it('lists exactly the three shapes plus its own two', () => {
+    expect(ALL_ATTACKS).toEqual([...SHAPED, ...COMMITTED]);
   });
 
   // The number that makes the fight fair rather than the one that makes it
   // easy: long enough to see, recognise, and answer with a roll.
-  it('gives the beam the longest tell of the four', () => {
+  it('gives the beam the longest tell of them all', () => {
     const others = SHAPED.map(windUpOf);
 
     expect(windUpOf('beam')).toBeGreaterThan(Math.max(...others));
+    expect(windUpOf('beam')).toBeGreaterThan(windUpOf('ram'));
+  });
+
+  /*
+   * The ram's tell is longer than any shaped attack's, because the answer is
+   * different in kind: a spread asks the player to shift, and a ram asks them to
+   * *not be in a column*. Moving that far takes longer than flinching.
+   */
+  it('gives the ram a longer tell than any of the shapes', () => {
+    expect(windUpOf('ram')).toBeGreaterThan(Math.max(...SHAPED.map(windUpOf)));
   });
 
   it('gives the beam a tell longer than a roll lasts, so one can cover it', () => {
@@ -46,13 +59,14 @@ describe('attacks · every attack is fully specified', () => {
     expect(cadenceOf(attack)).toBeLessThan(durationOf(attack));
   });
 
-  // One body for the whole duration, so there is no cadence to speak of.
-  it('gives the beam no cadence', () => {
-    expect(cadenceOf('beam')).toBe(0);
+  // Neither of these throws bullets — the beam is its own hazard and the ram
+  // makes a projectile of the boss — so a cadence would mean nothing.
+  it.each(COMMITTED)('gives %s no cadence', (attack) => {
+    expect(cadenceOf(attack)).toBe(0);
   });
 });
 
-describe('attackAt · the beam is scheduled', () => {
+describe('attackAt · the committed attacks are scheduled', () => {
   it('comes every fourth attack', () => {
     const beams = Array.from({ length: 24 }, (_unused, index) => index)
       .filter((index) => attackAt(1, index) === 'beam');
@@ -89,10 +103,63 @@ describe('attackAt · the shapes are derived, not drawn', () => {
   });
 
   it('uses all three shapes within a single fight', () => {
-    const shapes = Array.from({ length: 20 }, (_unused, index) => attackAt(1, index))
-      .filter((attack) => attack !== 'beam');
+    const shapes = Array.from({ length: 24 }, (_unused, index) => attackAt(1, index))
+      .filter((attack) => !COMMITTED.includes(attack));
 
     expect(new Set(shapes).size).toBe(SHAPED.length);
+  });
+
+  /*
+   * The two scheduled attacks run on different periods so they cannot arrive
+   * together, and where their cycles do meet the beam wins — a player already
+   * dodging a column has somewhere to be, where a ram at the same moment would
+   * leave nowhere.
+   */
+  it('never lets the beam and the ram fall on the same attack', () => {
+    const rams: number[] = [];
+    const beams: number[] = [];
+
+    for (let index = 0; index < 60; index += 1) {
+      const attack = attackAt(1, index);
+
+      if (attack === 'ram') {
+        rams.push(index);
+      }
+
+      if (attack === 'beam') {
+        beams.push(index);
+      }
+    }
+
+    expect(rams.length).toBeGreaterThan(0);
+    expect(beams.length).toBeGreaterThan(0);
+    expect(rams.filter((index) => beams.includes(index))).toEqual([]);
+  });
+
+  /*
+   * Every third attack, minus the one in twelve where the beam takes the slot.
+   * Four and three are coprime on purpose: at four and six they would share every
+   * twelfth attack, and since the beam wins the tie, half the rams would never
+   * happen at all.
+   */
+  it('brings the ram round on its own period', () => {
+    const rams = Array.from({ length: 40 }, (_unused, index) => index)
+      .filter((index) => attackAt(1, index) === 'ram');
+
+    expect(rams).toEqual([2, 5, 8, 14, 17, 20, 26, 29, 32, 38]);
+  });
+
+  /*
+   * Half the slots are a committed attack now, which is the point of raising the
+   * ram's frequency: the fight alternates between "dodge this" and "shoot back"
+   * rather than being mostly the second.
+   */
+  it('puts a committed attack in about half the slots', () => {
+    const committed = Array.from({ length: 48 }, (_unused, index) => attackAt(1, index))
+      .filter((attack) => COMMITTED.includes(attack));
+
+    expect(committed.length / 48).toBeGreaterThan(0.4);
+    expect(committed.length / 48).toBeLessThan(0.6);
   });
 
   /*

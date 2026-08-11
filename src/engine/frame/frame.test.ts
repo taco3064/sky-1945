@@ -22,8 +22,9 @@ function stubParts(hits: Hit[] = [], overrides: Partial<FrameParts> = {}): Frame
       point: vi.fn(),
       advance: vi.fn(() => []),
       roll: vi.fn(() => true),
-      snapshot: vi.fn(() => ({ rolling: false, invulnerable: false })),
+      snapshot: vi.fn(() => ({ rolling: false, invulnerable: false, ready: true })),
       isVulnerable: vi.fn(() => true),
+      isArriving: vi.fn(() => false),
       kill: vi.fn(() => ({ x: 100, y: 200 })),
     },
     bullets: {

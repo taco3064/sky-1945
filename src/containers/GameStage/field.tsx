@@ -51,6 +51,7 @@ function draw(entity: EntityRecord, combat: CombatSnapshot, boss: BossSnapshot |
         id={entity.id}
         rolling={combat.rolling}
         invulnerable={combat.invulnerable}
+        ready={combat.ready}
       />
     );
   }
@@ -72,6 +73,7 @@ function draw(entity: EntityRecord, combat: CombatSnapshot, boss: BossSnapshot |
         id={entity.id}
         pose={(boss?.stance ?? 'entering') as BossPose}
         move={boss?.attack as BossMove | undefined}
+        size={boss?.scale}
       />
     );
   }
@@ -145,6 +147,7 @@ export function Field({ world, phase, onPause, onQuit, onGameOver }: FieldProps)
               hp={boss.hp}
               maxHp={boss.maxHp}
               aiming={boss.stance === 'winding' && boss.attack === 'beam'}
+              shielded={boss.stance === 'entering'}
             />
           )}
 

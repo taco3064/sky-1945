@@ -253,6 +253,19 @@ function openTransform(frames: FrameChannel, latest: Latest) {
   };
 }
 
+/**
+ * Whether two combat snapshots say the same thing.
+ *
+ * Field by field rather than by reference: the pilot builds a fresh object every
+ * frame, so reference equality would publish sixty times a second, and the whole
+ * point of the gate is that this channel fires on change.
+ */
+function sameCombat(a: CombatSnapshot, b: CombatSnapshot): boolean {
+  return a.rolling === b.rolling
+    && a.invulnerable === b.invulnerable
+    && a.ready === b.ready;
+}
+
 function transformOf(body: Body): Transform {
   return {
     x: body.position.x,
@@ -292,7 +305,20 @@ export function createWorld(options: WorldOptions): World {
   const loop = { frame: null as number | null, previous: 0 };
   const latest: Latest = new Map();
 
-  let wasRolling = false;
+  /*
+   * The last combat state published, not just the last `rolling` flag.
+   *
+   * It was `wasRolling`, and that was a real bug rather than a simplification: the
+   * gate below only fired when *rolling* changed, so the end of a respawn's
+   * protection was never announced. React kept the state it was handed on the
+   * entrance and the aircraft blinked for the whole run. Reported as exactly that.
+   *
+   * The roll's own protection hid it — rolling and invulnerable start and stop
+   * together, so as long as protection only ever came from a roll, watching one flag
+   * looked equivalent to watching all of them. Respawn protection outlives the roll,
+   * and a recovery window (added in this branch) outlives both.
+   */
+  let published: CombatSnapshot = { rolling: false, invulnerable: false, ready: true };
   let lives = STARTING_LIVES;
 
   /**
@@ -327,8 +353,8 @@ export function createWorld(options: WorldOptions): World {
       channels.roster.send(rosterOf(parts));
     }
 
-    if (combat.rolling !== wasRolling) {
-      wasRolling = combat.rolling;
+    if (!sameCombat(combat, published)) {
+      published = combat;
       channels.combat.send(combat);
     }
 
@@ -426,7 +452,7 @@ export function createWorld(options: WorldOptions): World {
 
       const combat = parts.pilot.snapshot();
 
-      wasRolling = combat.rolling;
+      published = combat;
       channels.combat.send(combat);
     },
   };

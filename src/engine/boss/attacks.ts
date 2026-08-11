@@ -10,8 +10,8 @@
 
 import type { PatternKind } from '../patterns';
 
-/** The boss's four moves: the three the trash mobs use, plus its own. */
-export type BossAttack = PatternKind | 'beam';
+/** The boss's moves: the three shapes the trash mobs use, plus two of its own. */
+export type BossAttack = PatternKind | 'beam' | 'ram';
 
 /**
  * What the boss is doing right now.
@@ -23,8 +23,15 @@ export type BossAttack = PatternKind | 'beam';
  */
 export type BossStance = 'entering' | 'winding' | 'firing' | 'recovering';
 
-/** How long the boss rests between attacks, whichever attack it was. */
-export const RECOVER_SECONDS = 0.7;
+/**
+ * How long the boss rests between attacks, whichever attack it was.
+ *
+ * Shortened from 0.7 on play feedback: the fight read as a sequence of exchanges
+ * with gaps, rather than as sustained pressure. This is the right lever for that —
+ * the wind-ups are *tells* and shortening those would buy density by making the
+ * fight less fair, where the rest between attacks buys nothing for the player.
+ */
+export const RECOVER_SECONDS = 0.4;
 
 interface AttackShape {
   /** Seconds of tell before anything leaves the boss. */
@@ -47,15 +54,31 @@ interface AttackShape {
  * is the number that makes the fight fair rather than the one that makes it
  * easy: it has to be long enough to see, recognise, and answer with a roll.
  */
+/*
+ * The five attacks, timed so each one asks a different question.
+ *
+ * Cadences and durations were both raised on play feedback — the boss was not
+ * putting enough in the air. Every wind-up is untouched: those are the tells, and
+ * they are what the fight's fairness rests on. Density comes from firing longer
+ * and faster once the tell is over, which costs the player nothing they were not
+ * already warned about.
+ *
+ * What that works out to per attack: `straight` goes from nine shots to about
+ * nineteen, `spread` from two fans to five, and `radial` from two rings to four.
+ */
 const SHAPES: Record<BossAttack, AttackShape> = {
-  straight: { windUp: 0.45, duration: 1.2, cadence: 0.14 },
-  spread: { windUp: 0.6, duration: 1, cadence: 0.5 },
-  radial: { windUp: 0.7, duration: 0.9, cadence: 0.45 },
+  straight: { windUp: 0.45, duration: 1.5, cadence: 0.08 },
+  spread: { windUp: 0.6, duration: 1.4, cadence: 0.25 },
+  radial: { windUp: 0.7, duration: 1.2, cadence: 0.28 },
   beam: { windUp: 1.4, duration: 1.1, cadence: 0 },
+  // The ram fires nothing: the boss itself is the projectile. Its tell is long
+  // because the answer is to be somewhere else, and moving takes longer than
+  // flinching.
+  ram: { windUp: 1, duration: 1.3, cadence: 0 },
 };
 
 /** Every attack the boss has, in one place so a test can sweep them. */
-export const ALL_ATTACKS: BossAttack[] = ['straight', 'spread', 'radial', 'beam'];
+export const ALL_ATTACKS: BossAttack[] = ['straight', 'spread', 'radial', 'beam', 'ram'];
 
 /** Seconds of tell this attack opens with. */
 export function windUpOf(attack: BossAttack): number {
@@ -77,11 +100,28 @@ export function cycleOf(attack: BossAttack): number {
   return windUpOf(attack) + durationOf(attack) + RECOVER_SECONDS;
 }
 
-/** Every attack the boss cycles through freely. The beam is scheduled. */
+/** Every attack the boss cycles through freely. The two big ones are scheduled. */
 const SHAPED: PatternKind[] = ['straight', 'spread', 'radial'];
 
-/** How often the beam comes: every fourth attack. */
+/**
+ * How often the two committed attacks come round.
+ *
+ * Both are scheduled rather than drawn, on **coprime** periods — four and three.
+ * Coprime is the requirement rather than the aesthetic: at four and six they would
+ * share every twelfth attack, and since the beam wins that tie, half the rams
+ * would simply never happen.
+ *
+ * The ram was every fifth and is now every third, on play feedback that it did not
+ * come round often enough. Together with the beam that puts a committed attack in
+ * one slot out of two, and the three shapes in the other — the fight alternates
+ * between "dodge this" and "shoot back", rather than being mostly the second.
+ *
+ * The beam wins the collision because the ram is a position problem and the beam is
+ * a timing one: a player already dodging a column has somewhere to be, where both
+ * at once would leave nowhere.
+ */
 const BEAM_EVERY = 4;
+const RAM_EVERY = 3;
 
 /**
  * A 32-bit integer hash of the round and the attack's index.
@@ -122,6 +162,10 @@ function mix(round: number, index: number): number {
 export function attackAt(round: number, index: number): BossAttack {
   if ((index + 1) % BEAM_EVERY === 0) {
     return 'beam';
+  }
+
+  if ((index + 1) % RAM_EVERY === 0) {
+    return 'ram';
   }
 
   return SHAPED[mix(round, index) % SHAPED.length];

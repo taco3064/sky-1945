@@ -3,15 +3,44 @@ import type { RefObject } from 'react';
 
 import type { World } from '~app/engine/world';
 
-/** The stick's outer ring, in screen pixels. */
-const STICK_RADIUS = 56;
+/**
+ * The filled knob's radius, in screen pixels. Mirrors the TouchStick's CSS.
+ *
+ * Two places, deliberately: `components` cannot import from `hooks`, so the
+ * drawing and the gesture cannot share a constant. What keeps them honest is that
+ * the ring's radius is knob + throw, so a mismatch is immediately visible — the
+ * knob either escapes the ring or never reaches it.
+ */
+const KNOB_RADIUS = 22;
 
-/** Inside this fraction of the ring, a resting thumb is not a direction. */
-const DEADZONE = 0.15;
+/**
+ * The ring's radius, which is also the whole throw.
+ *
+ * Reported twice from play on a phone: turning the aircraft took a large,
+ * deliberate thumb movement, which is the wrong shape of effort for a game where
+ * the answer to a bullet is a twitch. The first attempt shortened the throw but
+ * left the ring at its old size, which fixed the effort and not the picture.
+ *
+ * So the ring shrank to 1.2 knob radii, and the knob's *centre* travels to its
+ * edge — meaning most of the dot sits outside the ring at full deflection. That is
+ * the intent rather than an overflow: the ring is a gate the thumb presses against,
+ * not a cup the dot rattles inside. Full deflection is now 26px of thumb, down
+ * from 56.
+ */
+const RING_RADIUS = Math.round(KNOB_RADIUS * 1.2);
 
-/** A press shorter than this, that barely moved, was a tap. */
+/**
+ * How far a thumb may wander before it counts as a direction, in pixels.
+ *
+ * Absolute rather than a fraction of the throw. It answers to the hand — how still
+ * a thumb rests, and how much a screen jitters — not to how far the stick happens
+ * to travel. Kept as a fraction it would have shrunk along with the throw above,
+ * and five pixels of a 26px throw is already a fifth of it.
+ */
+const DEADZONE_PX = 5;
+
+/** A press shorter than this, that stayed inside the deadzone, was a tap. */
 const TAP_MS = 200;
-const TAP_SLOP = 12;
 
 interface Origin {
   pointerId: number;
@@ -26,7 +55,7 @@ function bindPointer(surface: HTMLElement, stick: HTMLElement, world: World): ()
 
   const paint = (dx: number, dy: number, shown: boolean): void => {
     const distance = Math.hypot(dx, dy);
-    const capped = distance > STICK_RADIUS ? STICK_RADIUS / distance : 1;
+    const capped = distance > RING_RADIUS ? RING_RADIUS / distance : 1;
 
     stick.style.setProperty('--knob-x', `${dx * capped}px`);
     stick.style.setProperty('--knob-y', `${dy * capped}px`);
@@ -67,7 +96,7 @@ function bindPointer(surface: HTMLElement, stick: HTMLElement, world: World): ()
     origin.moved = Math.max(origin.moved, distance);
     paint(dx, dy, true);
 
-    if (distance < STICK_RADIUS * DEADZONE) {
+    if (distance < DEADZONE_PX) {
       world.setPlayerDirection(0, 0);
 
       return;
@@ -81,9 +110,16 @@ function bindPointer(surface: HTMLElement, stick: HTMLElement, world: World): ()
       return;
     }
 
-    // A press that was brief and barely moved was a tap, not a steer — the
-    // one-handed way to roll.
-    if (event.timeStamp - origin.at < TAP_MS && origin.moved < TAP_SLOP) {
+    /*
+     * A press that was brief and never left the deadzone was a tap, not a steer —
+     * the one-handed way to roll.
+     *
+     * Measured against the deadzone rather than a slop of its own. There used to be
+     * a separate 12px threshold, which was two numbers for one idea: a movement too
+     * small to be a direction is exactly a movement small enough to be a tap. One
+     * constant cannot disagree with itself.
+     */
+    if (event.timeStamp - origin.at < TAP_MS && origin.moved < DEADZONE_PX) {
       world.roll();
     }
 
