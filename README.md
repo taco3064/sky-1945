@@ -1,5 +1,7 @@
 # sky-1945
 
+![SKY-1945](public/logo.webp)
+
 A vertical bullet-hell shooter with no canvas. Every aircraft, bullet and
 explosion is a `div`, moved by a physics engine that is only allowed to answer one
 question.
