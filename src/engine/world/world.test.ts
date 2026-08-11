@@ -579,17 +579,20 @@ describe('createWorld · lives', () => {
    * Standing still is now the reliable way to die: the aircraft respawns in the
    * centre of the lower field, and both the waves and the boss fire down it.
    */
-  it('spends a life on contact, and ends the run when they are gone', { timeout: 30_000 }, () => {
-    world = createWorld({ speedMultiplier: 3, powerMultiplier: 1 });
+  it(
+    'spends a life on contact, and ends the run when they are gone',
+    { timeout: 30_000 },
+    () => {
+      world = createWorld({ speedMultiplier: 3, powerMultiplier: 1 });
 
-    const onLives = vi.fn();
-    const onGameOver = vi.fn();
+      const onLives = vi.fn();
+      const onGameOver = vi.fn();
 
-    world.subscribeLives(onLives);
-    world.subscribeGameOver(onGameOver);
-    world.start();
+      world.subscribeLives(onLives);
+      world.subscribeGameOver(onGameOver);
+      world.start();
 
-    /*
+      /*
      * Two and a half minutes of simulated time, measured rather than reasoned: 45
      * seconds spent exactly one life, 150 spends all three.
      *
@@ -603,15 +606,15 @@ describe('createWorld · lives', () => {
      * comfortably past vitest's 5s default on a shared CI runner — where it failed,
      * after merging, because nothing had run the suite on the pull request.
      */
-    runFrames(150_000);
+      runFrames(150_000);
 
-    const spent = onLives.mock.calls.map(([remaining]) => remaining as number);
+      const spent = onLives.mock.calls.map(([remaining]) => remaining as number);
 
-    expect(spent).toContain(STARTING_LIVES - 1);
-    expect(spent.at(-1)).toBe(0);
-    expect(onGameOver).toHaveBeenCalledOnce();
+      expect(spent).toContain(STARTING_LIVES - 1);
+      expect(spent.at(-1)).toBe(0);
+      expect(onGameOver).toHaveBeenCalledOnce();
 
-    /*
+      /*
      * The run is over, and the engine still has to hold the line on its own.
      *
      * Whoever is watching stops the world when it hears about the game ending,
@@ -622,13 +625,13 @@ describe('createWorld · lives', () => {
      * It is standing in the lower field with fire coming down at it, so all this
      * has to do is let more of it arrive.
      */
-    runFrames(12_000);
+      runFrames(12_000);
 
-    const after = onLives.mock.calls.map(([remaining]) => remaining as number);
+      const after = onLives.mock.calls.map(([remaining]) => remaining as number);
 
-    expect(Math.min(...after)).toBe(0);
-    expect(onGameOver).toHaveBeenCalledOnce();
-  });
+      expect(Math.min(...after)).toBe(0);
+      expect(onGameOver).toHaveBeenCalledOnce();
+    });
 });
 
 describe('createWorld · a fresh aircraft does not inherit the last one', () => {
