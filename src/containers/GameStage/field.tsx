@@ -10,6 +10,7 @@ import type { EnemyVariant } from '~app/components/Enemy';
 import { Fighter } from '~app/components/Fighter';
 import { HealthBar } from '~app/components/HealthBar';
 import { LifeIcon } from '~app/components/LifeIcon';
+import { SpeedLines } from '~app/components/SpeedLines';
 import { TouchStick } from '~app/components/TouchStick';
 import { GameProvider } from '~app/contexts/GameContext';
 import type { BossSnapshot } from '~app/engine/boss';
@@ -98,6 +99,8 @@ export type StagePhase = 'playing' | 'paused' | 'gameover';
 export interface FieldProps {
   /** A world that is already built and is this component's for its lifetime. */
   world: World;
+  /** How fast the speed lines travel — the loadout's speed boost, 1–3. */
+  pace: number;
   phase: StagePhase;
   onPause: () => void;
   onQuit: () => void;
@@ -111,7 +114,7 @@ export interface FieldProps {
  * than a `World | null` — the stage cannot create one during render (see the
  * note there), so something has to exist that only mounts once there is one.
  */
-export function Field({ world, phase, onPause, onQuit, onGameOver }: FieldProps) {
+export function Field({ world, pace, phase, onPause, onQuit, onGameOver }: FieldProps) {
   const viewport = useStageScale();
   const { surface, stick } = usePlayerInput(world, onPause);
   const entities = useEntityRoster(world);
@@ -132,6 +135,10 @@ export function Field({ world, phase, onPause, onQuit, onGameOver }: FieldProps)
     <GameProvider world={world}>
       <div ref={viewport} className={styles.viewport}>
         <div className={styles.field}>
+          {/* Under everything, and the only thing on the field that is not an
+              entity — it belongs to the stage rather than to the simulation. */}
+          <SpeedLines pace={pace} />
+
           {entities.map((entity) => draw(entity, combat, boss))}
         </div>
 
