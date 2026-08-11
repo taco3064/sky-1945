@@ -1,12 +1,14 @@
 export {
   RESPAWN_INVULNERABILITY,
-  STARTING_LIVES,
+  ROLL_COOLDOWN,
   ROLL_DURATION,
+  STARTING_LIVES,
   canFire,
   canRoll,
   createCombat,
   grantInvulnerability,
   isInvulnerable,
+  isReady,
   isRolling,
   startRoll,
 } from './combat';

@@ -10,6 +10,25 @@
 export const ROLL_DURATION = 1.2;
 
 /**
+ * How long after a roll ends before another may start.
+ *
+ * There was none, and the comment where `canRoll` lives used to argue that the
+ * absence was the design: the cost of rolling was that the guns fall silent, so
+ * rolling forever meant killing nothing and clearing no rounds.
+ *
+ * That argument had a hole, and I walked through it — every browser check of the
+ * boss fight in this session used a script that re-pressed the roll key every
+ * 150ms, and it survived indefinitely. A player who is not trying to *win* a
+ * particular exchange pays nothing for permanent invulnerability, and "you will
+ * make no progress" is not a cost during the thirty seconds they need to not die.
+ *
+ * So the limit moves from inside the mechanic to beside it. Equal to the roll's own
+ * length, which makes the rule easy to hold: half the time you may roll, half the
+ * time you may not.
+ */
+export const ROLL_COOLDOWN = 1.2;
+
+/**
  * How many aircraft a run gets.
  *
  * Lives are not HP. HP belongs to an entity and dies with it; lives belong to
@@ -20,17 +39,24 @@ export const ROLL_DURATION = 1.2;
 export const STARTING_LIVES = 3;
 
 /**
- * How long a fresh aircraft cannot be hit.
+ * How long a fresh aircraft cannot be hit, entrance included.
  *
  * Not optional. Without it, respawning into live fire burns all three lives in
  * about three seconds and the run ends before the player touches a key.
+ *
+ * It covers the flight in from below *and* a moment at station afterwards, which
+ * is why it is three seconds rather than the 1.5 it started at: the entrance
+ * spends part of the window, and a player who lands with no protection left has
+ * been given an animation instead of a chance.
  */
-export const RESPAWN_INVULNERABILITY = 1.5;
+export const RESPAWN_INVULNERABILITY = 3;
 
 /** What the aircraft is doing, as opposed to where it is. */
 export interface CombatSnapshot {
   rolling: boolean;
   invulnerable: boolean;
+  /** False during the recovery after a roll, when another is refused. */
+  ready: boolean;
 }
 
 export interface Combat {
@@ -52,11 +78,19 @@ export interface Combat {
    * is why the roll is not simply a second invulnerability flag.
    */
   rollingUntil: number;
+  /**
+   * Time until which a new roll is refused.
+   *
+   * Always `rollingUntil + ROLL_COOLDOWN`, which is why `canRoll` needs no second
+   * check: a time that has not reached this has not reached the end of the roll
+   * either.
+   */
+  readyAt: number;
 }
 
-/** Nothing running, nothing protecting. */
+/** Nothing running, nothing protecting, and free to roll. */
 export function createCombat(): Combat {
-  return { invulnerableUntil: 0, rollingUntil: 0 };
+  return { invulnerableUntil: 0, rollingUntil: 0, readyAt: 0 };
 }
 
 export function isInvulnerable(combat: Combat, now: number): boolean {
@@ -67,17 +101,19 @@ export function isRolling(combat: Combat, now: number): boolean {
   return now < combat.rollingUntil;
 }
 
+/** True during the recovery after a roll, when another is refused. */
+export function isReady(combat: Combat, now: number): boolean {
+  return now >= combat.readyAt;
+}
+
 /**
- * A roll may start whenever one is not already running.
+ * A roll may start once the last one has finished recovering.
  *
- * There is no cooldown, and that is the design rather than an omission: the
- * cost of rolling is that the guns are silent for its duration. Rolling
- * forever is legal and means never killing anything — waves never clear, the
- * boss never falls. The limit is inside the mechanic instead of bolted beside
- * it, so there is no charge meter for the player to track or the HUD to draw.
+ * One comparison rather than two: `readyAt` is always past `rollingUntil`, so a
+ * time that has not reached it has not reached the end of the roll either.
  */
 export function canRoll(combat: Combat, now: number): boolean {
-  return !isRolling(combat, now);
+  return isReady(combat, now);
 }
 
 /**
@@ -95,6 +131,7 @@ export function startRoll(combat: Combat, now: number): Combat {
 
   return {
     rollingUntil: until,
+    readyAt: until + ROLL_COOLDOWN,
     // The later of the two. Rolling while already protected must not cut the
     // protection short.
     invulnerableUntil: Math.max(combat.invulnerableUntil, until),
@@ -122,6 +159,7 @@ export function grantInvulnerability(
 ): Combat {
   return {
     rollingUntil: combat.rollingUntil,
+    readyAt: combat.readyAt,
     invulnerableUntil: Math.max(combat.invulnerableUntil, now + duration),
   };
 }

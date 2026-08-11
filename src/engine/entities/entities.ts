@@ -38,8 +38,20 @@ export const PLAYER_BASE_SPEED = 300;
  */
 export const PLAYER_BOUNDS_INSET = 24;
 
-/** Where the player starts, measured up from the bottom edge. */
+/** Where the player flies to and holds station, measured up from the bottom. */
 export const PLAYER_START_INSET = 160;
+
+/**
+ * Where the aircraft comes in from, below the bottom edge.
+ *
+ * Far enough out to be fully off screen: the entrance should look like a craft
+ * arriving from somewhere, not like one fading in at the edge of the field.
+ */
+export const PLAYER_ENTRY_INSET = -60;
+
+/** How fast it flies in. Brisker than the player's own speed — it is a cue, not
+ *  a stretch of gameplay, and the run is on hold until it lands. */
+export const PLAYER_ENTRY_SPEED = 620;
 
 /**
  * The player's body.
@@ -85,8 +97,21 @@ export const ENEMY_BULLET_SPEED = 260;
  */
 export const ENEMY_BULLET_LEAD = 1.5;
 
-/** Damage before the loadout's power multiplier. */
-export const BULLET_BASE_DAMAGE = 10;
+/**
+ * Damage before the loadout's power multiplier.
+ *
+ * Cut to 75% of what it was when the aircraft grew a second cannon, and the
+ * interesting part is that this does *not* simply scale output by 1.5. What it
+ * lands on depends on how wide the target is:
+ *
+ * - The boss is wide enough for both trails to connect, so it takes about 1.5x.
+ * - A small craft is narrower than the gap between the cannons, so most of the
+ *   time only one trail reaches it — and it takes 0.75x.
+ *
+ * Which is the right way round for two wing guns, and it happened by arithmetic
+ * rather than by a table of per-enemy modifiers.
+ */
+export const BULLET_BASE_DAMAGE = 7.5;
 
 /**
  * Seconds between the player's shots.
@@ -100,6 +125,19 @@ export const PLAYER_FIRE_INTERVAL = 0.1;
 
 /** How far ahead of the player's centre a shot appears. */
 export const PLAYER_MUZZLE_OFFSET = 26;
+
+/**
+ * How far either side of centre the two cannons sit.
+ *
+ * There are two of them, one per wing, and they fire parallel rather than
+ * converging — a spread would make the aircraft's own width the thing that
+ * decides whether a shot lands, which is not a decision the player can make.
+ *
+ * Sized to the Fighter's wing, so the trails leave the drawing where a gun is
+ * drawn. It is one of the few numbers in here that answers to the art rather
+ * than to the simulation.
+ */
+export const PLAYER_WING_SPAN = 13;
 
 /** What a bullet carries beyond its position. */
 interface BulletPayload {
@@ -271,7 +309,12 @@ export const BOSS_STATS = {
   radius: 52,
   /** Hit points in round 1. `../boss` scales this with the round. */
   hp: 900,
-  /** World units per second, both entering and patrolling. */
+  /**
+   * World units per second while patrolling.
+   *
+   * The flight in uses `BOSS_ENTRY_SPEED` instead, which is faster: the entrance
+   * is a cue, not a phase of the fight.
+   */
   speed: 90,
   /** Damage per bullet at 100%. */
   damage: 14,
@@ -279,6 +322,20 @@ export const BOSS_STATS = {
 
 /** The altitude it settles at: high enough to leave the player room to work. */
 export const BOSS_ALTITUDE = 150;
+
+/**
+ * How fast the boss flies in.
+ *
+ * Deliberately quick. It used to arrive at its patrol speed, which took over two
+ * seconds during which it could not move, could not fire, and *could* be shot —
+ * at full loadout power that was half its health gone before the fight began.
+ * Reported from play as being handed a free target.
+ *
+ * The arrival is also invulnerable now (`../boss` refuses damage while entering),
+ * and those two changes answer the same complaint from both ends: less time, and
+ * nothing gained by spending it shooting.
+ */
+export const BOSS_ENTRY_SPEED = 420;
 
 /**
  * The beam's footprint.

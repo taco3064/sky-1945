@@ -27,6 +27,14 @@ export interface FighterProps {
    * while protected teaches the wrong lesson about what is survivable.
    */
   invulnerable?: boolean;
+  /**
+   * False while the roll is recovering and another would be refused.
+   *
+   * Drawn on the thrust, because a player who presses the key and sees nothing
+   * happen has been told the game is broken. The engine refuses the roll either
+   * way; this is the difference between a rule and a bug.
+   */
+  ready?: boolean;
 }
 
 /**
@@ -38,7 +46,12 @@ export interface FighterProps {
  * Both writing `transform` on the same element would overwrite each other
  * sixty times a second.
  */
-export function Fighter({ id, rolling = false, invulnerable = false }: FighterProps) {
+export function Fighter({
+  id,
+  rolling = false,
+  invulnerable = false,
+  ready = true,
+}: FighterProps) {
   const ref = useEntityTransform(id);
 
   return (
@@ -50,7 +63,7 @@ export function Fighter({ id, rolling = false, invulnerable = false }: FighterPr
           invulnerable ? styles.invulnerable : '',
         ].join(' ')}
       >
-        <div className={styles.thrust} />
+        <div className={`${styles.thrust} ${ready ? '' : styles.spent}`} />
         <div className={styles.wing} />
         <div className={`${styles.fin} ${styles.finLeft}`} />
         <div className={`${styles.fin} ${styles.finRight}`} />

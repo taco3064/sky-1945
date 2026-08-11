@@ -53,17 +53,17 @@ describe('usePlayerCombat', () => {
     const { world } = drivenWorld();
     const { result } = renderHook(() => usePlayerCombat(world));
 
-    expect(result.current).toEqual({ rolling: false, invulnerable: false });
+    expect(result.current).toEqual({ rolling: false, invulnerable: false, ready: true });
   });
 
   it('reports a roll starting and ending', () => {
     const { world, send } = drivenWorld();
     const { result } = renderHook(() => usePlayerCombat(world));
 
-    send({ rolling: true, invulnerable: true });
+    send({ rolling: true, invulnerable: true, ready: false });
     expect(result.current.rolling).toBe(true);
 
-    send({ rolling: false, invulnerable: false });
+    send({ rolling: false, invulnerable: false, ready: true });
     expect(result.current.rolling).toBe(false);
   });
 
@@ -73,9 +73,9 @@ describe('usePlayerCombat', () => {
     const { world, send } = drivenWorld();
     const { result } = renderHook(() => usePlayerCombat(world));
 
-    send({ rolling: false, invulnerable: true });
+    send({ rolling: false, invulnerable: true, ready: true });
 
-    expect(result.current).toEqual({ rolling: false, invulnerable: true });
+    expect(result.current).toEqual({ rolling: false, invulnerable: true, ready: true });
   });
 
   it('unsubscribes on unmount', () => {
