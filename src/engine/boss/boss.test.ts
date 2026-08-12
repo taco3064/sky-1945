@@ -15,6 +15,13 @@ import { FIELD_HEIGHT, FIELD_WIDTH, isOutside } from '../field';
 import type { BulletSpawn } from '../patterns';
 import type { BossField, BossSnapshot } from './types';
 
+/*
+ * One fixed fight, so these read the same attack order every run. Slot zero is a
+ * shape, which the wind-up cases below need: a beam or a ram ends its tell
+ * without a bullet leaving. Rolled fights are #44's point and are swept there.
+ */
+const SEED = 25;
+
 /** Even power, and a player sitting in the middle of the field. */
 const FULL_POWER = { power: 1, playerX: FIELD_WIDTH / 2 };
 
@@ -99,7 +106,7 @@ describe('summon', () => {
   });
 
   it('puts one body in the physics world', () => {
-    boss.summon(1, 1);
+    boss.summon(1, 1, SEED);
 
     expect(boss.present()).toBe(true);
     expect(boss.bodies()).toHaveLength(1);
@@ -107,7 +114,7 @@ describe('summon', () => {
   });
 
   it('gives it the round’s hit points', () => {
-    boss.summon(5, 1);
+    boss.summon(5, 1, SEED);
 
     expect(boss.snapshot()?.maxHp).toBe(bossHpFor(5, 1));
     expect(boss.snapshot()?.hp).toBe(bossHpFor(5, 1));
@@ -116,11 +123,11 @@ describe('summon', () => {
   // The frame asks every pass of every frame; the second one must not restart
   // the fight or add a second body.
   it('is a no-op the second time', () => {
-    boss.summon(1, 1);
+    boss.summon(1, 1, SEED);
 
     const first = boss.snapshot()?.id;
 
-    boss.summon(9, 1);
+    boss.summon(9, 1, SEED);
 
     expect(boss.snapshot()?.id).toBe(first);
     expect(boss.snapshot()?.maxHp).toBe(bossHpFor(1, 1));
@@ -128,7 +135,7 @@ describe('summon', () => {
   });
 
   it('reports itself as a boss on the roster', () => {
-    boss.summon(1, 1);
+    boss.summon(1, 1, SEED);
 
     expect(boss.records()).toEqual([{ id: boss.snapshot()?.id, kind: 'boss' }]);
   });
@@ -143,7 +150,7 @@ describe('advance · with no boss', () => {
 
 describe('advance · entering', () => {
   beforeEach(() => {
-    boss.summon(1, 1);
+    boss.summon(1, 1, SEED);
   });
 
   it('names no attack while it is still on its way in', () => {
@@ -267,7 +274,7 @@ describe('advance · entering', () => {
 
 describe('advance · patrolling', () => {
   beforeEach(() => {
-    boss.summon(1, 1);
+    boss.summon(1, 1, SEED);
     land();
   });
 
@@ -298,7 +305,7 @@ describe('advance · patrolling', () => {
 
 describe('advance · the tell', () => {
   beforeEach(() => {
-    boss.summon(1, 1);
+    boss.summon(1, 1, SEED);
     land();
   });
 
@@ -313,7 +320,7 @@ describe('advance · the tell', () => {
   // The first volley is never held back for a cadence. Otherwise the tell ends
   // and nothing happens for up to half a second, which reads as a lie.
   it('fires on the very frame the wind-up ends', () => {
-    const attack = attackAt(1, 0);
+    const attack = attackAt(SEED, 0);
 
     while (boss.snapshot()?.stance === 'winding') {
       boss.advance(1 / 60, FULL_POWER);
@@ -321,20 +328,21 @@ describe('advance · the tell', () => {
 
     expect(boss.snapshot()?.stance).toBe('firing');
     expect(boss.advance(1 / 60, FULL_POWER).shots.length).toBeGreaterThan(0);
-    expect(attack).not.toBe('beam');
+    // Restated where it bites: neither committed attack ends its tell in bullets.
+    expect(['beam', 'ram']).not.toContain(attack);
   });
 
   it('announces what it is about to do, so the tell carries information', () => {
     const winding = boss.snapshot() as BossSnapshot;
 
     expect(winding.stance).toBe('winding');
-    expect(winding.attack).toBe(attackAt(1, 0));
+    expect(winding.attack).toBe(attackAt(SEED, 0));
   });
 });
 
 describe('advance · firing bullets', () => {
   beforeEach(() => {
-    boss.summon(1, 1);
+    boss.summon(1, 1, SEED);
     land();
   });
 
@@ -400,7 +408,7 @@ describe('advance · firing bullets', () => {
 
 describe('advance · the beam', () => {
   beforeEach(() => {
-    boss.summon(1, 1);
+    boss.summon(1, 1, SEED);
     land();
   });
 
@@ -495,7 +503,7 @@ describe('damage', () => {
   });
 
   it('subtracts hit points without killing', () => {
-    boss.summon(1, 1);
+    boss.summon(1, 1, SEED);
     land();
 
     expect(boss.damage(50)).toBeNull();
@@ -503,7 +511,7 @@ describe('damage', () => {
   });
 
   it('owns its own body and nothing else', () => {
-    boss.summon(1, 1);
+    boss.summon(1, 1, SEED);
 
     const id = boss.snapshot()?.id as number;
 
@@ -512,7 +520,7 @@ describe('damage', () => {
   });
 
   it('returns the wreck where it fell, and leaves the field', () => {
-    boss.summon(1, 1);
+    boss.summon(1, 1, SEED);
     land();
 
     const at = { ...boss.bodies()[0].position };
@@ -528,7 +536,7 @@ describe('damage', () => {
   // The killing shot takes the pool negative, and the bar is published from the
   // same frame that reports the death.
   it('never publishes a negative bar', () => {
-    boss.summon(1, 1);
+    boss.summon(1, 1, SEED);
     land();
     boss.damage(bossHpFor(1, 1) - 1);
 
@@ -540,7 +548,7 @@ describe('damage', () => {
   });
 
   it('takes the beam with it when it dies mid-attack', () => {
-    boss.summon(1, 1);
+    boss.summon(1, 1, SEED);
     land();
     runUntilFiring('beam');
     boss.advance(1 / 60, FULL_POWER);
@@ -553,7 +561,7 @@ describe('damage', () => {
   });
 
   it('stops owning its id the moment it dies', () => {
-    boss.summon(1, 1);
+    boss.summon(1, 1, SEED);
     land();
 
     const id = boss.snapshot()?.id as number;
@@ -566,7 +574,7 @@ describe('damage', () => {
 
 describe('clear', () => {
   it('removes the boss and its beam', () => {
-    boss.summon(1, 1);
+    boss.summon(1, 1, SEED);
     land();
     runUntilFiring('beam');
     boss.advance(1 / 60, FULL_POWER);
@@ -582,9 +590,9 @@ describe('clear', () => {
   });
 
   it('lets the next round summon a fresh one', () => {
-    boss.summon(1, 1);
+    boss.summon(1, 1, SEED);
     boss.clear();
-    boss.summon(3, 1);
+    boss.summon(3, 1, SEED);
 
     expect(boss.snapshot()?.maxHp).toBe(bossHpFor(3, 1));
   });
@@ -607,7 +615,7 @@ describe('advance · the ram', () => {
   }
 
   beforeEach(() => {
-    boss.summon(1, 1);
+    boss.summon(1, 1, SEED);
     land();
   });
 
@@ -709,7 +717,7 @@ describe('advance · the ram', () => {
 
 describe('summon · the rolled body size', () => {
   it('takes the size it is given', () => {
-    boss.summon(1, 1.8);
+    boss.summon(1, 1.8, SEED);
 
     expect(boss.bodies()[0].circleRadius).toBeCloseTo(BOSS_STATS.radius * 1.8, 5);
   });
@@ -733,8 +741,8 @@ describe('summon · the rolled body size', () => {
     const small = createBossField(Engine.create({ gravity: { x: 0, y: 0 } }));
     const large = createBossField(Engine.create({ gravity: { x: 0, y: 0 } }));
 
-    small.summon(1, BOSS_SCALE_MIN);
-    large.summon(1, BOSS_SCALE_MAX);
+    small.summon(1, BOSS_SCALE_MIN, SEED);
+    large.summon(1, BOSS_SCALE_MAX, SEED);
 
     for (const one of [small, large]) {
       while (one.snapshot()?.stance === 'entering') {
@@ -760,7 +768,7 @@ describe('summon · the rolled body size', () => {
     const shotsFrom = (scale: number): number => {
       const one = createBossField(Engine.create({ gravity: { x: 0, y: 0 } }));
 
-      one.summon(1, scale);
+      one.summon(1, scale, SEED);
 
       let shots = 0;
 
@@ -783,7 +791,7 @@ describe('advance · the ram reaches the bottom', () => {
    * whatever the patrol was doing.
    */
   it('carries the boss past the player station', () => {
-    boss.summon(1, 1);
+    boss.summon(1, 1, SEED);
     land();
 
     let deepest = 0;
@@ -797,7 +805,7 @@ describe('advance · the ram reaches the bottom', () => {
   });
 
   it('keeps its centre on the field even at the bottom of a dive', () => {
-    boss.summon(1, BOSS_SCALE_MAX);
+    boss.summon(1, BOSS_SCALE_MAX, SEED);
     land();
 
     for (let step = 0; step < 9000; step += 1) {
@@ -815,7 +823,7 @@ describe('advance · where the shots leave from', () => {
   function volleyOf(attack: string, scale: number) {
     const one = createBossField(Engine.create({ gravity: { x: 0, y: 0 } }));
 
-    one.summon(1, scale);
+    one.summon(1, scale, SEED);
 
     for (let step = 0; step < 9000; step += 1) {
       const seen = one.snapshot();
@@ -891,7 +899,7 @@ describe('bossHpFor · size', () => {
   });
 
   it('gives the summoned boss the pool for its own size', () => {
-    boss.summon(3, BOSS_SCALE_MAX);
+    boss.summon(3, BOSS_SCALE_MAX, SEED);
 
     expect(boss.snapshot()?.maxHp).toBe(bossHpFor(3, BOSS_SCALE_MAX));
   });

@@ -35,30 +35,97 @@ export function cycleOf(attack: BossAttack): number {
   return windUpOf(attack) + durationOf(attack) + RECOVER_SECONDS;
 }
 
-/** Every attack the boss cycles through freely. The two big ones are scheduled. */
+/** The shapes the trash mobs also fire. The slot a player shoots back on. */
 const SHAPED: PatternKind[] = ['straight', 'spread', 'radial'];
 
-/** Coprime with `RAM_EVERY` on purpose: see #8. */
-const BEAM_EVERY = 4;
-const RAM_EVERY = 3;
+/** The two that ask the player to be somewhere else, rather than to shoot. */
+const COMMITTED: BossAttack[] = ['beam', 'ram'];
 
-/** A 32-bit integer hash of the round and the attack's index. */
-function mix(round: number, index: number): number {
-  const seeded = Math.imul(round, 374761393) + Math.imul(index, 668265263);
+/** How many of the bag's slots each attack holds. The one line to tune: see #44. */
+const WEIGHTS: Record<BossAttack, number> = {
+  beam: 4,
+  ram: 5,
+  straight: 2,
+  spread: 2,
+  radial: 2,
+};
+
+/** The bag every slot is drawn from, one entry per unit of weight. */
+const BAG: BossAttack[] = ALL_ATTACKS.flatMap(
+  (attack) => Array.from({ length: WEIGHTS[attack] }, () => attack),
+);
+
+/** A 32-bit integer hash of the duel's seed and the attack's index. */
+function mix(seed: number, index: number): number {
+  const seeded = Math.imul(seed, 374761393) + Math.imul(index, 668265263);
   const stirred = Math.imul(seeded ^ (seeded >>> 13), 1274126177);
 
   return (stirred ^ (stirred >>> 16)) >>> 0;
 }
 
-/** Which attack comes next — derived, not drawn, so a run can be reproduced. */
-export function attackAt(round: number, index: number): BossAttack {
-  if ((index + 1) % BEAM_EVERY === 0) {
-    return 'beam';
+/** The raw draw for a slot, before either constraint has had a say. */
+function drawAt(seed: number, index: number): BossAttack {
+  return BAG[mix(seed, index) % BAG.length];
+}
+
+/** What an earlier slot drew, or null when the fight has not reached back that far. */
+function drawnBefore(seed: number, index: number, back: number): BossAttack | null {
+  return index >= back ? drawAt(seed, index - back) : null;
+}
+
+function isCommitted(attack: BossAttack | null): boolean {
+  return attack !== null && COMMITTED.includes(attack);
+}
+
+/** The longest run of committed attacks allowed. A shape is the slot to shoot on. */
+const COMMITTED_RUN = 3;
+
+/** Whether the run leading into this slot is already as long as one may get. */
+function runIsFull(seed: number, index: number): boolean {
+  return Array.from(
+    { length: COMMITTED_RUN },
+    (_unused, back) => drawnBefore(seed, index, back + 1),
+  ).every(isCommitted);
+}
+
+/*
+ * Drawn off an index the bag itself is not using here, so the fallback does not
+ * inherit the residue that put this slot in the committed range to begin with.
+ */
+function shapeAt(seed: number, index: number): BossAttack {
+  return SHAPED[mix(seed, index + BAG.length) % SHAPED.length];
+}
+
+/*
+ * Which attack this slot is. Derived from the duel's seed, so a fight can be
+ * replayed exactly, and rolled per duel, so it is not everyone's fight: see #44.
+ *
+ * Both repairs read the raw draws and never the repaired ones, which keeps this
+ * a constant-time answer rather than a walk back to the first slot. The
+ * guarantees survive that because a repair only ever falls back to a shape: a
+ * committed answer is therefore always the slot's own draw.
+ */
+export function attackAt(seed: number, index: number): BossAttack {
+  const drawn = drawAt(seed, index);
+
+  if (!isCommitted(drawn)) {
+    return drawn;
   }
 
-  if ((index + 1) % RAM_EVERY === 0) {
-    return 'ram';
+  // Six seconds of the fight spent watching a wind-up, if two of these ran back to back.
+  if (drawn === 'beam' && drawnBefore(seed, index, 1) === 'beam') {
+    return shapeAt(seed, index);
   }
 
-  return SHAPED[mix(round, index) % SHAPED.length];
+  // Two rams back to back is the point of this being a run and not a ban.
+  if (runIsFull(seed, index)) {
+    return shapeAt(seed, index);
+  }
+
+  return drawn;
+}
+
+/** A seed for a fresh duel. Randomness at the boundary, arithmetic inside. */
+export function rollAttackSeed(): number {
+  return Math.floor(Math.random() * 0xffffffff);
 }

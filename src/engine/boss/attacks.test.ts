@@ -7,6 +7,7 @@ import {
   cadenceOf,
   cycleOf,
   durationOf,
+  rollAttackSeed,
   windUpOf,
 } from './attacks';
 import type { BossAttack } from './types';
@@ -66,130 +67,164 @@ describe('attacks · every attack is fully specified', () => {
   });
 });
 
-describe('attackAt · the committed attacks are scheduled', () => {
-  it('comes every fourth attack', () => {
-    const beams = Array.from({ length: 24 }, (_unused, index) => index)
-      .filter((index) => attackAt(1, index) === 'beam');
+/** One fight's worth of slots, as the derivation names them. */
+function sequence(seed: number, slots = 60): BossAttack[] {
+  return Array.from({ length: slots }, (_unused, index) => attackAt(seed, index));
+}
 
-    expect(beams).toEqual([3, 7, 11, 15, 19, 23]);
-  });
+/**
+ * Enough seeds, spread far enough apart, that a rule broken one fight in a
+ * hundred still turns this red. The old assertions named the attack at slot
+ * three; there is no slot three to name any more, so what is left to hold is
+ * what every fight has in common: see #44.
+ */
+const SEEDS = Array.from({ length: 400 }, (_unused, index) => index * 7919 + 1);
 
-  // Predictability is the gift here, not the flaw: the beam demands a specific
-  // answer at a specific moment, so knowing roughly when it is due is what lets
-  // a player hold the roll for it.
-  it('keeps the same schedule in every round', () => {
-    for (const round of [1, 4, 9]) {
-      expect(attackAt(round, 3)).toBe('beam');
-      expect(attackAt(round, 7)).toBe('beam');
-    }
-  });
-});
+function committedIn(attacks: BossAttack[]): BossAttack[] {
+  return attacks.filter((attack) => COMMITTED.includes(attack));
+}
 
-describe('attackAt · the shapes are derived, not drawn', () => {
-  it('gives the same answer for the same attack, every time', () => {
-    for (const round of [1, 2, 5, 11]) {
-      for (let index = 0; index < 12; index += 1) {
-        expect(attackAt(round, index)).toBe(attackAt(round, index));
-      }
+/** The slots where this attack follows itself. Slot zero has nothing behind it. */
+function backToBack(attacks: BossAttack[], attack: BossAttack): number[] {
+  return attacks
+    .map((_unused, index) => index)
+    .filter((index) => attacks[index] === attack && attacks[index - 1] === attack);
+}
+
+/** The longest run of committed attacks anywhere in a fight. */
+function longestRun(attacks: BossAttack[]): number {
+  let longest = 0;
+  let running = 0;
+
+  for (const attack of attacks) {
+    running = COMMITTED.includes(attack) ? running + 1 : 0;
+    longest = Math.max(longest, running);
+  }
+
+  return longest;
+}
+
+describe('attackAt · a seed is a fight, and the same seed is the same fight', () => {
+  it('gives the same answer for the same slot, every time', () => {
+    for (const seed of SEEDS.slice(0, 8)) {
+      expect(sequence(seed)).toEqual(sequence(seed));
     }
   });
 
   it('only ever names a real attack', () => {
-    for (let round = 1; round <= 12; round += 1) {
-      for (let index = 0; index < 20; index += 1) {
-        expect(ALL_ATTACKS).toContain(attackAt(round, index));
+    for (const seed of SEEDS) {
+      for (const attack of sequence(seed)) {
+        expect(ALL_ATTACKS).toContain(attack);
       }
     }
-  });
-
-  it('uses all three shapes within a single fight', () => {
-    const shapes = Array.from({ length: 24 }, (_unused, index) => attackAt(1, index))
-      .filter((attack) => !COMMITTED.includes(attack));
-
-    expect(new Set(shapes).size).toBe(SHAPED.length);
-  });
-
-  /*
-   * The two scheduled attacks run on different periods so they cannot arrive
-   * together, and where their cycles do meet the beam wins — a player already
-   * dodging a column has somewhere to be, where a ram at the same moment would
-   * leave nowhere.
-   */
-  it('never lets the beam and the ram fall on the same attack', () => {
-    const rams: number[] = [];
-    const beams: number[] = [];
-
-    for (let index = 0; index < 60; index += 1) {
-      const attack = attackAt(1, index);
-
-      if (attack === 'ram') {
-        rams.push(index);
-      }
-
-      if (attack === 'beam') {
-        beams.push(index);
-      }
-    }
-
-    expect(rams.length).toBeGreaterThan(0);
-    expect(beams.length).toBeGreaterThan(0);
-    expect(rams.filter((index) => beams.includes(index))).toEqual([]);
-  });
-
-  /*
-   * Every third attack, minus the one in twelve where the beam takes the slot.
-   * Four and three are coprime on purpose: at four and six they would share every
-   * twelfth attack, and since the beam wins the tie, half the rams would never
-   * happen at all.
-   */
-  it('brings the ram round on its own period', () => {
-    const rams = Array.from({ length: 40 }, (_unused, index) => index)
-      .filter((index) => attackAt(1, index) === 'ram');
-
-    expect(rams).toEqual([2, 5, 8, 14, 17, 20, 26, 29, 32, 38]);
-  });
-
-  /*
-   * Half the slots are a committed attack now, which is the point of raising the
-   * ram's frequency: the fight alternates between "dodge this" and "shoot back"
-   * rather than being mostly the second.
-   */
-  it('puts a committed attack in about half the slots', () => {
-    const committed = Array.from({ length: 48 }, (_unused, index) => attackAt(1, index))
-      .filter((attack) => COMMITTED.includes(attack));
-
-    expect(committed.length / 48).toBeGreaterThan(0.4);
-    expect(committed.length / 48).toBeLessThan(0.6);
-  });
-
-  /*
-   * The point of the hash. A boss whose shapes cycled would let the player
-   * start dodging before it moved, which turns every wind-up animation into
-   * decoration.
-   *
-   * Checked as "not a period-3 repeat" because a plain rotation is what the
-   * obvious implementation — index % 3 — would produce.
-   */
-  it('does not simply rotate through the shapes', () => {
-    const shapes = Array.from({ length: 30 }, (_unused, index) => attackAt(4, index));
-
-    const repeats = shapes
-      .filter((attack, index) => index >= 3 && attack === shapes[index - 3]);
-
-    expect(repeats.length).toBeLessThan(shapes.length - 3);
-  });
-
-  it('differs between rounds, so a fight is not the previous one again', () => {
-    const first = Array.from({ length: 16 }, (_unused, index) => attackAt(1, index));
-    const later = Array.from({ length: 16 }, (_unused, index) => attackAt(7, index));
-
-    expect(later).not.toEqual(first);
   });
 
   // The hash runs past 2^53 before it is folded; `Math.imul` is what keeps it
   // inside 32 bits. Without it the products round and this stops holding.
-  it('stays deterministic at high round and attack numbers', () => {
-    expect(attackAt(9999, 9998)).toBe(attackAt(9999, 9998));
-    expect(ALL_ATTACKS).toContain(attackAt(9999, 9998));
+  it('stays deterministic at the far end of both arguments', () => {
+    expect(attackAt(0xfffffff, 9998)).toBe(attackAt(0xfffffff, 9998));
+    expect(ALL_ATTACKS).toContain(attackAt(0xfffffff, 9998));
+  });
+});
+
+describe('attackAt · one fight is not the last one', () => {
+  /*
+   * The whole point of #44. The order used to come from the round, so every
+   * player's round four was one fight, replayed identically however many times
+   * they died to it — and the four slots they saw most were the four that never
+   * moved.
+   */
+  it('differs between seeds', () => {
+    const distinct = new Set(SEEDS.map((seed) => sequence(seed, 16).join()));
+
+    expect(distinct.size).toBe(SEEDS.length);
+  });
+
+  /*
+   * A boss whose shapes cycled would let the player start dodging before it
+   * moved, which turns every wind-up animation into decoration. Checked as "not
+   * a period-3 repeat" because a rotation is what the obvious implementation —
+   * index % 3 — would produce.
+   */
+  it('does not simply rotate through the shapes', () => {
+    for (const seed of SEEDS.slice(0, 40)) {
+      const attacks = sequence(seed, 30);
+
+      const repeats = attacks
+        .filter((attack, index) => index >= 3 && attack === attacks[index - 3]);
+
+      expect(repeats.length).toBeLessThan(attacks.length - 3);
+    }
+  });
+
+  it('reaches all three shapes within a fight', () => {
+    for (const seed of SEEDS) {
+      const shapes = sequence(seed).filter((attack) => SHAPED.includes(attack));
+
+      expect(new Set(shapes).size).toBe(SHAPED.length);
+    }
+  });
+});
+
+describe('attackAt · what every seed guarantees', () => {
+  /*
+   * The beam carries the longest tell in the game at 1.4s. Two of them back to
+   * back is most of six seconds spent watching a wind-up, which is the one
+   * sequence the draw is not allowed to produce.
+   */
+  it('never runs two beams back to back', () => {
+    for (const seed of SEEDS) {
+      expect(backToBack(sequence(seed), 'beam')).toEqual([]);
+    }
+  });
+
+  /*
+   * A shape is the slot the player answers by shooting rather than by moving, so
+   * one is never more than four beats away. This is a cap on the run, not a ban
+   * on the pair — see the next case, which is the reason it is a cap.
+   */
+  it('never runs more than three committed attacks together', () => {
+    for (const seed of SEEDS) {
+      expect(longestRun(sequence(seed))).toBeLessThanOrEqual(3);
+    }
+  });
+
+  it('does run two rams together, often enough to be a thing that happens', () => {
+    const doubled = SEEDS.flatMap((seed) => backToBack(sequence(seed), 'ram'));
+
+    // Roughly one adjacent pair in fourteen slots, across every seed swept.
+    expect(doubled.length / (SEEDS.length * 60)).toBeGreaterThan(0.03);
+  });
+
+  /*
+   * Kept from #26: the fight alternates between "dodge this" and "shoot back"
+   * rather than being mostly the second. The run cap is what holds the share
+   * down — the bag draws committed attacks more often than this, and the repair
+   * gives the difference back.
+   */
+  it('leaves committed attacks holding between 40% and 60% of the slots', () => {
+    const attacks = SEEDS.flatMap((seed) => sequence(seed));
+    const share = committedIn(attacks).length / attacks.length;
+
+    expect(share).toBeGreaterThan(0.4);
+    expect(share).toBeLessThan(0.6);
+  });
+});
+
+describe('rollAttackSeed · randomness at the boundary', () => {
+  it('rolls a whole number the derivation can take', () => {
+    for (let roll = 0; roll < 200; roll += 1) {
+      const seed = rollAttackSeed();
+
+      expect(Number.isInteger(seed)).toBe(true);
+      expect(seed).toBeGreaterThanOrEqual(0);
+      expect(ALL_ATTACKS).toContain(attackAt(seed, 0));
+    }
+  });
+
+  it('does not hand out the same fight twice in a row', () => {
+    const rolled = new Set(Array.from({ length: 200 }, () => rollAttackSeed()));
+
+    expect(rolled.size).toBeGreaterThan(190);
   });
 });
