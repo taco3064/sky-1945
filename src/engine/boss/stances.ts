@@ -20,7 +20,7 @@ const BOSS_BULLET_SPEED = 320;
 const HELD: StanceResult = { changed: false, shots: [] };
 
 /** A fresh fight, at the top of the screen with nothing charged. */
-export function newDuel(round: number, hp: number, scale: number): Duel {
+export function newDuel(seed: number, hp: number, scale: number): Duel {
   return {
     hp,
     maxHp: hp,
@@ -32,14 +32,14 @@ export function newDuel(round: number, hp: number, scale: number): Duel {
     index: 0,
     sinceVolley: 0,
     volleys: 0,
-    round,
+    seed,
     aimedX: null,
   };
 }
 
 /** The attack it is on. */
 export function attackOf(duel: Duel): BossAttack {
-  return attackAt(duel.round, duel.index);
+  return attackAt(duel.seed, duel.index);
 }
 
 /** Move to a stance, resetting everything measured within one. */

@@ -54,8 +54,8 @@ export interface BossConditions {
 }
 
 export interface BossField {
-  /** Put the boss on the field for a round, at a rolled size. Twice is a no-op. */
-  summon: (round: number, scale?: number) => void;
+  /** Put the boss on the field for a round, at a rolled size and attack order. */
+  summon: (round: number, scale?: number, seed?: number) => void;
   /** True if this body id is the boss's, so damage reaches the right owner. */
   owns: (id: number) => boolean;
   /** Subtract hit points. Returns where the wreck was if that killed it, else null. */
@@ -91,8 +91,8 @@ export interface Duel {
   sinceVolley: number;
   /** Volleys thrown by the current attack, so the first is never delayed. */
   volleys: number;
-  /** The round it was summoned for, so its attacks differ between rounds. */
-  round: number;
+  /** What its attack order is derived from, rolled per duel: see #44. */
+  seed: number;
   /** The body size it was rolled at, 0.8–2.0. Divides the patrol rate and cadence. */
   scale: number;
   /** The column a ram is committed to, locked when its wind-up ends. Null otherwise. */

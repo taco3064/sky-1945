@@ -13,7 +13,7 @@ import {
 } from '../entities';
 import { FIELD_HEIGHT, FIELD_WIDTH } from '../field';
 import type { Point } from '../field';
-import { durationOf, windUpOf } from './attacks';
+import { durationOf, rollAttackSeed, windUpOf } from './attacks';
 import { attackOf, newDuel, stepStance } from './stances';
 import type { BossField, BossRecord, Duel } from './types';
 
@@ -128,13 +128,13 @@ export function createBossField(engine: Engine): BossField {
   };
 
   return {
-    summon(round, scale = rollBossScale()) {
+    summon(round, scale = rollBossScale(), seed = rollAttackSeed()) {
       if (duel) {
         return;
       }
 
       body = createBoss(FIELD_WIDTH / 2, ENTRY_Y, scale);
-      duel = newDuel(round, bossHpFor(round, scale), scale);
+      duel = newDuel(seed, bossHpFor(round, scale), scale);
 
       Composite.add(engine.world, body);
     },

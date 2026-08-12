@@ -5,6 +5,7 @@ export {
   cadenceOf,
   cycleOf,
   durationOf,
+  rollAttackSeed,
   windUpOf,
 } from './attacks';
 export { bossHpFor, createBossField } from './boss';

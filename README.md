@@ -158,15 +158,23 @@ missing, written against the dimension the old assertions could not see.
 
 ## One thing that came from the domain, not the contract
 
-There is no `Math.random` in the engine. Enemy formations, flight shapes, entry
-edges and the boss's attack order are all derived from the round and a slot number
-— an integer hash where the player should not be able to memorise the sequence, a
-short repeating sum where they should.
+Nothing in the engine decides what happens by rolling a die. Enemy formations,
+flight shapes, entry edges and the boss's attack order are all derived from a
+seed and a slot number — an integer hash where the player should not be able to
+memorise the sequence, a short repeating sum where they should.
 
 Two reasons, and the second is the real one: a test cannot assert against a die,
 and a player cannot learn a level that rolls one. Someone clears round four on the
 third attempt because they remember what comes next. Randomness would have turned
 learning into gambling.
+
+Where a die is thrown at all, it is thrown once, at the boundary, and what it
+produces is a seed the derivation is then handed — the boss's body size and its
+attack order both arrive that way. That distinction is the whole of it: the tests
+run the same derivation the player does, with the seed passed in rather than
+rolled. Seeding the boss per duel rather than per round (#44) is what stopped
+every player's round four from being one fight, replayed identically each time
+they died to it.
 
 ## Running it
 
