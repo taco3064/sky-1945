@@ -9,172 +9,110 @@ question.
 **[▶ Play it](https://taco3064.github.io/sky-1945/)** — arrows to fly, space to
 barrel-roll, escape to pause. On a phone: hold anywhere for a stick, tap to roll.
 
-It also exists to answer a question: **what does an architecture contract written
-for CRUD front ends grow when the domain is a 60fps game loop?**
+It also exists to answer one: **what does an architecture contract written for
+CRUD front ends grow when the domain is a 60fps game loop?**
 [@kekkai/blueprint](https://www.npmjs.com/package/@kekkai/blueprint) has governed
-this repository since its first commit and has not been edited since. One rule now
-sits beside the contract rather than inside it, because the contract cannot express
-it — that is a finding of its own, and it is below. What follows is what all of
-that produced.
+this repository since its first commit. What follows is what that produced,
+including the half it did not.
 
 ## How it is built
 
-React + TypeScript, bundled by Vite, with Matter.js for collision and Vitest for
-the suite. Versions live in `package.json`, which is the only place they can be
-correct.
+React + TypeScript, Vite, Matter.js, Vitest. Versions live in `package.json`,
+which is the only place they can be correct.
 
-**Pure DOM.** There is no `<canvas>`, no `<svg>` and no WebGL in `src`. An aircraft
-is a handful of `div`s with `clip-path` and gradients; a bullet is one. Positions
-are written straight to `style.transform` by the engine and never through React
-state — React owns birth and death, the engine owns position.
+**Pure DOM.** No `<canvas>`, `<svg>` or WebGL in `src`. An aircraft is a handful
+of `div`s with `clip-path` and gradients; a bullet is one. Positions are written
+straight to `style.transform` and never through React state — React owns birth and
+death, the engine owns position.
 
-**Matter.js runs in sensor mode.** Gravity is off, every body is a sensor, and
-every position is written with `Body.setPosition`. Nothing is integrated: there is
-no `applyForce` and no `setVelocity` in the repo. Matter is here for one thing —
-broad-phase collision detection. Everything about *how* a craft moves is
-arithmetic in `src/engine`.
+**Matter.js in sensor mode.** Gravity off, every body a sensor, every position set
+with `Body.setPosition` — no `applyForce` and no `setVelocity` anywhere. Matter
+answers *did these two things touch*; how a craft moves is arithmetic in
+`src/engine`. Deliberate: inertia on a dodge is indistinguishable from input lag.
 
-That is a choice, not a shortcut. Inertia on a dodge is indistinguishable from
-input lag, so the player's aircraft is driven directly from input. What a
-simulation like this actually needs from a physics library is "did these two things
-touch", and that is all it is asked for.
+## The contract
 
-## What the contract is
+`blueprint.config.mjs` compiles to three things: ESLint rules, a generated handbook
+(`docs/architecture-handbook.md`), and the contract an agent reads (`CLAUDE.md`).
+The React preset's `principles`, `componentShape`, `playbook` and `rules` are
+spread in **unchanged** — editing them to suit a game would have ended the
+experiment. Only `architecture` is this project's own: the preset's `services`
+became `engine`, which owns `matter-js` and `requestAnimationFrame`, and `zustand`
+was dropped, because a contract naming a package the repo does not install
+describes nothing.
 
-One file, `blueprint.config.mjs`, compiles to three things: ESLint rules, a
-handbook (`docs/architecture-handbook.md`), and a contract an agent reads
-(`CLAUDE.md`). The React preset's `principles`, `componentShape`, `playbook` and
-`rules` are spread in **unchanged** — editing them to suit a game would have ended
-the experiment. Only `architecture` is this project's own, in two ways: the
-preset's `services` layer became `engine`, which owns `matter-js` and
-`requestAnimationFrame`; and `zustand` was dropped, because a contract naming a
-package the repo does not install describes nothing.
+Layers run one way — `pages → containers → components → hooks → contexts →
+engine`. The budgets on lines, function length, parameters and complexity come from
+the preset, and the handbook lists them all.
 
-The layers run one way: `pages → containers → components → hooks → contexts →
-engine`. The gates — module line budgets, function length, parameter and statement
-counts, cyclomatic complexity — come from the preset and are listed in the
-handbook, which is generated, so it cannot drift from the config.
+## What it produced
 
-## What the contract produced
+- **No blueprint rule has ever been disabled.** The one `eslint-disable` in `src`
+  is `react-refresh/only-export-components`, a Vite plugin's warn-level rule, on
+  the file that has to export both a Provider and its Context.
+- **No edit to the contract has been a loosening.** One config change since the
+  scaffold: `testFiles` widened to count `*.fixtures.ts`, which *added* a gate —
+  until then the fixture ban had nothing to catch (#27).
+- **One linter, and not the one this started with.** oxlint is gone, its two rules
+  moved onto React's own plugins, and `eslint.config.mjs` is owned by this repo
+  rather than regenerated. The `emitLint(blueprint)` spread inside it is untouched,
+  so every structural rule still comes from `blueprint.config.mjs` at runtime — and
+  a CI gate now checks that it is still in force (below).
+- **One rule the contract could not express.** Type declarations live in their
+  module's `types.ts` — 110 of them moved out of 40 implementation files — held by
+  a hand-written lint rule, because no config can require a `types.ts` to exist or
+  say that a declaration belongs in one (#34). An owner opinion, recorded as a
+  finding rather than quietly absorbed: this repo is one structural rule richer
+  than the preset.
+- **The boundaries are machine-checked, not remembered.** `matter-js` is reachable
+  only from `engine`; the animation loop lives in one module because that layer
+  owns the global; no `components` file imports the engine. All three fail lint.
+- **Modules exist that would not otherwise.** Every time a file hit its line budget
+  the forced split turned out to be a real seam: `engine/frame` out of
+  `engine/world` (a frame, versus the simulation's lifetime), `boss/stances` out of
+  `boss/boss` (the fight's state machine, versus its bodies), `engine/channel` out
+  of the same subscribe-and-broadcast block written three times over, and
+  `world/createBroadcast` out of `createWorld` (building and running the world,
+  versus deciding what is worth announcing).
+- **A parameter limit improved an interface.** `enemies.spawn` took a kind, a path
+  and an entry point; an entry *edge* would have been one argument too many. It
+  takes a single `EnemySpec` now, declared by the side that has to fly it.
+- **Coverage is a floor, not a target.** 100% on `engine` and `hooks` — pure
+  functions and state machines, where a test holds something. Whether an aircraft
+  *looks* right is checked in a browser.
 
-**No blueprint rule has ever been disabled.** There is one `eslint-disable` in
-`src`, and it is worth naming rather than leaving to a grep:
-`react-refresh/only-export-components`, a warn-level rule from a Vite plugin, on
-the one file that has to export both a Provider and its Context. Nothing
-`emitLint` produces has ever been suppressed.
+## What it did not catch
 
-**And no edit to the contract has been a loosening.** The config has changed once
-since the scaffold: `testFiles` widened to count `*.fixtures.ts`, so a shared test
-double could live in the folder the fixture ban already globbed. That edit *added*
-a gate — until then `~app/fixtures*` was a ban with nothing to catch, and the
-first thing it caught was a deliberate probe.
+The honest half. Every defect that reached play was found by a person watching the
+screen, not by the suite and not by any lint rule:
 
-When the contract and the code disagreed, the code moved. Once they did not
-disagree at all — the contract had nothing to say, and that case has its own
-paragraph below.
+- the boss finished its entrance centred, then jumped sideways on its first
+  patrolling frame — its patrol read a clock that had been running since it
+  spawned;
+- the beam's charge line grew out of the boss's back — enemy craft are drawn
+  nose-up and rotated by the transform, so the CSS top edge is the bottom of the
+  screen;
+- a higher enemy count pressed the outermost lanes into the field edges, and a
+  weaving craft swung off the field and was culled.
 
-**One linter, and it is not the one this started with.** oxlint was removed and
-its two rules moved onto `eslint-plugin-react-hooks` and
-`eslint-plugin-react-refresh` at the same tiers — both are React's rules rather
-than the contract's, which `emitLint` does not emit. `eslint.config.mjs` is now
-owned by this repo rather than regenerated by `blueprint init`, and the
-`emitLint(blueprint)` spread inside it is untouched: every structural rule the
-contract defines still comes from `blueprint.config.mjs` at runtime. Worth stating
-plainly, because on a project whose claim is that the contract is machine-enforced,
-*which* machine enforces it is part of the finding.
+None was a structural violation. The layers were correct, the boundaries held, and
+coverage was at its floor throughout. Every assertion looked at one frame, or one
+lane, at a time — and a discontinuity is invisible from a single sample.
 
-**One rule the contract could not express.** Type declarations live in a `types.ts`
-inside their module — 110 of them moved out of 40 implementation files — and a lint
-rule keeps them there. It is hand-written in `eslint.config.mjs` rather than
-declared in the config, because blueprint has no way to ask for it:
-`module.private: ['hooks', 'styles', 'types']` means *may exist, and is private to
-the module*, and it is read by two documentation emitters and by no lint rule at
-all. No config can require a `types.ts` to exist, or say that a declaration belongs
-in one.
+So structure is not correctness. What the contract did buy is that every fix was
+cheap and local, and each arrived with the regression test that had been missing.
 
-It carries its own rule id, so it overrides nothing — `no-restricted-syntax` still
-holds the contract's `selfOnly` re-export ban, and `blueprint doctor` is what
-verifies that rather than a claim here. But it is an owner opinion, and from here
-this repo is one structural rule richer than the preset: no longer a clean read of
-what a CRUD contract grows under a game loop, but that plus one opinion. Recorded
-as a finding, not quietly absorbed.
+## One thing the domain decided, not the contract
 
-**The boundaries are machine-checked, not remembered.** `matter-js` is reachable
-only from `engine`. The animation loop lives in one module because the layer owns
-the global. No `components` file imports the engine. These are `owns` and
-`allowedImporters` declarations that fail lint, so they cannot quietly rot.
-
-**Modules exist that would not otherwise.** Each time a file hit its line budget,
-the split it forced turned out to be a real seam rather than an arbitrary cut:
-
-- `engine/frame` came out of `engine/world` — what happens *in* a frame, versus the
-  simulation's *lifetime*. Neither half needs much of the other.
-- `boss/stances` came out of `boss/boss` — the fight's state machine, which touches
-  no physics body at all, versus the bodies and hit points.
-- `engine/channel` exists because the same subscribe-and-broadcast block had been
-  written out three times over: for transforms, for the roster, and for combat
-  state.
-- `world/createBroadcast` came out of `createWorld` the fourth time that factory
-  hit the limit — the world builds the simulation and runs the loop, the broadcast
-  decides what any of it is worth announcing. The run's life count moved with it,
-  because how many attempts a player gets is not something the simulation has an
-  opinion about.
-
-**A parameter limit improved an interface.** `enemies.spawn` took a kind, a path
-and an entry point; adding an entry *edge* would have been one argument too many.
-It takes a single `EnemySpec` now — declared by `enemies`, because that is the side
-that has to fly it, and aliased as the scheduler's output type so there is one
-contract rather than two structurally identical declarations that can drift.
-
-**Coverage is a floor, not a target.** The threshold is 100% on `engine` and
-`hooks`, and the scope is deliberate: those layers are pure functions and state
-machines, where a test holds something. A unit test cannot tell you whether an
-aircraft *looks* right — the browser can, and that is where components are checked.
-
-## What the contract did not catch
-
-The honest half, and the more interesting one. Every defect that reached play was
-found by a person watching the screen, not by the suite and not by any lint rule:
-
-- The boss finished its entrance in the centre and then jumped sideways on its
-  first patrolling frame, because its patrol read a clock that had been running
-  since it spawned.
-- The beam's charge line grew *upward*, out of the boss's back — enemy craft are
-  drawn nose-up and rotated by the transform, so the CSS top edge is the bottom of
-  the screen.
-- Raising the enemy count pressed the outermost lanes against the field edges, and
-  a weaving craft swung off the field and was culled: an enemy the player never got
-  to shoot.
-
-None of those was a structural violation. The layers were correct, the boundaries
-held, and coverage was at its floor the whole time. Every assertion that existed
-looked at *one frame at a time*, or *one lane at a time*, and a discontinuity is
-invisible from a single sample.
-
-So an architecture contract buys structure, and structure is not correctness. What
-it did buy is that each fix was cheap and local — the jump was one subtraction in
-one pure function — and each one arrived with the regression test that had been
-missing, written against the dimension the old assertions could not see.
-
-## One thing that came from the domain, not the contract
-
-Nothing in the engine decides what happens by rolling a die. Enemy formations,
-flight shapes, entry edges and the boss's attack order are all derived from a
-seed and a slot number — an integer hash where the player should not be able to
-memorise the sequence, a short repeating sum where they should.
-
+Nothing in the engine rolls a die mid-flight. Enemy formations, flight shapes,
+entry edges and the boss's attack order all derive from a seed and a slot number.
 Two reasons, and the second is the real one: a test cannot assert against a die,
-and a player cannot learn a level that rolls one. Someone clears round four on the
-third attempt because they remember what comes next. Randomness would have turned
-learning into gambling.
+and a player cannot learn a level that rolls one — round four is cleared on the
+third attempt because the player remembers what comes next.
 
-Where a die is thrown at all, it is thrown once, at the boundary, and what it
-produces is a seed the derivation is then handed — the boss's body size and its
-attack order both arrive that way. That distinction is the whole of it: the tests
-run the same derivation the player does, with the seed passed in rather than
-rolled. Seeding the boss per duel rather than per round (#44) is what stopped
-every player's round four from being one fight, replayed identically each time
-they died to it.
+Where a die is thrown at all it is thrown once, at the boundary, and what it
+produces is a seed the derivation is handed. Seeding the boss per duel rather than
+per round (#44) is what stopped every player's round four from being one fight.
 
 ## Running it
 
@@ -184,11 +122,12 @@ npm run dev
 ```
 
 Every gate, in the order CI runs them. CI gates the deploy, so a published build is
-one where all four passed:
+one where all five passed:
 
 ```bash
-npm run lint       # oxlint + eslint, including blueprint's emitted rules
-npx tsc -b         # types
-npm run coverage   # tests, against the coverage floor
-npm run inspect    # blueprint's own survey of the layer graph
+npm run lint          # eslint, including blueprint's emitted rules
+npx tsc -b            # types
+npm run coverage      # tests, against the coverage floor
+npm run inspect       # the layer graph — does the code obey the contract
+npx blueprint doctor  # the wiring — are those rules still enforced
 ```
