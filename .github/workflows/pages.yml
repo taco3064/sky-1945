@@ -66,6 +66,25 @@ jobs:
       - name: Architecture contract
         run: npm run inspect
 
+      # Every gate above proves something only while the rules are still wired, and
+      # nothing above can tell. This repo owns eslint.config.mjs rather than letting
+      # `blueprint init` regenerate it, so an edit that drops the
+      # `...emitLint(blueprint)` spread — or a later block that softens an emitted
+      # rule — leaves `npm run lint` green with the structural rules gone. `inspect`
+      # would not notice either: it checks the code against the config, not whether
+      # the config is still enforced.
+      #
+      # doctor is that check, and it is the one gate here that reads the wiring: the
+      # spread, the import alias in the toolchain, the emitted rules surviving the
+      # merged config, and the generated handbook and contract still matching
+      # blueprint.config.mjs.
+      #
+      # The exit code is enough. A skipped check keeps exit 0 — but both states that
+      # can skip, eslint unwired and an eslint config that will not resolve, are
+      # already red in doctor's own wiring check and in Lint above.
+      - name: Contract wiring
+        run: npx blueprint doctor
+
       # Root-relative, because this one is only asking whether the bundle builds.
       # The deploy below rebuilds it with the Pages prefix; doing it here too means a
       # pull request that breaks the build says so, rather than being found by the
