@@ -39,10 +39,10 @@ export default defineConfig({
       provider: 'v8',
       // engine and hooks only, on purpose. The engine is pure functions and
       // state machines — cheap to test and the tests actually hold something.
-      // hooks are tested for their state transitions. containers and
+      // hooks are tested for their state transitions. Screens and
       // components are presentational: a unit test cannot tell you whether an
       // aircraft looks right, and the browser can.
-      include: ['src/engine/**', 'src/hooks/**'],
+      include: ['src/*/engine/**', 'src/*/hooks/**'],
       thresholds: { lines: 100, functions: 100, branches: 100, statements: 100 },
     },
   },
