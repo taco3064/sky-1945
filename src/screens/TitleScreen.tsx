@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useEffectEvent } from 'react'
 import './TitleScreen.css'
 
 type TitleScreenProps = {
@@ -6,10 +6,12 @@ type TitleScreenProps = {
 }
 
 export function TitleScreen({ onProceed }: TitleScreenProps) {
+  const handleKeyDown = useEffectEvent(() => onProceed())
+
   useEffect(() => {
-    window.addEventListener('keydown', onProceed)
-    return () => window.removeEventListener('keydown', onProceed)
-  }, [onProceed])
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   return (
     <div className="title-screen" onPointerDown={onProceed}>
