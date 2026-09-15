@@ -1,0 +1,210 @@
+.boss {
+  --plate: #2b1524;
+  --plate-lit: #4a2440;
+  --edge: #7d3f68;
+  --energy: #c07dff;
+  --energy-hot: #f0d4ff;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 140px;
+  height: 124px;
+  margin-top: -62px;
+  margin-left: -70px;
+  will-change: transform;
+}
+
+.boss__charge {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  width: 2px;
+  height: 900px;
+  background: linear-gradient(180deg, rgb(192 125 255 / 10%) 0%, var(--energy-hot) 100%);
+  opacity: 0;
+  transform: translateX(-50%);
+}
+
+.boss__craft {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+  scale: var(--boss-scale, 1);
+  transform: rotate(calc(var(--lean, 0) * -9deg));
+}
+
+.boss__craft > * {
+  position: absolute;
+}
+
+.boss__wing {
+  top: 22%;
+  left: 0;
+  width: 100%;
+  height: 52%;
+  clip-path: polygon(0% 26%, 10% 0%, 90% 0%, 100% 26%, 100% 100%, 74% 78%, 26% 78%, 0% 100%);
+  background: linear-gradient(180deg, var(--plate-lit) 0%, var(--plate) 100%);
+}
+
+.boss__arm-left,
+.boss__arm-right {
+  top: 8%;
+  width: 16%;
+  height: 44%;
+  background: linear-gradient(180deg, var(--edge) 0%, var(--plate) 90%);
+}
+
+.boss__arm-left {
+  left: 2%;
+  clip-path: polygon(0% 30%, 100% 0%, 100% 100%, 20% 82%);
+}
+
+.boss__arm-right {
+  right: 2%;
+  clip-path: polygon(0% 0%, 100% 30%, 80% 82%, 0% 100%);
+}
+
+.boss__armour {
+  top: 44%;
+  left: 10%;
+  width: 80%;
+  height: 13%;
+  background: repeating-linear-gradient(90deg, #57274a 0 7px, #24101f 7px 10px);
+}
+
+.boss__pod-left,
+.boss__pod-right {
+  top: 58%;
+  width: 10%;
+  height: 32%;
+  border-radius: 2px 2px 45% 45%;
+  background: linear-gradient(180deg, #4a2440, #180a15);
+}
+
+.boss__pod-left {
+  left: 14%;
+}
+
+.boss__pod-right {
+  right: 14%;
+}
+
+.boss__body {
+  top: 0;
+  left: 37%;
+  width: 26%;
+  height: 100%;
+  clip-path: polygon(50% 0%, 100% 20%, 100% 86%, 68% 100%, 32% 100%, 0% 86%, 0% 20%);
+  background: linear-gradient(180deg, #b98fae 0%, var(--plate-lit) 38%, #150a13 100%);
+}
+
+.boss__spine {
+  top: 12%;
+  left: 49%;
+  width: 2%;
+  height: 62%;
+  background: linear-gradient(180deg, var(--energy) 0%, transparent 100%);
+  opacity: 0.75;
+}
+
+.boss__canopy {
+  top: 16%;
+  left: 45%;
+  width: 10%;
+  height: 12%;
+  border-radius: 50%;
+  background: #120810;
+}
+
+.boss__core {
+  top: 34%;
+  left: 43%;
+  width: 14%;
+  height: 14%;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--energy-hot) 0%, var(--energy) 60%, #6a2fa0 100%);
+  box-shadow: 0 0 10px var(--energy);
+}
+
+.boss__muzzle {
+  top: -2%;
+  left: 44%;
+  width: 12%;
+  height: 8%;
+  border-radius: 50% 50% 0 0;
+  background: #120810;
+  box-shadow: inset 0 -2px 4px #000;
+}
+
+/* Tells (game-spec 9.7) */
+
+.boss[data-pose="winding"] .boss__core {
+  animation: charge 0.4s ease-in-out infinite alternate;
+}
+
+.boss[data-pose="winding"] .boss__spine {
+  opacity: 1;
+}
+
+.boss[data-pose="winding"][data-move="beam"] .boss__charge {
+  animation: aim 1.4s ease-in forwards;
+}
+
+.boss[data-pose="winding"][data-move="beam"] .boss__muzzle {
+  background: var(--energy);
+  box-shadow: 0 0 18px var(--energy-hot);
+}
+
+.boss[data-pose="firing"] .boss__pod-left,
+.boss[data-pose="firing"] .boss__pod-right {
+  background: linear-gradient(180deg, var(--energy) 0%, #4a2440 70%);
+  box-shadow: 0 0 12px var(--energy);
+}
+
+.boss[data-pose="firing"] .boss__core {
+  box-shadow: 0 0 20px var(--energy-hot);
+}
+
+.boss[data-pose="firing"][data-move="beam"] .boss__muzzle {
+  background: var(--energy-hot);
+  box-shadow: 0 0 30px var(--energy-hot);
+}
+
+@keyframes charge {
+  from {
+    box-shadow: 0 0 10px var(--energy);
+    transform: scale(1);
+  }
+
+  to {
+    box-shadow: 0 0 26px var(--energy-hot);
+    transform: scale(1.5);
+  }
+}
+
+@keyframes aim {
+  from {
+    width: 2px;
+    opacity: 0.35;
+  }
+
+  to {
+    width: 14px;
+    opacity: 0.9;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boss[data-pose="winding"] .boss__core {
+    animation: none;
+    box-shadow: 0 0 26px var(--energy-hot);
+    transform: scale(1.4);
+  }
+
+  .boss[data-pose="winding"][data-move="beam"] .boss__charge {
+    animation: none;
+    width: 14px;
+    opacity: 0.9;
+  }
+}

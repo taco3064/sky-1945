@@ -1,0 +1,88 @@
+.boss-bar {
+  position: absolute;
+  top: 2.6rem;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 68%;
+  transform: translateX(-50%);
+}
+
+.boss-bar__track {
+  width: 100%;
+  height: 8px;
+  background: rgb(20 10 18 / 85%);
+  border: 1px solid #7d3f68;
+  border-radius: 1px;
+  box-shadow: 0 0 8px rgb(0 0 0 / 60%);
+}
+
+.boss-bar__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6a2fa0 0%, #c07dff 55%, #f0d4ff 100%);
+  transition: width 0.09s linear;
+}
+
+/* Both text lines keep the browser's default bottom margin. */
+.boss-bar__note {
+  margin-top: 0.35rem;
+  color: #9dc3e6;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-shadow: 0 0 8px rgb(61 95 125 / 80%);
+}
+
+.boss-bar__warning {
+  margin-top: 0.35rem;
+  color: #f0d4ff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-shadow: 0 0 10px #c07dff;
+  animation: urge 0.35s ease-in-out infinite alternate;
+}
+
+.boss-bar--low .boss-bar__track {
+  border-color: #ff5c8a;
+}
+
+.boss-bar--low .boss-bar__fill {
+  background: linear-gradient(90deg, #ff5c8a 0%, #ffb37a 100%);
+}
+
+.boss-bar--shielded .boss-bar__track {
+  border-color: #4a6a8a;
+  border-style: dashed;
+}
+
+.boss-bar--shielded .boss-bar__fill {
+  background: repeating-linear-gradient(115deg, #3d5f7d 0 6px, rgb(20 10 18 / 90%) 6px 12px);
+  animation: sweep 0.6s linear infinite;
+}
+
+@keyframes sweep {
+  from { background-position: 0 0; }
+  to { background-position: 26px 0; }
+}
+
+@keyframes urge {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boss-bar__fill {
+    transition: none;
+  }
+
+  .boss-bar__warning {
+    animation: none;
+    opacity: 1;
+  }
+
+  .boss-bar--shielded .boss-bar__fill {
+    animation: none;
+  }
+}
