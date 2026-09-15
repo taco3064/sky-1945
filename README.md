@@ -5,12 +5,19 @@
 A vertical bullet-hell shooter with no canvas — every aircraft and bullet is a `div`.
 **[▶ Play it](https://taco3064.github.io/sky-1945/)**
 
-It is also an experiment. [@kekkai/blueprint](https://www.npmjs.com/package/@kekkai/blueprint)
-is architecture as code for React and Vue: one config declares the architecture and
-compiles into ESLint rules, a handbook and a contract for coding agents, so dependency
-direction, ownership and import boundaries are enforced rather than remembered. It has
-governed this repo since the first commit, and this README records what it did to a
-60fps game loop.
+It is also an experiment in what an architecture contract does to a 60fps game loop.
+
+## @kekkai/blueprint
+
+[@kekkai/blueprint](https://www.npmjs.com/package/@kekkai/blueprint) is architecture as
+code for React and Vue. One config declares the architecture — the layers or modules,
+which way imports may flow, which layer owns which package — and compiles it into:
+
+- ESLint rules that fail when code crosses a boundary
+- a handbook for people
+- a contract for coding agents
+
+It has governed this repo since the first commit.
 
 ## Three snapshots
 
