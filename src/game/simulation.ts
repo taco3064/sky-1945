@@ -52,6 +52,8 @@ export type Bullet = {
   damage: number
   /** An enemy bullet grants PULSE for a graze once in its lifetime. */
   grazed: boolean
+  /** The PULSE its graze added, taken back if the bullet then shoots the aircraft down. */
+  grazeGain: number
 }
 
 export type Beam = { x: number; y: number }
@@ -225,7 +227,7 @@ export class Simulation {
 
   #addBullet(side: Bullet['side'], shot: Shot): void {
     const { vx, vy } = shotVelocity(shot)
-    const bullet: Bullet = { side, x: shot.x, y: shot.y, vx, vy, damage: shot.damage, grazed: false }
+    const bullet: Bullet = { side, x: shot.x, y: shot.y, vx, vy, damage: shot.damage, grazed: false, grazeGain: 0 }
     const radius = side === 'player' ? PLAYER_BULLET_RADIUS : ENEMY_BULLET_RADIUS
     this.bullets.push(bullet)
     this.#attach(bullet, { type: 'bullet', bullet }, this.#physics.addCircle(bullet.x, bullet.y, radius))
@@ -331,7 +333,7 @@ export class Simulation {
     if (first.type !== 'player') return false
     if (second.type === 'enemy' && this.#removed.has(second.enemy)) return true
     if (second.type === 'bullet' && second.bullet.side === 'player') return true
-    this.#hitPlayer()
+    this.#hitPlayer(second.type === 'bullet' ? second.bullet : null)
     return true
   }
 
@@ -354,14 +356,20 @@ export class Simulation {
     this.bursts.push({ x: boss.x, y: boss.y, tone: 'enemy', size: 'large', age: 0 })
   }
 
-  #hitPlayer(): void {
+  /** `bullet` is the enemy bullet that made the contact, if one did. */
+  #hitPlayer(bullet: Bullet | null): void {
     const { player } = this
     if (isProtected(player, this.time)) return
 
     this.bursts.push({ x: player.x, y: player.y, tone: 'ally', size: 'large', age: 0 })
     relaunchPlayer(player, this.time)
     this.lives -= 1
-    // PULSE is kept; only the running drive ends.
+    // A bullet that hits grants no graze, so the PULSE it granted on its way in goes back. The rest of PULSE
+    // is kept; only the running drive ends.
+    if (bullet) {
+      this.pulse = Math.max(this.pulse - bullet.grazeGain, 0)
+      bullet.grazeGain = 0
+    }
     this.pulseDrive = null
   }
 
@@ -369,6 +377,7 @@ export class Simulation {
    * Grants PULSE for every enemy bullet grazing a vulnerable aircraft that has flown in. A hit needs the
    * bodies to overlap, within 7 u, so a hitting bullet is never also grazing. Running after contacts means
    * an aircraft shot down in this pass is already relaunched and protected, so that pass grants nothing.
+   * A bullet crosses the graze band before it can hit, so one that does hit later gives its graze back.
    */
   #graze(): void {
     const { player } = this
@@ -377,8 +386,10 @@ export class Simulation {
     for (const bullet of this.bullets) {
       if (bullet.side !== 'enemy' || bullet.grazed) continue
       if (!isGraze(Math.hypot(bullet.x - player.x, bullet.y - player.y))) continue
+      const before = this.pulse
+      this.pulse = grazePulse(before)
       bullet.grazed = true
-      this.pulse = grazePulse(this.pulse)
+      bullet.grazeGain = this.pulse - before
     }
   }
 

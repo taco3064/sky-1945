@@ -335,6 +335,35 @@ describe('graze', () => {
     assert.deepEqual([sim.lives, sim.pulse, grazing.grazed], [2, 0, false])
   })
 
+  it('takes back what a bullet granted grazing on its way in once it shoots the aircraft down', () => {
+    const { sim, bullets } = withEnemyBullets(1)
+    const [bullet] = bullets
+    sim.pulse = 72
+    // Falling onto the aircraft from 40 u above: it crosses the graze band before it can hit.
+    Object.assign(bullet, { x: sim.player.x, y: sim.player.y - 40, vy: 260 })
+
+    runUntil(sim, () => sim.pulse > 72, 0.1)
+    assert.equal(sim.pulse, 80)
+    runUntil(sim, () => sim.lives < 3, 0.2)
+    assert.deepEqual([sim.lives, sim.pulse], [2, 72])
+
+    // It flies on, and a second hit has nothing more to take back.
+    Object.assign(sim.player, { flyingIn: false, x: bullet.x, y: bullet.y, invulnerableUntil: 0 })
+    sim.step(INSTANT)
+    assert.deepEqual([sim.lives, sim.pulse], [1, 72])
+  })
+
+  it('keeps a graze whose bullet then passes through the aircraft while it is protected', () => {
+    const { sim, bullets } = withEnemyBullets(1)
+    const [bullet] = bullets
+    Object.assign(bullet, { x: sim.player.x, y: sim.player.y - 40, vy: 260 })
+
+    runUntil(sim, () => sim.pulse > 0, 0.1)
+    assert.ok(sim.tryRoll())
+    runUntil(sim, () => bullet.y > sim.player.y + 7, 0.2)
+    assert.deepEqual([sim.lives, sim.pulse], [3, 8])
+  })
+
   it('grants nothing while the player is protected or still flying in', () => {
     const { sim, bullets } = withEnemyBullets(2)
     const [first, second] = bullets
