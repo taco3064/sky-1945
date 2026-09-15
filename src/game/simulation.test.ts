@@ -48,6 +48,32 @@ function firstEnemyBullet(sim: Simulation) {
   return bullet
 }
 
+/** A step so short that nothing moves, fires or arrives: it only checks where things are now. */
+const INSTANT = 1e-6
+/** Out of the way of the aircraft parked by `withEnemyBullets`, and of its relaunch point. */
+const PARKED = { x: 480, y: 900 }
+
+/**
+ * A run holding at least `count` enemy bullets, all parked and still, with its unarmed aircraft flown in,
+ * exposed and standing at (60, 900), away from every enemy.
+ */
+function withEnemyBullets(count: number) {
+  const sim = new Simulation(5)
+  sim.player.invulnerableUntil = Infinity
+  sim.player.fireTimer = -Infinity
+  runUntil(sim, () => sim.bullets.filter((b) => b.side === 'enemy').length >= count, 10)
+
+  Object.assign(sim.player, { flyingIn: false, x: 60, y: 900, directionX: 0, directionY: 0, invulnerableUntil: 0 })
+  const bullets = sim.bullets.filter((b) => b.side === 'enemy')
+  for (const bullet of bullets) Object.assign(bullet, { ...PARKED, vx: 0, vy: 0 })
+  return { sim, bullets }
+}
+
+/** Puts an entity `distance` u to the right of the aircraft's centre. */
+function beside(sim: Simulation, entity: { x: number; y: number }, distance: number): void {
+  Object.assign(entity, { x: sim.player.x + distance, y: sim.player.y })
+}
+
 describe('a fresh run', () => {
   it('starts in round 1 with 3 lives, no enemies and the aircraft at launch', () => {
     const sim = new Simulation(5)
@@ -237,6 +263,85 @@ describe('contacts', () => {
     Object.assign(sim.player, { flyingIn: false, x: bullet.x, y: bullet.y, invulnerableUntil: 0 })
     sim.step(STEP)
     assert.equal(sim.lives, 0)
+  })
+})
+
+describe('graze', () => {
+  it('starts a run at 0 PULSE and grants 8 per grazing enemy bullet, clamping the 13th to 100', () => {
+    const { sim, bullets } = withEnemyBullets(13)
+    const readings = [sim.pulse]
+    for (const bullet of bullets.slice(0, 13)) {
+      beside(sim, bullet, 20)
+      sim.step(INSTANT)
+      readings.push(sim.pulse)
+      Object.assign(bullet, PARKED)
+    }
+    assert.deepEqual(readings, [0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 100])
+    assert.equal(sim.lives, 3)
+  })
+
+  it('lets a bullet graze only once, even when it leaves the graze radius and comes back', () => {
+    const { sim, bullets } = withEnemyBullets(1)
+    const [bullet] = bullets
+    beside(sim, bullet, 20)
+    sim.step(INSTANT)
+    beside(sim, bullet, 100)
+    sim.step(INSTANT)
+    beside(sim, bullet, 20)
+    sim.step(INSTANT)
+    assert.equal(sim.pulse, 8)
+  })
+
+  it('grazes out to 28 u, and never inside the 7 u hit distance', () => {
+    const { sim, bullets } = withEnemyBullets(3)
+    const [outside, edge, close] = bullets
+    beside(sim, outside, 28.5)
+    sim.step(INSTANT)
+    assert.equal(sim.pulse, 0)
+    beside(sim, edge, 28)
+    sim.step(INSTANT)
+    assert.equal(sim.pulse, 8)
+
+    Object.assign(edge, PARKED)
+    beside(sim, close, 7)
+    sim.step(INSTANT)
+    assert.deepEqual([sim.pulse, sim.lives], [8, 3])
+  })
+
+  it('grants nothing for a bullet that hits the player, nor for any other bullet in that pass', () => {
+    const { sim, bullets } = withEnemyBullets(2)
+    const [hit, grazing] = bullets
+    beside(sim, hit, 0)
+    beside(sim, grazing, -20)
+    sim.step(INSTANT)
+    assert.deepEqual([sim.lives, sim.pulse, grazing.grazed], [2, 0, false])
+  })
+
+  it('grants nothing while the player is protected or still flying in', () => {
+    const { sim, bullets } = withEnemyBullets(2)
+    const [first, second] = bullets
+    sim.player.invulnerableUntil = Infinity
+    beside(sim, first, 20)
+    sim.step(INSTANT)
+    assert.equal(sim.pulse, 0)
+    Object.assign(first, PARKED)
+
+    Object.assign(sim.player, { flyingIn: true, invulnerableUntil: 0 })
+    beside(sim, second, 20)
+    sim.step(INSTANT)
+    assert.deepEqual([sim.pulse, sim.player.flyingIn], [0, true])
+  })
+
+  it("never grants PULSE for the player's own bullets", () => {
+    const sim = new Simulation(5)
+    run(sim, 0.15)
+    const bullet = sim.bullets.find((b) => b.side === 'player')
+    assert.ok(bullet)
+    Object.assign(sim.player, { flyingIn: false, x: 270, y: 800, invulnerableUntil: 0 })
+    Object.assign(bullet, { vx: 0, vy: 0 })
+    beside(sim, bullet, 20)
+    sim.step(INSTANT)
+    assert.equal(sim.pulse, 0)
   })
 })
 

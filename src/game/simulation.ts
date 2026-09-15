@@ -23,6 +23,7 @@ import {
   updatePlayer,
   type Player,
 } from './player.ts'
+import { grazePulse, isGraze } from './pulse.ts'
 import { roundMultiplier, roundSchedule, type Squad } from './rounds.ts'
 import { shotVelocity, type Shot } from './shots.ts'
 
@@ -39,6 +40,8 @@ export type Bullet = {
   vx: number
   vy: number
   damage: number
+  /** An enemy bullet grants PULSE for a graze once in its lifetime. */
+  grazed: boolean
 }
 
 export type Beam = { x: number; y: number }
@@ -67,6 +70,8 @@ export class Simulation {
   time = 0
   round = 1
   lives = STARTING_LIVES
+  /** PULSE energy, 0–100. Kept through deaths and rounds; only a new run starts it at 0. */
+  pulse = 0
   readonly player: Player = createPlayer(0)
   bullets: Bullet[] = []
   enemies: Enemy[] = []
@@ -126,6 +131,7 @@ export class Simulation {
     this.#moveBullets(dt)
     this.#ageBursts(dt)
     this.#resolveContacts(this.#detectContacts(dt))
+    this.#graze()
     this.#advanceRound()
   }
 
@@ -189,7 +195,7 @@ export class Simulation {
 
   #addBullet(side: Bullet['side'], shot: Shot): void {
     const { vx, vy } = shotVelocity(shot)
-    const bullet: Bullet = { side, x: shot.x, y: shot.y, vx, vy, damage: shot.damage }
+    const bullet: Bullet = { side, x: shot.x, y: shot.y, vx, vy, damage: shot.damage, grazed: false }
     const radius = side === 'player' ? PLAYER_BULLET_RADIUS : ENEMY_BULLET_RADIUS
     this.bullets.push(bullet)
     this.#attach(bullet, { type: 'bullet', bullet }, this.#physics.addCircle(bullet.x, bullet.y, radius))
@@ -289,6 +295,23 @@ export class Simulation {
     this.bursts.push({ x: player.x, y: player.y, tone: 'ally', size: 'large', age: 0 })
     relaunchPlayer(player, this.time)
     this.lives -= 1
+  }
+
+  /**
+   * Grants PULSE for every enemy bullet grazing a vulnerable aircraft that has flown in. A hit needs the
+   * bodies to overlap, within 7 u, so a hitting bullet is never also grazing. Running after contacts means
+   * an aircraft shot down in this pass is already relaunched and protected, so that pass grants nothing.
+   */
+  #graze(): void {
+    const { player } = this
+    if (player.flyingIn || isProtected(player, this.time)) return
+
+    for (const bullet of this.bullets) {
+      if (bullet.side !== 'enemy' || bullet.grazed) continue
+      if (!isGraze(Math.hypot(bullet.x - player.x, bullet.y - player.y))) continue
+      bullet.grazed = true
+      this.pulse = grazePulse(this.pulse)
+    }
   }
 
   #advanceRound(): void {
