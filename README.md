@@ -3,7 +3,9 @@
 ![SKY-1945](public/logo.webp)
 
 A vertical bullet-hell shooter built from the game specification in
-[`.claude/docs/game-spec.md`](.claude/docs/game-spec.md), with its architecture governed by
+[`.claude/docs/game-spec.md`](.claude/docs/game-spec.md) and the change request in
+[`docs/SKY-1945 — PULSE DRIVE Change Request.md`](<docs/SKY-1945 — PULSE DRIVE Change Request.md>),
+with its architecture governed by
 [@kekkai/blueprint](https://www.npmjs.com/package/@kekkai/blueprint) 4.0.0.
 
 ## How it was built
@@ -13,6 +15,9 @@ A vertical bullet-hell shooter built from the game specification in
 - The specification describes what the game looks like and how it plays; it says nothing about how the
   code should be organised.
 - Runtime and build dependencies are pinned to the versions the specification lists.
+- PULSE DRIVE (graze energy, a short invulnerable pulse, its HUD meter and PULSE button) was added
+  afterwards from the change request. The specification is left as it was: it still describes the
+  released game it is compared against, and the change request describes only what PULSE DRIVE adds.
 
 ## How the blueprint config changed during the build
 
