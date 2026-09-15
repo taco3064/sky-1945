@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { LoadoutScreen } from '~app/loadout/components/LoadoutScreen'
 import { DEFAULT_SPEED_POINTS } from '~app/loadout/lib/allocation'
+import { Stage } from '~app/stage/components/Stage'
 import { TitleScreen } from '~app/title/components/TitleScreen'
 
 type Screen = 'title' | 'loadout' | 'stage'
 
+/** The screen flow (game-spec 5). The stage covers playing, paused and game over. */
 function App() {
   const [screen, setScreen] = useState<Screen>('title')
-  // Survives returning to the title; only a reload resets it (game-spec 5).
+  // Survives returning to the title; only a reload resets it.
   const [speedPoints, setSpeedPoints] = useState(DEFAULT_SPEED_POINTS)
 
   if (screen === 'title') {
@@ -24,7 +26,7 @@ function App() {
     )
   }
 
-  return null
+  return <Stage speedPoints={speedPoints} onQuit={() => setScreen('title')} />
 }
 
 export default App

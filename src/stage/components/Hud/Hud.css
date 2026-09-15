@@ -1,0 +1,71 @@
+.hud {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  width: calc(540px * var(--stage-scale, 1));
+  height: calc(960px * var(--stage-scale, 1));
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.hud > * {
+  position: absolute;
+}
+
+.hud__lives {
+  top: 0.85rem;
+  left: 0.85rem;
+  display: flex;
+  gap: 0.3rem;
+}
+
+.hud__round {
+  top: 0.9rem;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  font-size: 0.65rem;
+  letter-spacing: 0.24em;
+  color: #7d8fa0;
+}
+
+/* Keeps the browser's default paragraph margins (game-spec 8.9). */
+.hud__frame-meter {
+  bottom: 0.7rem;
+  left: 0.85rem;
+  color: rgb(150 215 255 / 45%);
+  font-size: 0.62rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+}
+
+.hud__frame-meter--slow {
+  color: #ffb37a;
+  text-shadow: 0 0 8px rgb(255 179 122 / 45%);
+}
+
+/* No font family: it keeps the browser's default button font. */
+.hud__pause {
+  top: 0.75rem;
+  right: 0.75rem;
+  pointer-events: auto;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 0.7rem;
+  line-height: 1;
+  color: #9bb4c9;
+  background: rgb(19 28 39 / 85%);
+  border: 1px solid #233040;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.hud__pause:focus-visible {
+  outline: 2px solid #4da3ff;
+  outline-offset: 2px;
+}
