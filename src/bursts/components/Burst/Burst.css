@@ -1,0 +1,92 @@
+.burst {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.burst--ally {
+  --core: #eafcff;
+  --shard: #6ee7ff;
+  --edge: #2b6ba8;
+}
+
+.burst--enemy {
+  --core: #fff3d0;
+  --shard: #ff8a5c;
+  --edge: #8f3216;
+}
+
+.burst--small {
+  --reach: 34px;
+  --piece: 5px;
+  --flash-size: 26px;
+}
+
+.burst--large {
+  --reach: 58px;
+  --piece: 7px;
+  --flash-size: 46px;
+}
+
+.burst__flash {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--flash-size);
+  height: var(--flash-size);
+  margin-top: calc(var(--flash-size) / -2);
+  margin-left: calc(var(--flash-size) / -2);
+  background: radial-gradient(circle, var(--core) 0%, var(--shard) 45%, transparent 72%);
+  border-radius: 50%;
+  animation: flash 180ms ease-out forwards;
+}
+
+.burst__shard {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--piece);
+  height: calc(var(--piece) * 1.8);
+  margin-top: calc(var(--piece) / -1);
+  margin-left: calc(var(--piece) / -2);
+  background: linear-gradient(180deg, var(--shard), var(--edge));
+  animation: scatter 600ms cubic-bezier(0.2, 0.6, 0.35, 1) forwards;
+}
+
+@keyframes flash {
+  from {
+    opacity: 1;
+    transform: scale(0.3);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+@keyframes scatter {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(calc(var(--dx, 1) * var(--reach)), calc(var(--dy, 1) * var(--reach)), 0) rotate(var(--spin, 180deg));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .burst__shard {
+    animation: none;
+    opacity: 0;
+  }
+
+  .burst__flash {
+    animation-duration: 400ms;
+  }
+}

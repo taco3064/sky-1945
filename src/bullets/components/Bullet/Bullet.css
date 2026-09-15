@@ -1,0 +1,38 @@
+.bullet {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.bullet::after {
+  content: "";
+  position: absolute;
+}
+
+.bullet--player {
+  width: 8px;
+  height: 18px;
+  margin-top: -9px;
+  margin-left: -4px;
+  background: linear-gradient(180deg, #eafcff 0%, #6ee7ff 45%, rgb(77 163 255 / 0%) 100%);
+  border-radius: 50% 50% 40% 40%;
+}
+
+.bullet--player::after {
+  inset: -3px -4px;
+  background: radial-gradient(ellipse at 50% 35%, rgb(110 231 255 / 55%), transparent 70%);
+}
+
+.bullet--enemy {
+  width: 10px;
+  height: 10px;
+  margin-top: -5px;
+  margin-left: -5px;
+  background: radial-gradient(circle at 50% 40%, #fff3d0 0%, #ffb03a 40%, #d63a1a 100%);
+  border-radius: 50%;
+}
+
+.bullet--enemy::after {
+  inset: -4px;
+  background: radial-gradient(circle, rgb(255 138 60 / 55%), transparent 70%);
+}
