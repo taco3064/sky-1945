@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react'
 import { createRef } from 'react'
 import { expect, it } from 'vitest'
-import { Bullet } from './index'
+import { Bullet } from './Bullet'
 
 it.each([
   ['player', 'bullet bullet--player'],

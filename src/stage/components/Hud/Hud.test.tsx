@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
-import { Hud, type StagePhase } from './index'
+import { Hud, type StagePhase } from './Hud'
 
 const BOSS = { id: 4, size: 1, hp: 450, maxHp: 900, pose: 'firing', move: 'radial' } as const
 

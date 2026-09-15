@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { expect, it } from 'vitest'
-import { StatBar } from './index'
+import { StatBar } from './StatBar'
 
 it.each([
   [100, 'scaleX(0)'],

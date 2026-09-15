@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
-import type { BattleView } from '~app/battle/lib/view'
-import { FieldEntities } from './index'
+import type { BattleView } from '~app/battle/models/simulation'
+import { FieldEntities } from './FieldEntities'
 
 const VIEW: BattleView = {
   lives: 3,

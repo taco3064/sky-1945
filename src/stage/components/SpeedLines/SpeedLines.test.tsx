@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react'
 import { expect, it } from 'vitest'
-import { SpeedLines } from './index'
+import { SpeedLines } from './SpeedLines'
 
 it('paints the far layer, then the near layer, paced by the speed multiplier', () => {
   const { container } = render(<SpeedLines pace={1.3} />)

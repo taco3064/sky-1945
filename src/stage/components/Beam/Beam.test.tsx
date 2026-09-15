@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react'
 import { createRef } from 'react'
 import { expect, it } from 'vitest'
-import { Beam } from './index'
+import { Beam } from './Beam'
 
 it('draws the beam mount with its core', () => {
   const ref = createRef<HTMLDivElement>()

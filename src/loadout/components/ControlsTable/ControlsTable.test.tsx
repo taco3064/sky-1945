@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { expect, it } from 'vitest'
-import { ControlsTable } from './index'
+import { ControlsTable } from './ControlsTable'
 
 it('lists every binding under KEYS and TOUCH', () => {
   render(<ControlsTable />)

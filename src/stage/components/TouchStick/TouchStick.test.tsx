@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react'
 import { createRef } from 'react'
 import { expect, it } from 'vitest'
-import { TouchStick } from './index'
+import { TouchStick } from './TouchStick'
 
 it('draws a ring holding the knob and forwards the ring ref', () => {
   const ref = createRef<HTMLDivElement>()

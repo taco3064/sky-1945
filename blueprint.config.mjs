@@ -1,15 +1,32 @@
-import { defineBlueprint } from '@kekkai/blueprint';
+import { defineBlueprint, reactPreset } from '@kekkai/blueprint';
+
+const preset = reactPreset({ name: 'SKY-1945', emit: { agents: ['claude'] } });
+
+// Module-first gives the preset's route and feature roles their own positions instead of
+// repeating them as inner layers: pages → the reserved `app` module, containers → module-root
+// files. Their layer declarations, and every importer reference to them, are dropped.
+const ROLE_LAYERS = new Set(['pages', 'containers']);
+const importerLayer = (importer) => (typeof importer === 'string' ? importer : importer.layer);
+const innerLayers = preset.architecture.layers
+  .filter((layer) => !ROLE_LAYERS.has(layer.name))
+  .map((layer) =>
+    layer.allowedImporters
+      ? { ...layer, allowedImporters: layer.allowedImporters.filter((importer) => !ROLE_LAYERS.has(importerLayer(importer))) }
+      : layer,
+  );
 
 // Module map authored from .claude/docs/game-spec.md — the repository's only
 // statement of intent. Section numbers in `does` point back to that spec.
-// src/main.tsx and src/App.tsx stay source-root wiring: the screen flow (§5)
-// composes title → loadout → stage there.
 export default defineBlueprint({
-  name: 'SKY-1945',
-  framework: 'react',
+  ...preset,
   architecture: {
-    alias: '~app',
+    ...preset.architecture,
     modules: [
+      {
+        name: 'app',
+        does: 'screen flow (§5): switches title → loadout → stage and keeps the allocation across runs',
+        dependsOn: ['title', 'loadout', 'stage'],
+      },
       {
         name: 'title',
         does: 'title screen (§6): logo, breathing prompt, any key or pointer down continues',
@@ -29,32 +46,20 @@ export default defineBlueprint({
         dependsOn: ['loadout'],
       },
     ],
-    // Inner technical layers repeated below each module; order is the one-way flow.
     layers: [
+      ...innerLayers,
       {
-        name: 'components',
-        does: 'CSS-drawn React elements of the module — screens, craft, bullets, HUD parts',
-        mustNot: ['hold simulation rules — they belong in lib'],
-        owns: ['react'],
+        // reactPreset has no framework-free layer; the game rules need one.
+        name: 'models',
+        does: 'Framework-free state models and their rules: formulas, schedules, state machines, the matter-js collision adapter.',
+        mustNot: ['import React', 'touch the DOM outside entity placement'],
+        owns: ['matter-js'],
         layout: 'folder',
         entry: 'index',
       },
-      {
-        name: 'hooks',
-        does: 'React wiring of the module — frame loop, element measuring, input listeners, per-frame placement',
-        owns: ['react'],
-        layout: 'file',
-      },
-      {
-        name: 'lib',
-        does: 'framework-free rules and data — formulas, schedules, state machines, the matter-js collision adapter',
-        mustNot: ['import React'],
-        owns: ['matter-js'],
-        layout: 'file',
-      },
     ],
   },
-  emit: {
-    agents: ['claude'],
-  },
+  // reactPreset arc: the preset rules are held back until the code is brought in line
+  // with them (steps 3 and 4), then this override is removed.
+  rules: {},
 });

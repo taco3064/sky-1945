@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react'
 import { createRef } from 'react'
 import { expect, it } from 'vitest'
-import { BossCraft } from './index'
+import { BossCraft } from './BossCraft'
 
 it('draws the charge line under the scaled craft, parts in paint order', () => {
   const ref = createRef<HTMLDivElement>()

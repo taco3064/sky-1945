@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react'
 import { createRef } from 'react'
 import { expect, it } from 'vitest'
-import { AllyCraft } from './index'
+import { AllyCraft } from './AllyCraft'
 
 it('draws the craft parts in paint order inside the placed mount', () => {
   const ref = createRef<HTMLDivElement>()

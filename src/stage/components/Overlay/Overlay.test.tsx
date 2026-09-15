@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
-import { Overlay } from './index'
+import { Overlay } from './Overlay'
 
 it('shows the title and one button per action', () => {
   const resume = vi.fn()

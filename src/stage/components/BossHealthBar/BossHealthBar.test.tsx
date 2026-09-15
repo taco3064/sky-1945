@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { expect, it } from 'vitest'
-import { BossHealthBar } from './index'
+import { BossHealthBar } from './BossHealthBar'
 
 it('arrives full, hatched and dashed with ARRIVING while shielded', () => {
   const { container } = render(<BossHealthBar hp={1350} maxHp={1350} pose="entering" move={null} />)

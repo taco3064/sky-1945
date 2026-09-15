@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { afterEach, expect, it, vi } from 'vitest'
-import App from './App'
+import App from '~app/app/App'
 
 const { createRoot, render } = vi.hoisted(() => {
   const render = vi.fn()
