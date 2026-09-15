@@ -1,0 +1,26 @@
+.life-icon {
+  position: relative;
+  display: inline-block;
+  width: 14px;
+  height: 16px;
+}
+
+.life-icon__wing {
+  position: absolute;
+  top: 42%;
+  left: 0;
+  width: 100%;
+  height: 34%;
+  clip-path: polygon(0% 86%, 18% 0%, 82% 0%, 100% 86%, 100% 100%, 66% 62%, 34% 62%, 0% 100%);
+  background: #33485f;
+}
+
+.life-icon__body {
+  position: absolute;
+  top: 0;
+  left: 34%;
+  width: 32%;
+  height: 100%;
+  clip-path: polygon(50% 0%, 100% 24%, 100% 88%, 62% 100%, 38% 100%, 0% 88%, 0% 24%);
+  background: linear-gradient(180deg, #6ee7ff 0%, #4da3ff 40%, #16202c 100%);
+}

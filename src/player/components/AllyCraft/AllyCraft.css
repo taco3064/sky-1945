@@ -1,0 +1,165 @@
+.ally {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 44px;
+  height: 52px;
+  margin-top: -26px;
+  margin-left: -22px;
+  will-change: transform;
+  perspective: 320px;
+}
+
+.ally__craft {
+  --hull: #131c27;
+  --face: #33485f;
+  --edge: #4da3ff;
+  --glow: #6ee7ff;
+
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: rotate(calc(var(--lean, 0) * 14deg));
+}
+
+.ally__craft > * {
+  position: absolute;
+}
+
+.ally__thrust {
+  bottom: -4%;
+  left: 28%;
+  width: 44%;
+  height: 20%;
+  background:
+    radial-gradient(ellipse 55% 100% at 30% 0%, var(--glow) 0%, transparent 70%),
+    radial-gradient(ellipse 55% 100% at 70% 0%, var(--glow) 0%, transparent 70%);
+  opacity: 0.85;
+  filter: blur(1.5px);
+  transform-origin: 50% 0%;
+  will-change: transform;
+  animation: burn 90ms ease-in-out infinite alternate;
+}
+
+.ally__wing {
+  top: 42%;
+  left: 0;
+  width: 100%;
+  height: 36%;
+  clip-path: polygon(0% 86%, 16% 6%, 40% 0%, 60% 0%, 84% 6%, 100% 86%, 100% 100%, 68% 62%, 32% 62%, 0% 100%);
+  background: linear-gradient(180deg, var(--face) 0%, var(--hull) 55%);
+}
+
+.ally__wing::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: inherit;
+  background: linear-gradient(180deg, var(--glow) 0%, transparent 26%);
+}
+
+.ally__wing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle 1.5px at 2% 84%, var(--glow) 0%, transparent 100%),
+    radial-gradient(circle 1.5px at 98% 84%, var(--glow) 0%, transparent 100%);
+}
+
+.ally__fin {
+  bottom: 2%;
+  width: 22%;
+  height: 26%;
+  background: linear-gradient(180deg, var(--face), var(--hull));
+}
+
+.ally__fin--left {
+  left: 10%;
+  clip-path: polygon(100% 0%, 100% 100%, 0% 100%);
+}
+
+.ally__fin--right {
+  right: 10%;
+  clip-path: polygon(0% 0%, 100% 100%, 0% 100%);
+}
+
+.ally__body {
+  top: 0;
+  left: 33%;
+  width: 34%;
+  height: 100%;
+  clip-path: polygon(50% 0%, 74% 20%, 66% 48%, 76% 74%, 62% 100%, 38% 100%, 24% 74%, 34% 48%, 26% 20%);
+  background: linear-gradient(90deg, var(--hull) 0%, var(--face) 34%, #52708f 50%, var(--face) 66%, var(--hull) 100%);
+}
+
+.ally__body::before {
+  content: "";
+  position: absolute;
+  top: 34%;
+  left: 46%;
+  width: 8%;
+  height: 52%;
+  background: linear-gradient(180deg, var(--edge), transparent);
+  opacity: 0.9;
+}
+
+.ally__canopy {
+  top: 20%;
+  left: 39%;
+  width: 22%;
+  height: 22%;
+  border-radius: 52% 52% 40% 40%;
+  background: linear-gradient(155deg, #eafcff 0%, var(--glow) 42%, #14647f 100%);
+  box-shadow: 0 0 5px var(--glow);
+}
+
+.ally--protected .ally__craft {
+  animation: protected 260ms ease-in-out infinite alternate;
+}
+
+/* A rolling aircraft is always also protected. */
+.ally--rolling.ally--protected .ally__craft {
+  animation: roll 1.2s linear, protected 260ms ease-in-out infinite alternate;
+}
+
+.ally--spent .ally__thrust {
+  opacity: 0.35;
+  filter: saturate(0.4);
+}
+
+@keyframes burn {
+  from {
+    transform: scaleY(0.78);
+    opacity: 0.72;
+  }
+
+  to {
+    transform: scaleY(1.28);
+    opacity: 0.95;
+  }
+}
+
+@keyframes roll {
+  from { transform: rotateY(0deg); }
+  to { transform: rotateY(1080deg); }
+}
+
+@keyframes protected {
+  from { opacity: 1; }
+  to { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ally__thrust {
+    animation: none;
+    transform: scaleY(1.03);
+  }
+
+  /* Loses the animation to the more specific rolling + protected rule: the spin and blink still play. */
+  .ally--rolling .ally__craft {
+    animation: none;
+    filter: brightness(1.6);
+  }
+}
