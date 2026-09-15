@@ -1,0 +1,131 @@
+# Verify every change, and publish the ones that land on main.
+#
+# The verify job is not decoration beside the deploy — it gates it. Every gate in
+# this repo (lint, tsc, the 100% coverage floor, blueprint's layer nets, and the
+# bundle) runs here, where nobody can skip it the way a local hook can be skipped.
+#
+# It runs on **pull requests** as well, and that was missing: the first version only
+# fired after a merge, so a test that passed locally and timed out on a shared runner
+# was found by breaking main rather than by failing a review. A check that only runs
+# after the decision is not a check, it is a postmortem.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # A redeploy without a commit: useful when the Pages settings change, or to
+  # republish after a failed run.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  # Required by actions/deploy-pages, which authenticates to Pages with an OIDC
+  # token rather than a stored secret.
+  id-token: write
+
+# One run per ref, so a pull request cannot cancel main's deployment or another
+# pull request's checks.
+#
+# Superseded pull-request runs are cancelled — pushing twice in a minute should not
+# queue two full verifications of the older commit. A deployment never is: cutting
+# one off half-way leaves the site serving a mix of two builds.
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      # Each gate is its own step so a failure names itself in the run summary
+      # rather than hiding inside one long script.
+      - name: Lint
+        run: npm run lint
+
+      - name: Types
+        run: npx tsc -b --force
+
+      - name: Tests and coverage floor
+        run: npm run coverage
+
+      # The architecture contract this repo exists to test. It reports rather
+      # than fails on structure it cannot see, so the hard boundaries are the
+      # ESLint rules above — this is the survey that says how much is covered.
+      - name: Architecture contract
+        run: npm run inspect
+
+      # Every gate above proves something only while the rules are still wired, and
+      # nothing above can tell. This repo owns eslint.config.mjs rather than letting
+      # `blueprint init` regenerate it, so an edit that drops the
+      # `...emitLint(blueprint)` spread — or a later block that softens an emitted
+      # rule — leaves `npm run lint` green with the structural rules gone. `inspect`
+      # would not notice either: it checks the code against the config, not whether
+      # the config is still enforced.
+      #
+      # doctor is that check, and it is the one gate here that reads the wiring: the
+      # spread, the import alias in the toolchain, the emitted rules surviving the
+      # merged config, and the generated handbook and contract still matching
+      # blueprint.config.mjs.
+      #
+      # The exit code is enough. A skipped check keeps exit 0 — but both states that
+      # can skip, eslint unwired and an eslint config that will not resolve, are
+      # already red in doctor's own wiring check and in Lint above.
+      - name: Contract wiring
+        run: npx blueprint doctor
+
+      # Root-relative, because this one is only asking whether the bundle builds.
+      # The deploy below rebuilds it with the Pages prefix; doing it here too means a
+      # pull request that breaks the build says so, rather than being found by the
+      # deployment that follows the merge.
+      - name: Bundle
+        run: npx vite build
+
+  build:
+    needs: verify
+    # Pull requests stop at verify. There is one Pages site and it belongs to main;
+    # publishing a branch to it would replace the live game with a proposal.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      # Pages serves a project site from /<repo>/, so the bundle's asset URLs
+      # have to be written for that prefix. Passed here rather than set in
+      # vite.config.ts: where the site is hosted is a fact about deployment, and
+      # a local `npm run build` should stay root-relative.
+      - name: Build
+        run: npx vite build --base=/${{ github.event.repository.name }}/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

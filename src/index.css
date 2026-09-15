@@ -1,0 +1,61 @@
+/*
+ * Root layout for a portrait game field.
+ *
+ * The game is portrait, one hand, a few minutes a round — it is shaped like a
+ * phone game, and the desktop build is the one that needs special handling (a
+ * portrait field boxed into the middle of a wide screen, #4). So none of this
+ * is a later mobile port; it is the scaffold.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  /* 100dvh, never 100vh. iOS Safari's address bar resizes as it scrolls away,
+     and 100vh is measured against the *largest* viewport — so a 100vh field
+     is cropped while the bar is showing, then jumps when it hides. Mid-dodge. */
+  height: 100dvh;
+  overflow: hidden;
+}
+
+body {
+  background: #000;
+  color: #fff;
+  font-family: system-ui, sans-serif;
+
+  /* The notch and the home indicator. Reports real numbers only because the
+     viewport meta carries viewport-fit=cover. */
+  padding:
+    env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+
+  /* Without this the browser takes the gestures the game needs: a drag
+     becomes a scroll and two fingers become a zoom. Both are fatal to the
+     touch stick and the second-finger roll trigger (#5, #10). */
+  touch-action: none;
+
+  /* Pull-to-refresh reloads the page mid-run. A downward drag near the top
+     of the screen is a completely ordinary thing to do while dodging. */
+  overscroll-behavior: none;
+
+  /* A held thumb must not select text or raise the callout menu — the touch
+     stick is a long press by construction. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+
+  /* No grey flash on the pause button. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+#root {
+  display: grid;
+  place-items: center;
+}

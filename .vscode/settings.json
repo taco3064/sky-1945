@@ -1,0 +1,54 @@
+{
+  "explorer.fileNesting.enabled": true,
+  "explorer.sortOrder": "type",
+  "explorer.sortOrderLexicographicOptions": "upper",
+  "explorer.fileNesting.patterns": {
+    "README.md": "README*, LICENSE*, CLAUDE*",
+    "eslint.config.mjs": "blueprint.config.mjs",
+    "package.json": "package-lock.json, .npmrc, .nvmrc",
+    "tsconfig.json": "tsconfig.*.json",
+    "vite.config.ts": "index.html"
+  },
+  // Two trees inside the workspace are generated in bulk and never edited: a worktree
+  // under `.claude/worktrees/` carries its own `npm ci` install (~33k files each), and
+  // Stryker copies the whole project once per core into `.stryker-tmp`. Watching them
+  // exhausted the extension host's file descriptors — `rg` failed to spawn with EMFILE,
+  // 35k `spawn EBADF` followed, the host went unresponsive 49 times, and the window
+  // renderer crashed twice in one day. VS Code's defaults cover neither path.
+  "files.watcherExclude": {
+    "**/.claude/worktrees/**": true,
+    "**/.stryker-tmp/**": true
+  },
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.format.enable": true,
+  // The react variants are separate language ids, and leaving them out was not a
+  // no-op: `.tsx` fell through to the global default formatter — Prettier, whose
+  // default is double quotes — while `@stylistic/quotes` here demands single. So
+  // every save rewrote the quotes ESLint then failed on, and `source.fixAll.eslint`
+  // never ran on those files to undo it. `.ts` was unaffected, which is why it
+  // looked like a formatter that only broke components.
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  "[javascript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  }
+}

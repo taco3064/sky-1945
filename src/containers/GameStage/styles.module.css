@@ -1,0 +1,198 @@
+/*
+ * `--lean`, registered once for the whole document.
+ *
+ * Every aircraft banks by `rotate(calc(var(--lean) * Ndeg))`, and that silently did
+ * nothing until this block existed. An *unregistered* custom property is an
+ * untyped token: substituting it into `transform` leaves a declaration that is
+ * invalid at computed-value time, so the whole transform resolves to `none` — no
+ * error, no warning, just no bank. Reported from play twice as exactly that.
+ *
+ * Registering it gives the property a type, an inherited value, and a starting
+ * point, which is what makes the `calc` above resolve.
+ *
+ * It lives here because this is the container every aircraft is drawn inside, so it
+ * cannot be missing when one needs it — `@property` is document-scoped, and putting
+ * it in one component's stylesheet would make the other two depend on that
+ * component having rendered.
+ */
+@property --lean {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+/*
+ * `--pace`, the speed boost the streaks travel at. Registered for the same reason
+ * as `--lean` above: it is substituted into a `calc()` — an animation duration here
+ * rather than an angle — and an untyped token there makes the whole declaration
+ * invalid at computed-value time. That failure is silent, which is what makes it
+ * worth the four lines.
+ */
+@property --pace {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 1;
+}
+
+/*
+ * The field is 540 × 960 world units on every device, and the screen is
+ * fitted to it — never the other way round. A field sized to the viewport
+ * would be a wider field on a tablet, and a wider field is an easier one:
+ * the same wave would be more dodgeable on bigger hardware.
+ */
+
+.viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.field {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 540px;
+  height: 960px;
+  background: #05070a;
+  border: 1px solid #16202c;
+
+  /*
+   * Read right to left: translate by half the field's own (unscaled) size,
+   * then scale that offset along with everything else. Doing it the other way
+   * round would move the field by half its *unscaled* size and leave it
+   * off-centre at every scale but 1.
+   *
+   * The scale itself is written by useStageScale on resize — not per frame.
+   */
+  transform-origin: 0 0;
+  transform: scale(var(--stage-scale, 1)) translate(-50%, -50%);
+}
+
+/*
+ * The touch surface covers the whole viewport rather than just the field, so
+ * a thumb resting in the margin of a wide screen still steers. It sits above
+ * the field and below the controls.
+ */
+.surface {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+}
+
+/*
+ * The HUD's frame: exactly where the field is drawn, but unscaled.
+ *
+ * Corner-anchored readouts belong to the *field's* corners, not the viewport's
+ * — the viewport is full width, so on a desktop the lives counter ended up
+ * against the browser edge with a wide black gap between it and the play area.
+ * Sizing this from --stage-scale puts it over the field; keeping the contents
+ * outside `.field` stops them shrinking with it.
+ */
+.hud {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  width: calc(540px * var(--stage-scale, 1));
+  height: calc(960px * var(--stage-scale, 1));
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* Top-left: three aircraft read as "three left" faster than a numeral does,
+   and the HUD has to be legible without being looked at. */
+.lives {
+  position: absolute;
+  top: 0.85rem;
+  left: 0.85rem;
+  display: flex;
+  gap: 0.3rem;
+  pointer-events: none;
+}
+
+/* Top centre; the pause button has the right corner. */
+.round {
+  position: absolute;
+  top: 0.9rem;
+  left: 50%;
+  margin: 0;
+  font-size: 0.65rem;
+  letter-spacing: 0.24em;
+  color: #7d8fa0;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.pause {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+
+  /* The one thing in the HUD that is touchable. */
+  pointer-events: auto;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 0.7rem;
+  line-height: 1;
+  color: #9bb4c9;
+  background: rgb(19 28 39 / 85%);
+  border: 1px solid #233040;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.pause:focus-visible {
+  outline: 2px solid #4da3ff;
+  outline-offset: 2px;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  align-items: center;
+  justify-content: center;
+  background: rgb(5 7 10 / 72%);
+}
+
+.overlayTitle {
+  margin: 0;
+  font-size: 0.85rem;
+  letter-spacing: 0.3em;
+  color: #dbe5f0;
+}
+
+.overlayActions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.action {
+  padding: 0.6rem 1.75rem;
+  font: inherit;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  color: #dbe5f0;
+  background: rgb(19 28 39 / 90%);
+  border: 1px solid #233040;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.action:focus-visible {
+  outline: 2px solid #4da3ff;
+  outline-offset: 2px;
+}
+
+.reached {
+  margin: -1.25rem 0 0;
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  color: #7d8fa0;
+}

@@ -1,0 +1,1 @@
+export { useHitPoints } from './useHitPoints';

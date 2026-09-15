@@ -1,0 +1,72 @@
+/*
+ * BEAM — 88 × 1000 world units, which is the body's own footprint in
+ * engine/entities. The two numbers are the same on purpose: unlike an
+ * aircraft, whose drawing is generously larger than its hit circle, a hazard
+ * that looked wider or narrower than it kills would be a lie the player pays
+ * for.
+ *
+ * The engine publishes the body's centre, so the mount is centred on it — hence
+ * the negative margins rather than a top-left origin.
+ *
+ * Violet, matching the boss's core: this is that energy, arriving.
+ */
+
+.mount {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 88px;
+  height: 1000px;
+  margin-top: -500px;
+  margin-left: -44px;
+  background: linear-gradient(
+    90deg,
+    rgb(192 125 255 / 0%) 0%,
+    rgb(192 125 255 / 45%) 22%,
+    rgb(240 212 255 / 75%) 50%,
+    rgb(192 125 255 / 45%) 78%,
+    rgb(192 125 255 / 0%) 100%
+  );
+  will-change: transform;
+}
+
+/* The white-hot centre. Narrow, so the eye reads the column's middle as the
+   part that cannot be survived. */
+.core {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 18px;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    #fff 0%,
+    var(--beam-body, #f0d4ff) 8%,
+    rgb(240 212 255 / 60%) 100%
+  );
+  box-shadow: 0 0 24px #c07dff;
+  transform: translateX(-50%);
+  animation: surge 0.12s steps(2, end) infinite alternate;
+}
+
+/*
+ * A fast flicker, which is the one thing that separates a beam from a painted
+ * rectangle. Two steps rather than a smooth fade: at this speed a linear
+ * interpolation reads as a dim column, and a hard alternation reads as power.
+ */
+@keyframes surge {
+  from {
+    opacity: 0.82;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .core {
+    animation: none;
+    opacity: 1;
+  }
+}

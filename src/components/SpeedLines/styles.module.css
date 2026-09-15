@@ -1,0 +1,88 @@
+/*
+ * SPEED LINES — the only thing in the game that says the aircraft is moving
+ * rather than hovering.
+ *
+ * Vertical streaks, and the shape of them is the whole trick. The first attempt
+ * used `repeating-linear-gradient(180deg, …)` across the full width, which is
+ * uniform in x — so it drew horizontal *bands* scrolling downward, and the field
+ * read as a floor sliding past rather than as air going by.
+ *
+ * What draws a thin vertical streak is one gradient per line, each with its own
+ * column and `repeat-y`: the background-size fixes the line's width, the gradient
+ * inside it fades the ends, and the repeat stacks it down the screen.
+ *
+ * Every tile is the same 200px tall on purpose. `background-position-y` animates
+ * all layers with one value, so tiles of different heights would drift out of phase
+ * and the loop would visibly jump. Length variation comes from the gradient stops
+ * instead, which costs nothing and keeps the wrap seamless.
+ */
+
+.rush {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+
+  /* Behind every aircraft and bullet, and never in the way of a touch. */
+  z-index: 0;
+  pointer-events: none;
+}
+
+.rush > * {
+  position: absolute;
+
+  /* One tile taller than the field, so the wrap happens off screen. */
+  inset: -200px 0 0;
+  background-repeat: repeat-y;
+}
+
+/*
+ * Two layers at different rates. One would be a moving wallpaper; two is parallax,
+ * and the eye reads the difference between them as depth.
+ *
+ * The far layer is dimmer, thinner and slower, and its columns sit between the
+ * near one's — a regular grid of streaks would read as a fence.
+ */
+.far {
+  background-image:
+    linear-gradient(180deg, transparent 0%, rgb(120 190 255 / 10%) 45%, transparent 70%),
+    linear-gradient(180deg, transparent 0%, rgb(120 190 255 / 8%) 30%, transparent 52%),
+    linear-gradient(180deg, transparent 0%, rgb(120 190 255 / 9%) 38%, transparent 60%);
+  background-size: 1px 200px, 1px 200px, 1px 200px;
+  background-position: 9% 0, 53% 0, 79% 0;
+  animation: rush calc(2.6s / var(--pace, 1)) linear infinite;
+}
+
+.near {
+  background-image:
+    linear-gradient(180deg, transparent 0%, rgb(160 220 255 / 20%) 34%, transparent 58%),
+    linear-gradient(180deg, transparent 0%, rgb(160 220 255 / 16%) 42%, transparent 66%),
+    linear-gradient(180deg, transparent 0%, rgb(160 220 255 / 22%) 28%, transparent 48%),
+    linear-gradient(180deg, transparent 0%, rgb(160 220 255 / 14%) 46%, transparent 72%);
+  background-size: 2px 200px, 2px 200px, 2px 200px, 2px 200px;
+  background-position: 24% 0, 38% 0, 64% 0, 91% 0;
+  animation: rush calc(1.35s / var(--pace, 1)) linear infinite;
+}
+
+/* Exactly one tile, so the pattern lands back on itself with no jump. */
+@keyframes rush {
+  from {
+    background-position-y: 0;
+  }
+
+  to {
+    background-position-y: 200px;
+  }
+}
+
+/*
+ * Motion is the entire point here, so it does not simply stop: with reduced motion
+ * the streaks hold still and dim, which keeps the field from becoming a plain black
+ * rectangle without pushing anything past the viewer.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .far,
+  .near {
+    animation: none;
+    opacity: 0.45;
+  }
+}
