@@ -4,6 +4,7 @@ import { createBurst } from '../bursts';
 import { type Enemy, damageEnemy } from '../enemies';
 import { isProtected, launchPlayer } from '../player';
 import { type Collider, type World, nextId, removeCollider } from './world';
+import { wreckBoss, wreckEnemy } from './wrecks';
 
 interface Resolution {
   readonly world: World;
@@ -101,11 +102,7 @@ function hitEnemy(resolution: Resolution, bullet: Bullet, enemy: Enemy): void {
   }
 
   removed.add(enemy.id);
-  removeCollider(world, enemy.id);
-
-  world.bursts.push(
-    createBurst(nextId(world), { x: enemy.x, y: enemy.y, tone: 'enemy', size: 'small' }),
-  );
+  wreckEnemy(world, enemy);
 }
 
 function hitBoss(resolution: Resolution, bullet: Bullet, boss: Boss): void {
@@ -117,18 +114,7 @@ function hitBoss(resolution: Resolution, bullet: Bullet, boss: Boss): void {
     return;
   }
 
-  removeCollider(world, boss.id);
-
-  if (boss.beam) {
-    removeCollider(world, boss.beam.id);
-    boss.beam = null;
-  }
-
-  world.boss = null;
-
-  world.bursts.push(
-    createBurst(nextId(world), { x: boss.x, y: boss.y, tone: 'enemy', size: 'large' }),
-  );
+  wreckBoss(world, boss);
 }
 
 function killPlayer(resolution: Resolution): void {

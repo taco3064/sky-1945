@@ -6,3 +6,4 @@ export * from './rounds';
 export * from './step';
 export * from './view';
 export * from './world';
+export * from './wrecks';
