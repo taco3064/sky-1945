@@ -1,6 +1,6 @@
 import type { CSSProperties, Ref } from 'react'
-import type { BurstSize, BurstTone } from '~app/bursts/lib/burst'
-import { burstShards } from '~app/bursts/lib/shards'
+import type { BurstSize, BurstTone } from '~app/battle/lib/burst'
+import { burstShards } from '~app/battle/lib/shards'
 import './Burst.css'
 
 interface BurstProps {

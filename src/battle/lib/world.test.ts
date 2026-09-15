@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createBoss } from '~app/boss/lib/boss'
-import { createBullet } from '~app/bullets/lib/bullet'
-import { createBurst } from '~app/bursts/lib/burst'
-import { createEnemy } from '~app/enemies/lib/enemy'
-import { roundSchedule } from '~app/enemies/lib/waves'
+import { createBoss } from './boss'
+import { createBullet } from './bullet'
+import { createBurst } from './burst'
+import { createEnemy } from './enemy'
+import { roundSchedule } from './waves'
 import {
   addBeam,
   addBoss,

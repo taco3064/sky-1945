@@ -1,6 +1,6 @@
-import type { Bullet } from '~app/bullets/lib/bullet'
-import { type FirePattern, fireVolley } from '~app/bullets/lib/patterns'
-import type { Point } from '~app/field/lib/field'
+import type { Bullet } from './bullet'
+import { type FirePattern, fireVolley } from './patterns'
+import type { Point } from './field'
 import { type BossAttack, attackAt } from './attackOrder'
 
 export type BossPose = 'entering' | 'winding' | 'firing' | 'recovering'

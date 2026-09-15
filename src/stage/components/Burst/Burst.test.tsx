@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react'
 import { createRef } from 'react'
 import { expect, it } from 'vitest'
-import { burstShards } from '~app/bursts/lib/shards'
+import { burstShards } from '~app/battle/lib/shards'
 import { Burst } from './index'
 
 it('paints the flash first, then one shard per table row with its direction and spin', () => {

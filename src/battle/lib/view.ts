@@ -1,9 +1,9 @@
-import type { BossAttack } from '~app/boss/lib/attackOrder'
-import type { BossPose } from '~app/boss/lib/boss'
-import type { BulletSide } from '~app/bullets/lib/bullet'
-import type { BurstSize, BurstTone } from '~app/bursts/lib/burst'
-import type { EnemyKind } from '~app/enemies/lib/kinds'
-import { isProtected, isRolling, isSpent } from '~app/player/lib/player'
+import type { BossAttack } from './attackOrder'
+import type { BossPose } from './boss'
+import type { BulletSide } from './bullet'
+import type { BurstSize, BurstTone } from './burst'
+import type { EnemyKind } from './kinds'
+import { isProtected, isRolling, isSpent } from './player'
 import type { World } from './world'
 
 export interface PlayerView {

@@ -1,5 +1,5 @@
-import type { BossAttack } from '~app/boss/lib/attackOrder'
-import type { BossPose } from '~app/boss/lib/boss'
+import type { BossAttack } from '~app/battle/lib/attackOrder'
+import type { BossPose } from '~app/battle/lib/boss'
 import './BossHealthBar.css'
 
 const LOW_FRACTION = 0.25

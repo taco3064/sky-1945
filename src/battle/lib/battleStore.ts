@@ -1,5 +1,5 @@
-import type { Point } from '~app/field/lib/field'
-import { tryRoll } from '~app/player/lib/player'
+import type { Point } from './field'
+import { tryRoll } from './player'
 import { createFrameMeter, recordFrame } from './frameMeter'
 import { stepDuration, stepWorld } from './step'
 import { type BattleView, buildView } from './view'

@@ -1,4 +1,4 @@
-import type { FirePattern } from '~app/bullets/lib/patterns'
+import type { FirePattern } from './patterns'
 
 export type EnemyKind = 'small' | 'medium' | 'large'
 

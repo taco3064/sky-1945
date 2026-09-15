@@ -1,6 +1,6 @@
-import type { Bullet } from '~app/bullets/lib/bullet'
-import { fireVolley } from '~app/bullets/lib/patterns'
-import { isOutsideBy, type Point } from '~app/field/lib/field'
+import type { Bullet } from './bullet'
+import { fireVolley } from './patterns'
+import { isOutsideBy, type Point } from './field'
 import {
   ENEMY_KINDS,
   type EnemyKind,

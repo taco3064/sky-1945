@@ -1,4 +1,4 @@
-import { FIELD_HEIGHT, FIELD_WIDTH, type Point } from '~app/field/lib/field'
+import { FIELD_HEIGHT, FIELD_WIDTH, type Point } from './field'
 import type { EnemyKind } from './kinds'
 import type { EnemyPath, EntryEdge } from './paths'
 

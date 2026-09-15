@@ -1,5 +1,5 @@
 import { type RefObject, useEffect } from 'react'
-import { FIELD_HEIGHT, FIELD_WIDTH } from '~app/field/lib/field'
+import { FIELD_HEIGHT, FIELD_WIDTH } from '~app/battle/lib/field'
 
 /**
  * Writes `--stage-scale = min(width / 540, height / 960)` of the viewport's content box

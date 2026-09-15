@@ -1,6 +1,6 @@
 import type { BossView } from '~app/battle/lib/view'
-import { BossHealthBar } from '~app/boss/components/BossHealthBar'
-import { LifeIcon } from '~app/player/components/LifeIcon'
+import { BossHealthBar } from '../BossHealthBar'
+import { LifeIcon } from '../LifeIcon'
 import { frameMeterText, isSlowFrameRate } from '~app/stage/lib/frameMeterText'
 import './Hud.css'
 

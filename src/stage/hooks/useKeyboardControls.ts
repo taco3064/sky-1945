@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { type Direction, arrowDirection, isArrowKey } from '~app/controls/lib/keyboard'
+import { type Direction, arrowDirection, isArrowKey } from '~app/stage/lib/keyboard'
 
 interface KeyboardHandlers {
   onSteer: (direction: Direction) => void

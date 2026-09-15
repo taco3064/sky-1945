@@ -1,6 +1,6 @@
 import { type PointerEvent, useRef } from 'react'
-import type { Direction } from '~app/controls/lib/keyboard'
-import { type Steering, isTap, moveSteering, startSteering } from '~app/controls/lib/pointer'
+import type { Direction } from '~app/stage/lib/keyboard'
+import { type Steering, isTap, moveSteering, startSteering } from '~app/stage/lib/pointer'
 
 interface PointerHandlers {
   onSteer: (direction: Direction) => void

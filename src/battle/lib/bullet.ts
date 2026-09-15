@@ -1,5 +1,5 @@
-import { isOutsideBy } from '~app/field/lib/field'
-import { headingVelocity } from '~app/field/lib/heading'
+import { isOutsideBy } from './field'
+import { headingVelocity } from './heading'
 
 export type BulletSide = 'player' | 'enemy'
 

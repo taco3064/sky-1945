@@ -1,8 +1,8 @@
-import { type Boss, damageBoss } from '~app/boss/lib/boss'
-import type { Bullet } from '~app/bullets/lib/bullet'
-import { createBurst } from '~app/bursts/lib/burst'
-import { type Enemy, damageEnemy } from '~app/enemies/lib/enemy'
-import { isProtected, launchPlayer } from '~app/player/lib/player'
+import { type Boss, damageBoss } from './boss'
+import type { Bullet } from './bullet'
+import { createBurst } from './burst'
+import { type Enemy, damageEnemy } from './enemy'
+import { isProtected, launchPlayer } from './player'
 import { type Collider, type World, nextId, removeCollider } from './world'
 
 interface Resolution {

@@ -1,5 +1,5 @@
-import { type Bullet, createBullet } from '~app/bullets/lib/bullet'
-import type { Point } from '~app/field/lib/field'
+import { type Bullet, createBullet } from './bullet'
+import type { Point } from './field'
 import { powerMultiplier, speedMultiplier } from '~app/loadout/lib/allocation'
 
 /** Lives per run (game-spec 12.3). */

@@ -1,5 +1,5 @@
 import type { Ref } from 'react'
-import type { BulletSide } from '~app/bullets/lib/bullet'
+import type { BulletSide } from '~app/battle/lib/bullet'
 import './Bullet.css'
 
 interface BulletProps {

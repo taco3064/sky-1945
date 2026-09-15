@@ -1,5 +1,5 @@
 import type { Ref } from 'react'
-import type { EnemyKind } from '~app/enemies/lib/kinds'
+import type { EnemyKind } from '~app/battle/lib/kinds'
 import './EnemyCraft.css'
 
 /** Parts in paint order (game-spec 9.4–9.6). */

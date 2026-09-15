@@ -1,6 +1,6 @@
 import type { CSSProperties, Ref } from 'react'
-import type { BossAttack } from '~app/boss/lib/attackOrder'
-import type { BossPose } from '~app/boss/lib/boss'
+import type { BossAttack } from '~app/battle/lib/attackOrder'
+import type { BossPose } from '~app/battle/lib/boss'
 import './BossCraft.css'
 
 const PARTS = ['wing', 'arm-left', 'arm-right', 'armour', 'pod-left', 'pod-right', 'body', 'spine', 'canopy', 'core', 'muzzle']

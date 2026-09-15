@@ -11,16 +11,6 @@ export default defineBlueprint({
     alias: '~app',
     modules: [
       {
-        name: 'stage',
-        does: 'play screen (§8): viewport fit and the scaled field element, speed lines, entity paint order, touch surface, HUD and pause / game-over overlays',
-        dependsOn: ['battle', 'controls', 'loadout', 'player', 'enemies', 'boss', 'bullets', 'bursts', 'field'],
-      },
-      {
-        name: 'battle',
-        does: 'run simulation (§12.2, §12.5, §12.10–§12.12, §13): frame loop and four-pass step, rounds and difficulty, lives and relaunch, hit detection and contact resolution, frame-rate window',
-        dependsOn: ['player', 'enemies', 'boss', 'bullets', 'bursts', 'loadout', 'field'],
-      },
-      {
         name: 'title',
         does: 'title screen (§6): logo, breathing prompt, any key or pointer down continues',
       },
@@ -29,37 +19,14 @@ export default defineBlueprint({
         does: 'loadout screen and allocation (§7, §14.1): the 10-point SPEED / POWER split and the multipliers it yields',
       },
       {
-        name: 'controls',
-        does: 'player input (§8.8, §12.4): arrow-key and pointer steering direction, roll requests, pause key, touch stick',
+        name: 'stage',
+        does: 'play screen (§8–§10, §12.4): viewport fit, entity drawings and placement, speed lines, HUD, overlays, keyboard and pointer controls, touch stick',
+        dependsOn: ['battle', 'loadout'],
       },
       {
-        name: 'player',
-        does: 'ALLY-01 (§9.1, §9.2, §12.3): craft and life-icon drawings, fly-in, steering, auto-fire volleys, barrel roll and protection',
-        dependsOn: ['bullets', 'loadout', 'field'],
-      },
-      {
-        name: 'enemies',
-        does: 'enemy aircraft (§9.3–§9.6, §12.6–§12.8): ENEMY-S / M / L drawings, wave and squad schedule, flight paths, firing',
-        dependsOn: ['bullets', 'field'],
-      },
-      {
-        name: 'boss',
-        does: 'boss (§8.6, §9.7, §10.3, §12.9): rolled size, entry and patrol, stance machine, seeded attack order, volleys, ram, beam, health bar and tells',
-        dependsOn: ['bullets', 'field'],
-      },
-      {
-        name: 'bullets',
-        does: 'bullets of both sides (§10.1, §10.2, §12.8): drawings, straight / spread / radial volleys, constant-velocity flight, off-field removal',
-        dependsOn: ['field'],
-      },
-      {
-        name: 'bursts',
-        does: 'wreck bursts (§10.4): ally / enemy palettes, small / large sizes, flash and shards, simulated lifetime',
-        dependsOn: ['field'],
-      },
-      {
-        name: 'field',
-        does: 'play-field coordinate space (§0, §8.4, §12.1): 540 × 960 u bounds, headings, outside-by-margin test, entity placement transform and lean',
+        name: 'battle',
+        does: 'run rules and simulation (§12, §13): field space, bullets, bursts, player, enemy waves and paths, boss, hit detection, rounds, frame-rate window, and the React adapter of a run',
+        dependsOn: ['loadout'],
       },
     ],
     // Inner technical layers repeated below each module; order is the one-way flow.

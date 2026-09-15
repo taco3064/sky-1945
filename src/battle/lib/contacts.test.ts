@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { type Boss, createBoss } from '~app/boss/lib/boss'
-import { type Bullet, createBullet } from '~app/bullets/lib/bullet'
-import { type Enemy, createEnemy } from '~app/enemies/lib/enemy'
-import { roundSchedule } from '~app/enemies/lib/waves'
+import { type Boss, createBoss } from './boss'
+import { type Bullet, createBullet } from './bullet'
+import { type Enemy, createEnemy } from './enemy'
+import { roundSchedule } from './waves'
 import { resolveContacts } from './contacts'
 import { type Collider, type World, addBeam, addBoss, addBullet, addEnemy, createWorld, nextId } from './world'
 

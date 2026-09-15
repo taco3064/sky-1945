@@ -1,4 +1,4 @@
-import type { Point } from '~app/field/lib/field'
+import type { Point } from './field'
 
 export type EnemyPath = 'dive' | 'weave' | 'arc' | 'hover' | 'feint'
 
