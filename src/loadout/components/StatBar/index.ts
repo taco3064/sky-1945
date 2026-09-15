@@ -1,1 +1,1 @@
-export * from './StatBar'
+export * from './StatBar';

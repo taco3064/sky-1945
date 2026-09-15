@@ -1,1 +1,1 @@
-export * from './useKeyboardControls'
+export * from './useKeyboardControls';

@@ -1,5 +1,5 @@
-import { expect, it } from 'vitest'
-import { roundMultiplier } from './rounds'
+import { expect, it } from 'vitest';
+import { roundMultiplier } from './rounds';
 
 // game-spec 14.2: round → m
 it.each([
@@ -16,5 +16,5 @@ it.each([
   [11, 2.0],
   [30, 2.0],
 ])('round %i has m = %f', (round, m) => {
-  expect(roundMultiplier(round)).toBeCloseTo(m, 12)
-})
+  expect(roundMultiplier(round)).toBeCloseTo(m, 12);
+});

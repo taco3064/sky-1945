@@ -1,1 +1,1 @@
-export * from './useLoadoutKeys'
+export * from './useLoadoutKeys';

@@ -1,1 +1,1 @@
-export * from './ControlsTable'
+export * from './ControlsTable';

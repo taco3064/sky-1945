@@ -1,12 +1,12 @@
-import { useAnyKeyDown } from '~app/title/hooks/useAnyKeyDown'
-import './TitleScreen.css'
+import { useAnyKeyDown } from '~app/title/hooks/useAnyKeyDown';
+import './TitleScreen.css';
 
 interface TitleScreenProps {
-  onContinue: () => void
+  onContinue: () => void;
 }
 
 export function TitleScreen({ onContinue }: TitleScreenProps) {
-  useAnyKeyDown(onContinue)
+  useAnyKeyDown(onContinue);
 
   return (
     <div className="title" onPointerDown={onContinue}>
@@ -18,5 +18,5 @@ export function TitleScreen({ onContinue }: TitleScreenProps) {
         <span className="title__tap">TAP TO START</span>
       </p>
     </div>
-  )
+  );
 }

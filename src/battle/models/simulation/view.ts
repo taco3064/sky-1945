@@ -1,58 +1,59 @@
-import type { BossAttack } from '../boss'
-import type { BossPose } from '../boss'
-import type { BulletSide } from '../bullets'
-import type { BurstSize, BurstTone } from '../bursts'
-import type { EnemyKind } from '../enemies'
-import { isProtected, isRolling, isSpent } from '../player'
-import type { World } from './world'
+import type { BossAttack, BossPose } from '../boss';
+import type { BulletSide } from '../bullets';
+import type { BurstSize, BurstTone } from '../bursts';
+import type { EnemyKind } from '../enemies';
+import { isProtected, isRolling, isSpent } from '../player';
+import type { World } from './world';
 
 export interface PlayerView {
-  readonly id: number
-  readonly rolling: boolean
-  readonly protected: boolean
-  readonly spent: boolean
+  readonly id: number;
+  readonly rolling: boolean;
+  readonly protected: boolean;
+  readonly spent: boolean;
 }
 
 export interface BossView {
-  readonly id: number
-  readonly size: number
-  readonly hp: number
-  readonly maxHp: number
-  readonly pose: BossPose
+  readonly id: number;
+  readonly size: number;
+  readonly hp: number;
+  readonly maxHp: number;
+  readonly pose: BossPose;
   /** Absent while entering. */
-  readonly move: BossAttack | null
+  readonly move: BossAttack | null;
 }
 
 /** What the screen shows; replaced only when something in it changed. */
 export interface BattleView {
-  readonly lives: number
-  readonly round: number
-  readonly gameOver: boolean
-  readonly player: PlayerView
-  readonly bullets: readonly { readonly id: number; readonly side: BulletSide }[]
-  readonly enemies: readonly { readonly id: number; readonly kind: EnemyKind }[]
-  readonly boss: BossView | null
-  readonly beam: { readonly id: number } | null
-  readonly bursts: readonly { readonly id: number; readonly tone: BurstTone; readonly size: BurstSize }[]
+  readonly lives: number;
+  readonly round: number;
+  readonly gameOver: boolean;
+  readonly player: PlayerView;
+  readonly bullets: readonly { readonly id: number; readonly side: BulletSide }[];
+  readonly enemies: readonly { readonly id: number; readonly kind: EnemyKind }[];
+  readonly boss: BossView | null;
+  readonly beam: { readonly id: number } | null;
+  readonly bursts: readonly { readonly id: number; readonly tone: BurstTone; readonly size: BurstSize }[];
   /** 0 until the first frame-meter window closes. */
-  readonly fps: number
-  readonly worst: number
+  readonly fps: number;
+  readonly worst: number;
 }
 
 export interface FrameReadings {
-  fps: number
-  worst: number
+  fps: number;
+  worst: number;
 }
 
 /** The view of `world`, reusing `previous` and every unchanged part of it. */
 export function buildView(world: World, readings: FrameReadings, previous: BattleView | null): BattleView {
-  const { player, boss } = world
+  const { player, boss } = world;
+
   const playerView: PlayerView = {
     id: player.id,
     rolling: isRolling(player, world.time),
     protected: isProtected(player, world.time),
     spent: isSpent(player, world.time),
-  }
+  };
+
   const bossView: BossView | null = boss && {
     id: boss.id,
     size: boss.size,
@@ -60,8 +61,9 @@ export function buildView(world: World, readings: FrameReadings, previous: Battl
     maxHp: boss.maxHp,
     pose: boss.pose,
     move: boss.pose === 'entering' ? null : boss.attack,
-  }
-  const beamView = boss?.beam ? { id: boss.beam.id } : null
+  };
+
+  const beamView = boss?.beam ? { id: boss.beam.id } : null;
 
   const next: BattleView = {
     lives: world.lives,
@@ -75,21 +77,24 @@ export function buildView(world: World, readings: FrameReadings, previous: Battl
     bursts: sameList(previous?.bursts, world.bursts),
     fps: readings.fps,
     worst: readings.worst,
-  }
-  return previous && sameFields(previous, next) ? previous : next
+  };
+
+  return previous && sameFields(previous, next) ? previous : next;
 }
 
 /** The previous list when it holds the same entities in the same order, else a copy. */
 function sameList<T extends { id: number }>(previous: readonly T[] | undefined, current: readonly T[]): readonly T[] {
   if (previous && previous.length === current.length && previous.every((entity, index) => entity.id === current[index].id)) {
-    return previous
+    return previous;
   }
-  return current.slice()
+
+  return current.slice();
 }
 
 function sameFields<T extends object>(previous: T | null, next: T | null): boolean {
   if (previous === null || next === null) {
-    return previous === next
+    return previous === next;
   }
-  return (Object.keys(next) as (keyof T)[]).every((key) => previous[key] === next[key])
+
+  return (Object.keys(next) as (keyof T)[]).every((key) => previous[key] === next[key]);
 }

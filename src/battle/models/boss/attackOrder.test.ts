@@ -1,5 +1,5 @@
-import { expect, it } from 'vitest'
-import { attackAt, attackHash } from './attackOrder'
+import { expect, it } from 'vitest';
+import { attackAt, attackHash } from './attackOrder';
 
 // game-spec 14.6: attack index 0 → 19
 const SEQUENCES: [number, string][] = [
@@ -9,34 +9,37 @@ const SEQUENCES: [number, string][] = [
   [123456789, 'ram beam radial spread ram ram ram radial radial beam ram radial ram ram straight ram ram ram spread ram'],
   [3735928559, 'ram ram radial ram ram radial beam ram straight ram ram spread beam ram beam radial spread straight beam spread'],
   [4294967294, 'beam straight beam spread straight ram beam ram spread radial beam radial ram beam straight radial ram beam straight straight'],
-]
+];
 
 it.each(SEQUENCES)('seed %i produces the game-spec 14.6 sequence', (seed, sequence) => {
-  const attacks = Array.from({ length: 20 }, (_, index) => attackAt(seed, index))
+  const attacks = Array.from({ length: 20 }, (_, index) => attackAt(seed, index));
 
-  expect(attacks.join(' ')).toBe(sequence)
-})
+  expect(attacks.join(' ')).toBe(sequence);
+});
 
 it('hashes to unsigned 32-bit integers', () => {
   for (const [seed] of SEQUENCES) {
     for (let n = 0; n < 40; n++) {
-      const hash = attackHash(seed, n)
-      expect(Number.isInteger(hash) && hash >= 0 && hash <= 0xffffffff).toBe(true)
+      const hash = attackHash(seed, n);
+
+      expect(Number.isInteger(hash) && hash >= 0 && hash <= 0xffffffff).toBe(true);
     }
   }
-})
+});
 
 it('never plays two beams in a row nor four positional attacks in a row', () => {
   for (let seed = 0; seed < 300; seed++) {
-    const attacks = Array.from({ length: 60 }, (_, index) => attackAt(seed, index))
-    const positional = attacks.map((attack) => attack === 'beam' || attack === 'ram')
+    const attacks = Array.from({ length: 60 }, (_, index) => attackAt(seed, index));
+    const positional = attacks.map((attack) => attack === 'beam' || attack === 'ram');
+
     attacks.forEach((attack, index) => {
       if (index >= 1) {
-        expect(attack === 'beam' && attacks[index - 1] === 'beam').toBe(false)
+        expect(attack === 'beam' && attacks[index - 1] === 'beam').toBe(false);
       }
+
       if (index >= 3) {
-        expect(positional.slice(index - 3, index + 1).every(Boolean)).toBe(false)
+        expect(positional.slice(index - 3, index + 1).every(Boolean)).toBe(false);
       }
-    })
+    });
   }
-})
+});

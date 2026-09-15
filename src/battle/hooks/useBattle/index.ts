@@ -1,1 +1,1 @@
-export * from './useBattle'
+export * from './useBattle';

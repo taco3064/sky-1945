@@ -1,13 +1,13 @@
-import { useLoadoutKeys } from '~app/loadout/hooks/useLoadoutKeys'
-import { clampPoints, powerPercent, speedPercent } from '~app/loadout/models/allocation'
-import { ControlsTable } from '~app/loadout/components/ControlsTable'
-import { StatBar } from '~app/loadout/components/StatBar'
-import './LoadoutScreen.css'
+import { useLoadoutKeys } from '~app/loadout/hooks/useLoadoutKeys';
+import { clampPoints, powerPercent, speedPercent } from '~app/loadout/models/allocation';
+import { ControlsTable } from '~app/loadout/components/ControlsTable';
+import { StatBar } from '~app/loadout/components/StatBar';
+import './LoadoutScreen.css';
 
 interface LoadoutScreenProps {
-  speedPoints: number
-  onSpeedPointsChange: (speedPoints: number) => void
-  onStart: () => void
+  speedPoints: number;
+  onSpeedPointsChange: (speedPoints: number) => void;
+  onStart: () => void;
 }
 
 /** The loadout screen (game-spec 7). */
@@ -15,7 +15,7 @@ export function LoadoutScreen({ speedPoints, onSpeedPointsChange, onStart }: Loa
   useLoadoutKeys({
     onStep: (delta) => onSpeedPointsChange(clampPoints(speedPoints + delta)),
     onStart,
-  })
+  });
 
   return (
     <div className="loadout">
@@ -50,5 +50,5 @@ export function LoadoutScreen({ speedPoints, onSpeedPointsChange, onStart }: Loa
         START
       </button>
     </div>
-  )
+  );
 }

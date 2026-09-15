@@ -1,1 +1,1 @@
-export * from './usePointerSteering'
+export * from './usePointerSteering';

@@ -1,1 +1,1 @@
-export * from './TouchStick'
+export * from './TouchStick';

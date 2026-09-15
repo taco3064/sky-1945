@@ -1,24 +1,24 @@
-import type { BossView } from '~app/battle/models/simulation'
-import { BossHealthBar } from '../BossHealthBar'
-import { LifeIcon } from '../LifeIcon'
-import { frameMeterText, isSlowFrameRate } from '~app/stage/models/frameMeterText'
-import './Hud.css'
+import type { BossView } from '~app/battle/models/simulation';
+import { BossHealthBar } from '../BossHealthBar';
+import { LifeIcon } from '../LifeIcon';
+import { frameMeterText, isSlowFrameRate } from '~app/stage/models/frameMeterText';
+import './Hud.css';
 
-export type StagePhase = 'playing' | 'paused' | 'gameover'
+export type StagePhase = 'playing' | 'paused' | 'gameover';
 
 interface HudProps {
-  lives: number
-  round: number
-  boss: BossView | null
-  fps: number
-  worst: number
-  phase: StagePhase
-  onPause: () => void
+  lives: number;
+  round: number;
+  boss: BossView | null;
+  fps: number;
+  worst: number;
+  phase: StagePhase;
+  onPause: () => void;
 }
 
 /** The HUD frame over the scaled field, unscaled itself (game-spec 8.5). */
 export function Hud({ lives, round, boss, fps, worst, phase, onPause }: HudProps) {
-  const paused = phase === 'paused'
+  const paused = phase === 'paused';
 
   return (
     <div className="hud">
@@ -38,5 +38,5 @@ export function Hud({ lives, round, boss, fps, worst, phase, onPause }: HudProps
         </button>
       )}
     </div>
-  )
+  );
 }

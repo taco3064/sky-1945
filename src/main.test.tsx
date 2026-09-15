@@ -1,27 +1,29 @@
-import { StrictMode } from 'react'
-import { afterEach, expect, it, vi } from 'vitest'
-import App from '~app/app/App'
+import { StrictMode } from 'react';
+import { afterEach, expect, it, vi } from 'vitest';
+import App from '~app/app/App';
 
 const { createRoot, render } = vi.hoisted(() => {
-  const render = vi.fn()
-  return { render, createRoot: vi.fn(() => ({ render })) }
-})
+  const render = vi.fn();
 
-vi.mock('react-dom/client', () => ({ createRoot }))
+  return { render, createRoot: vi.fn(() => ({ render })) };
+});
+
+vi.mock('react-dom/client', () => ({ createRoot }));
 
 afterEach(() => {
-  document.body.innerHTML = ''
-})
+  document.body.innerHTML = '';
+});
 
 it('mounts the app in strict mode into #root', async () => {
-  document.body.innerHTML = '<div id="root"></div>'
+  document.body.innerHTML = '<div id="root"></div>';
 
-  await import('./main')
+  await import('./main');
 
-  expect(createRoot).toHaveBeenCalledWith(document.getElementById('root'))
+  expect(createRoot).toHaveBeenCalledWith(document.getElementById('root'));
+
   expect(render).toHaveBeenCalledWith(
     <StrictMode>
       <App />
     </StrictMode>,
-  )
-})
+  );
+});

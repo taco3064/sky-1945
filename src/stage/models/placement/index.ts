@@ -1,2 +1,2 @@
-export * from './placement'
-export * from './placementRegistry'
+export * from './placement';
+export * from './placementRegistry';

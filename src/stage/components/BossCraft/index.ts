@@ -1,1 +1,1 @@
-export * from './BossCraft'
+export * from './BossCraft';

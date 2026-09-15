@@ -1,10 +1,10 @@
-import type { BurstSize } from './burst'
+import type { BurstSize } from './burst';
 
 export interface Shard {
-  dx: number
-  dy: number
+  dx: number;
+  dy: number;
   /** Degrees. */
-  spin: number
+  spin: number;
 }
 
 /** Shard directions in paint order (game-spec 10.4). */
@@ -19,11 +19,11 @@ const SHARDS: readonly Shard[] = [
   { dx: 0.6, dy: 0.8, spin: -220 },
   { dx: 1, dy: -0.15, spin: 160 },
   { dx: -1, dy: 0.1, spin: -300 },
-]
+];
 
-const SHARD_COUNT: Record<BurstSize, number> = { small: 6, large: 10 }
+const SHARD_COUNT: Record<BurstSize, number> = { small: 6, large: 10 };
 
 /** A small burst has shards 1–6, a large one 1–10. */
 export function burstShards(size: BurstSize): readonly Shard[] {
-  return SHARDS.slice(0, SHARD_COUNT[size])
+  return SHARDS.slice(0, SHARD_COUNT[size]);
 }

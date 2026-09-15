@@ -1,2 +1,2 @@
-export * from './bullet'
-export * from './patterns'
+export * from './bullet';
+export * from './patterns';

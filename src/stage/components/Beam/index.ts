@@ -1,1 +1,1 @@
-export * from './Beam'
+export * from './Beam';

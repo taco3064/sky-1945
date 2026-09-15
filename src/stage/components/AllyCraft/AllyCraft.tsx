@@ -1,11 +1,11 @@
-import type { Ref } from 'react'
-import './AllyCraft.css'
+import type { Ref } from 'react';
+import './AllyCraft.css';
 
 interface AllyCraftProps {
-  ref?: Ref<HTMLDivElement>
-  rolling: boolean
-  protected: boolean
-  spent: boolean
+  ref?: Ref<HTMLDivElement>;
+  rolling: boolean;
+  protected: boolean;
+  spent: boolean;
 }
 
 /** ALLY-01, the player's aircraft (game-spec 9.1). `ref` is the outer placed element. */
@@ -17,7 +17,7 @@ export function AllyCraft({ ref, rolling, protected: isProtected, spent }: AllyC
     spent && 'ally--spent',
   ]
     .filter(Boolean)
-    .join(' ')
+    .join(' ');
 
   return (
     <div ref={ref} className={className}>
@@ -30,5 +30,5 @@ export function AllyCraft({ ref, rolling, protected: isProtected, spent }: AllyC
         <div className="ally__canopy" />
       </div>
     </div>
-  )
+  );
 }

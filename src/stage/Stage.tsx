@@ -1,42 +1,42 @@
-import { useCallback, useRef, useState } from 'react'
-import { useBattle, useBattleLoop } from '~app/battle/hooks/useBattle'
-import { TouchStick } from '~app/stage/components/TouchStick'
-import { useKeyboardControls } from '~app/stage/hooks/useKeyboardControls'
-import { usePointerSteering } from '~app/stage/hooks/usePointerSteering'
-import { createPlacementRegistry } from '~app/stage/models/placement'
-import { speedMultiplier } from '~app/loadout/models/allocation'
-import { useStageScale } from '~app/stage/hooks/useStageScale'
-import { FieldEntities } from '~app/stage/components/FieldEntities'
-import { Hud, type StagePhase } from '~app/stage/components/Hud'
-import { Overlay } from '~app/stage/components/Overlay'
-import { SpeedLines } from '~app/stage/components/SpeedLines'
-import './Stage.css'
+import { useCallback, useRef, useState } from 'react';
+import { useBattle, useBattleLoop } from '~app/battle/hooks/useBattle';
+import { TouchStick } from '~app/stage/components/TouchStick';
+import { useKeyboardControls } from '~app/stage/hooks/useKeyboardControls';
+import { usePointerSteering } from '~app/stage/hooks/usePointerSteering';
+import { createPlacementRegistry } from '~app/stage/models/placement';
+import { speedMultiplier } from '~app/loadout/models/allocation';
+import { useStageScale } from '~app/stage/hooks/useStageScale';
+import { FieldEntities } from '~app/stage/components/FieldEntities';
+import { Hud, type StagePhase } from '~app/stage/components/Hud';
+import { Overlay } from '~app/stage/components/Overlay';
+import { SpeedLines } from '~app/stage/components/SpeedLines';
+import './Stage.css';
 
 interface StageProps {
-  speedPoints: number
+  speedPoints: number;
   /** QUIT and TITLE both return to the title screen. */
-  onQuit: () => void
+  onQuit: () => void;
 }
 
 /** The stage shown while playing, paused and after game over (game-spec 8). Mounting starts a fresh run. */
 export function Stage({ speedPoints, onQuit }: StageProps) {
-  const viewportRef = useRef<HTMLDivElement>(null)
-  const [registry] = useState(createPlacementRegistry)
-  const [paused, setPaused] = useState(false)
-  const { store, view } = useBattle(speedPoints, registry.place)
-  const { gameOver } = view
-  const phase: StagePhase = gameOver ? 'gameover' : paused ? 'paused' : 'playing'
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [registry] = useState(createPlacementRegistry);
+  const [paused, setPaused] = useState(false);
+  const { store, view } = useBattle(speedPoints, registry.place);
+  const { gameOver } = view;
+  const phase: StagePhase = gameOver ? 'gameover' : paused ? 'paused' : 'playing';
 
   const togglePause = useCallback(() => {
     if (!gameOver) {
-      setPaused((current) => !current)
+      setPaused((current) => !current);
     }
-  }, [gameOver])
+  }, [gameOver]);
 
-  useStageScale(viewportRef)
-  useBattleLoop(store, phase === 'playing', registry.place)
-  useKeyboardControls({ onSteer: store.steer, onRoll: store.roll, onPause: togglePause })
-  const { stickRef, ...touchSurface } = usePointerSteering({ onSteer: store.steer, onRoll: store.roll })
+  useStageScale(viewportRef);
+  useBattleLoop(store, phase === 'playing', registry.place);
+  useKeyboardControls({ onSteer: store.steer, onRoll: store.roll, onPause: togglePause });
+  const { stickRef, ...touchSurface } = usePointerSteering({ onSteer: store.steer, onRoll: store.roll });
 
   return (
     <div className="stage" ref={viewportRef}>
@@ -66,5 +66,5 @@ export function Stage({ speedPoints, onQuit }: StageProps) {
         onPause={togglePause}
       />
     </div>
-  )
+  );
 }

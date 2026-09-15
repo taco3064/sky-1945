@@ -1,13 +1,13 @@
-import { describe, expect, it } from 'vitest'
-import type { EnemyKind } from './kinds'
-import type { EnemyPath, EntryEdge } from './paths'
-import { roundSchedule } from './waves'
+import { describe, expect, it } from 'vitest';
+import type { EnemyKind } from './kinds';
+import type { EnemyPath, EntryEdge } from './paths';
+import { roundSchedule } from './waves';
 
-type Row = [number, number, EnemyKind, EnemyPath, EntryEdge, number[], [number, number][]]
+type Row = [number, number, EnemyKind, EnemyPath, EntryEdge, number[], [number, number][]];
 
-const T = -40
-const L = -40
-const R = 580
+const T = -40;
+const L = -40;
+const R = 580;
 
 // game-spec 14.4: slot, t, kind, path, edge, lanes, entries (rounded to two decimals)
 const SCHEDULES: Record<number, Row[]> = {
@@ -73,39 +73,41 @@ const SCHEDULES: Record<number, Row[]> = {
     [9, 6.2, 'medium', 'weave', 'top', [0.6, 0.7, 0.8, 0.9], [[302.8, T], [335.6, T], [368.4, T], [401.2, T]]],
     [10, 8.25, 'large', 'arc', 'top', [0.2, 0.4, 0.6, 0.8], [[129.6, T], [223.2, T], [316.8, T], [410.4, T]]],
   ],
-}
+};
 
 /** The table rounds to two decimals; half-way values such as 0.125 → 0.13 sit exactly on the edge. */
-const ROUNDED = 0.005 + 1e-9
+const ROUNDED = 0.005 + 1e-9;
 
 describe.each(Object.entries(SCHEDULES))('round %s', (round, rows) => {
-  const schedule = roundSchedule(Number(round))
+  const schedule = roundSchedule(Number(round));
 
   it('has one squad per table row', () => {
-    expect(schedule.length).toBe(rows.length)
-  })
+    expect(schedule.length).toBe(rows.length);
+  });
 
   it.each(rows)('slot %i arrives at %f s as %s %s from the %s', (slot, time, kind, path, edge, lanes, entries) => {
-    const squad = schedule[slot]
+    const squad = schedule[slot];
 
-    expect({ slot: squad.slot, kind: squad.kind, path: squad.path, edge: squad.edge }).toEqual({ slot, kind, path, edge })
-    expect(squad.time).toBeCloseTo(time, 9)
-    expect(squad.lanes.length).toBe(lanes.length)
-    squad.lanes.forEach((lane, index) => expect(Math.abs(lane - lanes[index])).toBeLessThanOrEqual(ROUNDED))
+    expect({ slot: squad.slot, kind: squad.kind, path: squad.path, edge: squad.edge }).toEqual({ slot, kind, path, edge });
+    expect(squad.time).toBeCloseTo(time, 9);
+    expect(squad.lanes.length).toBe(lanes.length);
+    squad.lanes.forEach((lane, index) => expect(Math.abs(lane - lanes[index])).toBeLessThanOrEqual(ROUNDED));
+
     squad.entries.forEach((entry, index) => {
-      expect(Math.abs(entry.x - entries[index][0])).toBeLessThanOrEqual(ROUNDED)
-      expect(Math.abs(entry.y - entries[index][1])).toBeLessThanOrEqual(ROUNDED)
-    })
-  })
-})
+      expect(Math.abs(entry.x - entries[index][0])).toBeLessThanOrEqual(ROUNDED);
+      expect(Math.abs(entry.y - entries[index][1])).toBeLessThanOrEqual(ROUNDED);
+    });
+  });
+});
 
 it('caps wave sizes at 16, 16, 8 and 4 craft', () => {
   const craft = (round: number) =>
     roundSchedule(round).reduce<Record<string, number>>((totals, squad) => {
-      totals[squad.kind] = (totals[squad.kind] ?? 0) + squad.lanes.length
-      return totals
-    }, {})
+      totals[squad.kind] = (totals[squad.kind] ?? 0) + squad.lanes.length;
 
-  expect(craft(1)).toEqual({ small: 16, medium: 4, large: 2 })
-  expect(craft(40)).toEqual({ small: 32, medium: 8, large: 4 })
-})
+      return totals;
+    }, {});
+
+  expect(craft(1)).toEqual({ small: 16, medium: 4, large: 2 });
+  expect(craft(40)).toEqual({ small: 32, medium: 8, large: 4 });
+});

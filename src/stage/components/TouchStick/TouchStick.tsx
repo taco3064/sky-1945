@@ -1,8 +1,8 @@
-import type { Ref } from 'react'
-import './TouchStick.css'
+import type { Ref } from 'react';
+import './TouchStick.css';
 
 interface TouchStickProps {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement>;
 }
 
 /** The touch stick ring and knob, in screen px (game-spec 8.8). */
@@ -11,5 +11,5 @@ export function TouchStick({ ref }: TouchStickProps) {
     <div ref={ref} className="touch-stick">
       <div className="touch-stick__knob" />
     </div>
-  )
+  );
 }

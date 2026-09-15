@@ -1,1 +1,1 @@
-export * from './BossHealthBar'
+export * from './BossHealthBar';

@@ -1,16 +1,17 @@
-import { describe, expect, it } from 'vitest'
-import { ENEMY_KINDS, type EnemyKind, enemyBulletDamage, enemyBulletSpeed, enemyFireInterval, enemyMoveSpeed } from './kinds'
+import { describe, expect, it } from 'vitest';
+import { ENEMY_KINDS, type EnemyKind, enemyBulletDamage, enemyBulletSpeed, enemyFireInterval, enemyMoveSpeed } from './kinds';
 
 it('matches the game-spec 12.8 table', () => {
   expect(ENEMY_KINDS).toEqual({
     small: { hp: 20, radius: 13, speed: 165, damage: 8, interval: 1.1, pattern: 'straight' },
     medium: { hp: 60, radius: 20, speed: 115, damage: 10, interval: 1.6, pattern: 'spread' },
     large: { hp: 160, radius: 32, speed: 72, damage: 12, interval: 2.2, pattern: 'radial' },
-  })
-})
+  });
+});
 
 // game-spec 14.2: m, then move / fire every / bullet / dmg for S, M, L
-type Row = [number, [number, number, number, number], [number, number, number, number], [number, number, number, number]]
+type Row = [number, [number, number, number, number], [number, number, number, number], [number, number, number, number]];
+
 const ROUNDS: Row[] = [
   [1.0, [165, 1.1, 260, 8], [115, 1.6, 260, 10], [72, 2.2, 260, 12]],
   [1.1, [181.5, 1.0, 272.25, 8.8], [126.5, 1.45, 260, 11], [79.2, 2.0, 260, 13.2]],
@@ -23,7 +24,7 @@ const ROUNDS: Row[] = [
   [1.8, [297, 0.61, 445.5, 14.4], [207, 0.89, 310.5, 18], [129.6, 1.22, 260, 21.6]],
   [1.9, [313.5, 0.58, 470.25, 15.2], [218.5, 0.84, 327.75, 19], [136.8, 1.16, 260, 22.8]],
   [2.0, [330, 0.55, 495, 16], [230, 0.8, 345, 20], [144, 1.1, 260, 24]],
-]
+];
 
 describe.each(ROUNDS)('with m = %f', (m, small, medium, large) => {
   it.each([
@@ -31,10 +32,10 @@ describe.each(ROUNDS)('with m = %f', (m, small, medium, large) => {
     ['medium', medium],
     ['large', large],
   ] as [EnemyKind, number[]][])('%s craft follow game-spec 14.2', (kind, [move, fireEvery, bullet, damage]) => {
-    expect(enemyMoveSpeed(kind, m)).toBeCloseTo(move, 9)
+    expect(enemyMoveSpeed(kind, m)).toBeCloseTo(move, 9);
     // The table rounds fire intervals to two decimals.
-    expect(enemyFireInterval(kind, m)).toBeCloseTo(fireEvery, 2)
-    expect(enemyBulletSpeed(kind, m)).toBeCloseTo(bullet, 9)
-    expect(enemyBulletDamage(kind, m)).toBeCloseTo(damage, 9)
-  })
-})
+    expect(enemyFireInterval(kind, m)).toBeCloseTo(fireEvery, 2);
+    expect(enemyBulletSpeed(kind, m)).toBeCloseTo(bullet, 9);
+    expect(enemyBulletDamage(kind, m)).toBeCloseTo(damage, 9);
+  });
+});

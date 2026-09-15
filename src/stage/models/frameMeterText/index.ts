@@ -1,1 +1,1 @@
-export * from './frameMeterText'
+export * from './frameMeterText';

@@ -1,5 +1,5 @@
-import { expect, it } from 'vitest'
-import { burstShards } from './shards'
+import { expect, it } from 'vitest';
+import { burstShards } from './shards';
 
 it('gives a large burst all ten shards in table order', () => {
   expect(burstShards('large')).toEqual([
@@ -13,9 +13,9 @@ it('gives a large burst all ten shards in table order', () => {
     { dx: 0.6, dy: 0.8, spin: -220 },
     { dx: 1, dy: -0.15, spin: 160 },
     { dx: -1, dy: 0.1, spin: -300 },
-  ])
-})
+  ]);
+});
 
 it('gives a small burst shards 1–6', () => {
-  expect(burstShards('small')).toEqual(burstShards('large').slice(0, 6))
-})
+  expect(burstShards('small')).toEqual(burstShards('large').slice(0, 6));
+});

@@ -1,1 +1,1 @@
-export * from './useStageScale'
+export * from './useStageScale';

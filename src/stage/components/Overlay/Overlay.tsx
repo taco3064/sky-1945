@@ -1,15 +1,15 @@
-import './Overlay.css'
+import './Overlay.css';
 
 export interface OverlayAction {
-  label: string
-  onClick: () => void
+  label: string;
+  onClick: () => void;
 }
 
 interface OverlayProps {
-  title: string
+  title: string;
   /** The round reached, shown under the title when given. */
-  reached?: number
-  actions: OverlayAction[]
+  reached?: number;
+  actions: OverlayAction[];
 }
 
 /** The paused and game-over overlays (game-spec 8.7). */
@@ -26,5 +26,5 @@ export function Overlay({ title, reached, actions }: OverlayProps) {
         ))}
       </div>
     </div>
-  )
+  );
 }

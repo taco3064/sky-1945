@@ -1,1 +1,1 @@
-export * from './EnemyCraft'
+export * from './EnemyCraft';

@@ -1,1 +1,1 @@
-export * from './LifeIcon'
+export * from './LifeIcon';

@@ -1,12 +1,12 @@
-import type { CSSProperties, Ref } from 'react'
-import type { BurstSize, BurstTone } from '~app/battle/models/bursts'
-import { burstShards } from '~app/battle/models/bursts'
-import './Burst.css'
+import type { CSSProperties, Ref } from 'react';
+import type { BurstSize, BurstTone } from '~app/battle/models/bursts';
+import { burstShards } from '~app/battle/models/bursts';
+import './Burst.css';
 
 interface BurstProps {
-  ref?: Ref<HTMLDivElement>
-  tone: BurstTone
-  size: BurstSize
+  ref?: Ref<HTMLDivElement>;
+  tone: BurstTone;
+  size: BurstSize;
 }
 
 /** A wreck: a flash, then the shards (game-spec 10.4). `ref` is the placed anchor. */
@@ -22,5 +22,5 @@ export function Burst({ ref, tone, size }: BurstProps) {
         />
       ))}
     </div>
-  )
+  );
 }

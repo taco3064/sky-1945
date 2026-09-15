@@ -1,2 +1,2 @@
-export * from './keyboard'
-export * from './pointer'
+export * from './keyboard';
+export * from './pointer';

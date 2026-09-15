@@ -1,2 +1,2 @@
-export * from './attackOrder'
-export * from './boss'
+export * from './attackOrder';
+export * from './boss';

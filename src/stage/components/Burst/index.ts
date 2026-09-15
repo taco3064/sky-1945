@@ -1,1 +1,1 @@
-export * from './Burst'
+export * from './Burst';

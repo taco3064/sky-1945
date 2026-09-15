@@ -1,10 +1,10 @@
-import './ControlsTable.css'
+import './ControlsTable.css';
 
 const BINDINGS = [
   { action: 'STEER', keys: 'ARROW KEYS', touch: 'DRAG ANYWHERE' },
   { action: 'ROLL', keys: 'SPACE', touch: 'TAP OR 2ND FINGER' },
   { action: 'PAUSE', keys: 'ESC', touch: '❚❚ BUTTON' },
-]
+];
 
 /** The loadout controls table (game-spec 7.4). */
 export function ControlsTable() {
@@ -28,5 +28,5 @@ export function ControlsTable() {
         ))}
       </tbody>
     </table>
-  )
+  );
 }

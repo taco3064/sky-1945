@@ -1,1 +1,1 @@
-export * from './Hud'
+export * from './Hud';
