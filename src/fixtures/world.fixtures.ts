@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 
-import type { World } from '~app/engine/world';
+import type { World } from '~app/stage/engine/world';
 
 /** A `World` that does nothing until a test overrides a channel: see #27. */
 export function stubWorld(overrides: Partial<World> = {}): World {

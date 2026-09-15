@@ -28,7 +28,8 @@ death, the engine owns position.
 **Matter.js in sensor mode.** Gravity off, every body a sensor, every position set
 with `Body.setPosition` — no `applyForce` and no `setVelocity` anywhere. Matter
 answers *did these two things touch*; how a craft moves is arithmetic in
-`src/engine`. Deliberate: inertia on a dodge is indistinguishable from input lag.
+`src/stage/engine`. Deliberate: inertia on a dodge is indistinguishable from input
+lag.
 
 ## The contract
 
@@ -41,18 +42,24 @@ became `engine`, which owns `matter-js` and `requestAnimationFrame`, and `zustan
 was dropped, because a contract naming a package the repo does not install
 describes nothing.
 
-Layers run one way — `pages → containers → components → hooks → contexts →
-engine`. The budgets on lines, function length, parameters and complexity come from
-the preset, and the handbook lists them all.
+The source is module-first. Each screen is a module — `title`, `loadout`, `stage` —
+beside `session`, the run's state machine, and `app`, which mounts the shell and
+picks the screen. A module imports only what it declares: `app` reaches the other
+four, `loadout` reaches `stage`, and nothing else crosses. Inside every module the
+layers run one way — `components → hooks → contexts → engine`. The budgets on lines,
+function length, parameters and complexity come from the preset, and the handbook
+lists them all.
 
 ## What it produced
 
 - **No blueprint rule has ever been disabled.** The one `eslint-disable` in `src`
   is `react-refresh/only-export-components`, a Vite plugin's warn-level rule, on
   the file that has to export both a Provider and its Context.
-- **No edit to the contract has been a loosening.** One config change since the
-  scaffold: `testFiles` widened to count `*.fixtures.ts`, which *added* a gate —
-  until then the fixture ban had nothing to catch (#27).
+- **No edit to the contract has been a loosening.** `testFiles` widened to count
+  `*.fixtures.ts`, which *added* a gate — until then the fixture ban had nothing to
+  catch (#27). Blueprint 4.0 retired `module.private`, and the entry rule that
+  enforced it still fires (#48). The move to modules removed `pages` and
+  `containers` and added a module graph that did not exist before (#49).
 - **One linter, and not the one this started with.** oxlint is gone, its two rules
   moved onto React's own plugins, and `eslint.config.mjs` is owned by this repo
   rather than regenerated. The `emitLint(blueprint)` spread inside it is untouched,
@@ -64,10 +71,15 @@ the preset, and the handbook lists them all.
   say that a declaration belongs in one (#34). An owner opinion, recorded as a
   finding rather than quietly absorbed: this repo is one structural rule richer
   than the preset.
-- **The boundaries are machine-checked, not remembered.** `matter-js` is reachable
-  only from `engine`; the animation loop lives in one module because that layer
-  owns the global; no `components` file imports the engine. All three fail lint.
-- **Modules exist that would not otherwise.** Every time a file hit its line budget
+- **The boundaries are machine-checked, not remembered.** `matter-js` and
+  `requestAnimationFrame` are reachable only from an `engine` layer; no `components`
+  file imports the engine; `title` cannot reach the simulation and `stage` cannot
+  reach the loadout. All of them fail lint.
+- **The modules drew screens, not the simulation.** 38 of 48 units landed in
+  `stage`. `world` and `frame` drive every engine unit, and outside the flight
+  only the loadout reads one of them, `boosts`. A game loop turned out to be one
+  domain, and the module graph says so (#49).
+- **Units exist that would not otherwise.** Every time a file hit its line budget
   the forced split turned out to be a real seam: `engine/frame` out of
   `engine/world` (a frame, versus the simulation's lifetime), `boss/stances` out of
   `boss/boss` (the fight's state machine, versus its bodies), `engine/channel` out
@@ -79,7 +91,9 @@ the preset, and the handbook lists them all.
   takes a single `EnemySpec` now, declared by the side that has to fly it.
 - **Coverage is a floor, not a target.** 100% on `engine` and `hooks` — pure
   functions and state machines, where a test holds something. Whether an aircraft
-  *looks* right is checked in a browser.
+  *looks* right is checked in a browser. The floor lives in `vite.config.ts`, where
+  no blueprint gate looks: the move to modules left its include naming paths that
+  no longer existed, and it was found by reading the file (#49).
 
 ## What it did not catch
 
@@ -128,6 +142,6 @@ one where all five passed:
 npm run lint          # eslint, including blueprint's emitted rules
 npx tsc -b            # types
 npm run coverage      # tests, against the coverage floor
-npm run inspect       # the layer graph — does the code obey the contract
+npm run inspect       # the module and layer graph — does the code obey the contract
 npx blueprint doctor  # the wiring — are those rules still enforced
 ```

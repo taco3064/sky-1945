@@ -26,13 +26,13 @@ import blueprint from './blueprint.config.mjs';
  * not a style preference. `no-restricted-syntax` is one of the rules blueprint
  * manages, and this project genuinely uses it: `contexts` declares
  * `selfOnly`, so the re-export ban is emitted through it over
- * `src/hooks/**`. A second `no-restricted-syntax` entry matching those files
+ * every module's `hooks`. A second `no-restricted-syntax` entry matching those files
  * would REPLACE blueprint's version for them rather than merge with it, and
  * the ban would vanish while lint stayed green. Its own rule id cannot
  * collide, so this route overrides nothing.
  *
  * `blueprint doctor` is what proves that claim — its "emitted rules survive
- * the eslint config" check resolves the config per layer and compares the
+ * the eslint config" check resolves the config per governed position and compares the
  * selfOnly selectors against what the blueprint expects.
  */
 const typesInTypesFile = {

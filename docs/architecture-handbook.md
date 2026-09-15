@@ -4,54 +4,99 @@
 
 ## Architecture
 
-Code flows one way: each layer may import only from the layers below it. Upstream and same-layer imports are barred.
+Code flows one way: each layer may import only from the layers below it. Upstream imports and same-module same-layer imports through the alias are barred.
 
 ```mermaid
 flowchart TD
-  pages -.-> containers
-  containers -.-> components
-  components -.-> hooks
-  containers -->|Provider only| contexts
-  hooks -->|Context only · selfOnly| contexts
-  containers --> engine
-  hooks --> engine
-  contexts --> engine
+  m0["app · router composition"]
+  subgraph m1["session"]
+    m1_l0["components"]
+    m1_l1["hooks"]
+    m1_l2["contexts"]
+    m1_l3["engine"]
+    m1_l0 -.-> m1_l1
+    m1_l1 -->|Context only · selfOnly| m1_l2
+    m1_l1 --> m1_l3
+    m1_l2 --> m1_l3
+  end
+  subgraph m2["title"]
+    m2_l0["components"]
+    m2_l1["hooks"]
+    m2_l2["contexts"]
+    m2_l3["engine"]
+    m2_l0 -.-> m2_l1
+    m2_l1 -->|Context only · selfOnly| m2_l2
+    m2_l1 --> m2_l3
+    m2_l2 --> m2_l3
+  end
+  subgraph m3["loadout"]
+    m3_l0["components"]
+    m3_l1["hooks"]
+    m3_l2["contexts"]
+    m3_l3["engine"]
+    m3_l0 -.-> m3_l1
+    m3_l1 -->|Context only · selfOnly| m3_l2
+    m3_l1 --> m3_l3
+    m3_l2 --> m3_l3
+  end
+  subgraph m4["stage"]
+    m4_l0["components"]
+    m4_l1["hooks"]
+    m4_l2["contexts"]
+    m4_l3["engine"]
+    m4_l0 -.-> m4_l1
+    m4_l1 -->|Context only · selfOnly| m4_l2
+    m4_l1 --> m4_l3
+    m4_l2 --> m4_l3
+  end
 ```
 
 > **How to read the diagram**: a **solid** edge is a declared importer relation (its label carries the description and/or `selfOnly` — depend on it, never re-export it). A **dotted** edge only records declaration order: adjacent layers are not necessarily related. Reachability is transitive — a layer may import **any** layer below it in the flow, whether or not an edge is drawn, unless the target narrows its importers (`allowedImporters`).
+
+### Modules
+
+| Module | Responsibility | Direct dependencies |
+| --- | --- | --- |
+| `app` | Mounts the game shell: holds the run and picks the screen for it. Holds no game logic and stacks no components directly. | `session`, `title`, `loadout`, `stage` |
+| `session` | The run state machine: title, loadout, playing, paused, game over. | — |
+| `title` | The opening screen. | — |
+| `loadout` | Spends ten points across speed and power before a run. | `stage` |
+| `stage` | The flight: the simulation, and the field and HUD drawn from it. | — |
+
+The optional reserved `app` module owns router composition recursively and uses the container position; it does not repeat the shared layers below.
+
+Every other module reuses the shared layer contract below. Module dependencies are transitive: a module may import itself and every downstream module reachable through `dependsOn`; declaration order grants no permission. An absent layer folder is runway.
 
 ### Layers
 
 | Layer | Responsibility | Must not | Owns |
 | --- | --- | --- | --- |
-| `pages` | Mounts the game shell. | hold game logic; stack components directly | — |
-| `containers` | Screens: title, loadout, stage, HUD. Assembles components, owns local state, drives a round. | — | — |
 | `components` | Presentational only — aircraft, bullets, bars. Props and refs, nothing else. | own game state; read the engine; open an animation loop | — |
 | `hooks` | Adapts the engine simulation to React. The only layer that may inject context. | — | `react` → `useContext` |
 | `contexts` | Defines and provides Context / Provider only — carries the world instance down. | — | `react` → `createContext` |
 | `engine` | Pure TS simulation: physics world, collision, bullet patterns, damage, scheduling. Never imports React. | — | `matter-js`, global `requestAnimationFrame` |
 
-## Module shape
+## Unit shape
 
-One module = one folder. Only `index` is public; everything else stays private to the module.
+A unit is the code item inside a layer. Folder units expose only their entry; file units are one file each.
 
-```
-pages/
-└─ Example/
-   ├─ index   # public entry — the only importable file
-   ├─ Example # implementation (named after the module)
-   ├─ hooks   # private
-   ├─ styles  # private
-   └─ types   # private
-```
+| Layer | Unit layout | Entry |
+| --- | --- | --- |
+| `components` | `folder` | `index` |
+| `hooks` | `folder` | `index` |
+| `contexts` | `folder` | `index` |
+| `engine` | `folder` | `index` |
 
 ## Import discipline
 
-These boundaries are enforced by the generated ESLint config — one blueprint drives both:
+These boundaries are verified alive in the project ESLint run — one blueprint drives both:
 
+- **Module reachability** — a module may import only itself and modules reachable through its declared `dependsOn` edges. The inner layer flow must also allow the import.
 - **One-way only** — a layer imports only from the layers below it; upstream imports are errors.
-- **No same-layer imports** — extract shared logic down to a lower layer instead.
-- **Entry-only** — import a module through its `index`, never its internals.
+- **Canonical boundary spelling** — use `~app`, the source-root alias, whenever an import crosses a declared layer or module boundary. Additional aliases are resolved for diagnosis, but rejected as alternate boundary spellings.
+- **No same-module same-layer imports via the alias** — use a relative path. File units may reach sibling files; folder units may reach a sibling only through its entry. Extract shared logic down to a lower layer when neither unit owns it.
+- **Entry-only** — import a folder unit through its `index`, never its internals.
+- **Dynamic parity** — a dynamic import whose target reduces to a proven string follows the same alias, flow, and unit-entry rules. Runtime-dependent targets remain explicitly unverified; they are never invented as legal graph dependencies.
 - **No redundant relative segments** (`./../`, `././`) that bypass the rules.
 - **Ownership** — packages and globals are restricted to their owning layer (see the *Owns* column above).
 - **selfOnly** — where a layer narrows its importers with `selfOnly`, that importer may depend on it but must never re-export it onward.
@@ -160,7 +205,7 @@ Judgment rules no tool enforces — they hold in review and in the agent contrac
 | `usePrefixReactivity` | `warn` | — | lint |
 | `typedefOnlyFile` | `warn` | — | lint |
 
-The tier is what the enforcing machine does with a violation: `error` fails, `warn` is advisory, `off` is disabled. Which machine differs — `lint` rows fail the project's lint run, `blueprint inspect` rows fail `blueprint inspect` and never appear in a lint run, documentation-only rows are recorded intent with no gate behind them at any tier, and a row reading `nothing` is lint-gated in general but cannot emit on THIS blueprint — the cell says which fact rules it out. Every row reaches only the files a layer glob matches: a declared layer holding no code has nothing that can fail, which is runway rather than protection — `blueprint doctor` reports which of the two this repo has today.
+The tier is what the enforcing machine does with a violation: `error` fails, `warn` is advisory, `off` is disabled. Which machine differs — `lint` rows fail the project's lint run, `blueprint inspect` rows fail `blueprint inspect` and never appear in a lint run, documentation-only rows are recorded intent with no gate behind them at any tier, and a row reading `nothing` is lint-gated in general but cannot emit on THIS blueprint — the cell says which fact rules it out. Every row reaches only the files the architecture globs match: a declared position holding no code has nothing that can fail, which is runway rather than protection — `blueprint doctor` reports which of the two this repo has today.
 
 ## Naming
 
