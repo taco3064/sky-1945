@@ -1,4 +1,4 @@
-# SKY-1945 — PULSE DRIVE
+# SKY-1945 — PULSE DRIVE Change Request
 
 Add a new **PULSE DRIVE** mechanic to the existing game.
 
@@ -36,7 +36,9 @@ Player hit radius is `3 u`; enemy bullet hit radius is `4 u`, so a bullet at dis
 
 One qualifying enemy bullet grants:
 
-`+8 PULSE`
+```text
++8 PULSE
+```
 
 Each enemy bullet may grant energy **once in its lifetime**, even if it later leaves the graze radius and comes back.
 
@@ -66,7 +68,9 @@ PULSE DRIVE can activate only when:
 
 Activation immediately consumes all energy:
 
-`100 → 0`
+```text
+100 → 0
+```
 
 Controls:
 
@@ -88,7 +92,11 @@ Attempting activation below 100 energy does nothing.
 
 One activation lasts:
 
-`0.60 s` of simulated time.
+```text
+0.60 s
+```
+
+of simulated time.
 
 Pausing freezes its lifetime.
 
@@ -188,7 +196,9 @@ distance(player centre, enemy centre)
 
 Pulse damage to a normal enemy:
 
-`50 HP`
+```text
+50 HP
+```
 
 This damage is fixed.
 
@@ -215,7 +225,9 @@ distance(player centre, boss centre)
 
 Pulse damage to the Boss:
 
-`120 HP`
+```text
+120 HP
+```
 
 This is fixed and ignores:
 
@@ -246,7 +258,9 @@ The visual centre follows the player.
 
 Maximum diameter:
 
-`360 u`
+```text
+360 u
+```
 
 Visual radius must match the gameplay radius.
 
@@ -366,11 +380,15 @@ bottom: 0.65rem
 
 Size:
 
-`3rem × 3rem`
+```text
+3rem × 3rem
+```
 
 Text:
 
-`PULSE`
+```text
+PULSE
+```
 
 Style when ready:
 

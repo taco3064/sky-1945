@@ -4,7 +4,7 @@
 
 A vertical bullet-hell shooter built from the game specification in
 [`.claude/docs/game-spec.md`](.claude/docs/game-spec.md), extended with the PULSE DRIVE mechanic from
-[`.claude/docs/SKY-1945 — PULSE DRIVE Change Request.md`](<.claude/docs/SKY-1945 — PULSE DRIVE Change Request.md>).
+[`.claude/docs/SKY-1945-PULSE-DRIVE-change-request-3.md`](.claude/docs/SKY-1945-PULSE-DRIVE-change-request-3.md).
 
 ## How it was built
 
