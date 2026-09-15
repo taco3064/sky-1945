@@ -4,7 +4,9 @@
 
 A vertical bullet-hell shooter built from the game specification in
 [`.claude/docs/game-spec.md`](.claude/docs/game-spec.md) and the change request in
-[`docs/SKY-1945 — PULSE DRIVE Change Request.md`](<docs/SKY-1945 — PULSE DRIVE Change Request.md>),
+[`docs/SKY-1945-PULSE-DRIVE-change-request-1.md`](docs/SKY-1945-PULSE-DRIVE-change-request-1.md)
+(re-issued with the same requirements as
+[`docs/SKY-1945-PULSE-DRIVE-change-request-2.md`](docs/SKY-1945-PULSE-DRIVE-change-request-2.md)),
 with its architecture governed by
 [@kekkai/blueprint](https://www.npmjs.com/package/@kekkai/blueprint) 4.0.0.
 
