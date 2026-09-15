@@ -1,13 +1,16 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { speedMultiplier } from '../game/loadout.ts'
 import { Simulation } from '../game/simulation.ts'
+import type { Vector } from './controls.ts'
 import { FieldRenderer } from './fieldRenderer.ts'
 import { FrameMeter, stepSeconds, type FrameReading } from './frameTiming.ts'
 import { Hud } from './Hud.tsx'
 import { readHud, sameHud } from './hudState.ts'
 import { Overlay } from './Overlay.tsx'
 import { SpeedLines } from './SpeedLines.tsx'
+import { TouchSteering } from './TouchSteering.tsx'
 import { useAnimationFrame } from './useAnimationFrame.ts'
+import { useStageKeyboard } from './useStageKeyboard.ts'
 import { useStageScale } from './useStageScale.ts'
 import './Stage.css'
 
@@ -38,8 +41,14 @@ export function Stage({ speedPoints, onExit }: StageProps) {
   const hudRef = useRef(hud)
 
   const togglePause = () => setPhase(togglePhase)
+  const steer = ({ x, y }: Vector) => sim.setDirection(x, y)
+  const roll = () => {
+    // A roll shows on the aircraft at once, even while paused.
+    if (sim.tryRoll()) rendererRef.current?.renderPlayerState(sim)
+  }
 
   useStageScale(viewportRef)
+  useStageKeyboard({ onDirection: steer, onRoll: roll, onTogglePause: togglePause })
 
   useLayoutEffect(() => {
     const renderer = new FieldRenderer(entitiesRef.current as HTMLDivElement)
@@ -50,14 +59,6 @@ export function Stage({ speedPoints, onExit }: StageProps) {
       rendererRef.current = null
     }
   }, [sim])
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setPhase(togglePhase)
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
 
   useAnimationFrame(phase === 'playing', (rawMs) => {
     sim.step(stepSeconds(rawMs))
@@ -79,6 +80,7 @@ export function Stage({ speedPoints, onExit }: StageProps) {
         <SpeedLines pace={speedMultiplier(speedPoints)} />
         <div className="stage-entities" ref={entitiesRef} />
       </div>
+      <TouchSteering onDirection={steer} onRoll={roll} />
       {phase === 'paused' && <Overlay kind="paused" onResume={togglePause} onQuit={onExit} />}
       {phase === 'gameover' && <Overlay kind="gameover" round={hud.round} onTitle={onExit} />}
       <Hud hud={hud} frameReading={frameReading} phase={phase} onTogglePause={togglePause} />
