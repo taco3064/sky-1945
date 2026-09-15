@@ -11,7 +11,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 import blueprint from './blueprint.config.mjs'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'coverage']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
