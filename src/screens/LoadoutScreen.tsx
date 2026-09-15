@@ -18,6 +18,7 @@ const CONTROLS: [action: string, keys: string, touch: string][] = [
   ['STEER', 'ARROW KEYS', 'DRAG ANYWHERE'],
   ['ROLL', 'SPACE', 'TAP OR 2ND FINGER'],
   ['PAUSE', 'ESC', '❚❚ BUTTON'],
+  ['PULSE', 'X', 'PULSE BUTTON'],
 ]
 
 export function LoadoutScreen({ speedPoints, onChange, onStart }: LoadoutScreenProps) {
