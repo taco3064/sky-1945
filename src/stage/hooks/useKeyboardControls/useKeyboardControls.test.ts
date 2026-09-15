@@ -3,7 +3,13 @@ import { expect, it, vi } from 'vitest';
 import { useKeyboardControls } from './useKeyboardControls';
 
 function setup() {
-  const handlers = { onSteer: vi.fn(), onRoll: vi.fn(), onPause: vi.fn() };
+  const handlers = {
+    onSteer: vi.fn(),
+    onRoll: vi.fn(),
+    onPause: vi.fn(),
+    onPulse: vi.fn(),
+  };
+
   const hook = renderHook(() => useKeyboardControls(handlers));
 
   return { ...handlers, ...hook };
@@ -44,6 +50,16 @@ it('toggles pause on Escape, auto-repeat included', () => {
   expect(onPause).toHaveBeenCalledTimes(2);
 });
 
+it('attempts a Pulse Drive on X, either case', () => {
+  const { onPulse, onRoll } = setup();
+
+  fireEvent.keyDown(window, { key: 'x' });
+  fireEvent.keyDown(window, { key: 'X' });
+
+  expect(onPulse).toHaveBeenCalledTimes(2);
+  expect(onRoll).not.toHaveBeenCalled();
+});
+
 it('stops steering and releases every arrow on blur, even with none held', () => {
   const { onSteer } = setup();
 
@@ -58,15 +74,17 @@ it('stops steering and releases every arrow on blur, even with none held', () =>
 });
 
 it('ignores other keys and stops listening once unmounted', () => {
-  const { onSteer, onRoll, onPause, unmount } = setup();
+  const { onSteer, onRoll, onPause, onPulse, unmount } = setup();
 
   expect(fireEvent.keyDown(window, { key: 'a', cancelable: true })).toBe(true);
   fireEvent.keyUp(window, { key: ' ' });
+  fireEvent.keyUp(window, { key: 'x' });
   unmount();
   fireEvent.keyDown(window, { key: 'ArrowUp' });
+  fireEvent.keyDown(window, { key: 'x' });
   fireEvent.blur(window);
 
-  for (const handler of [onSteer, onRoll, onPause]) {
+  for (const handler of [onSteer, onRoll, onPause, onPulse]) {
     expect(handler).not.toHaveBeenCalled();
   }
 });

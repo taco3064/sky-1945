@@ -1,0 +1,32 @@
+/* No font family: like the pause button, it keeps the browser's default button font. */
+.pulse-button {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.65rem;
+  pointer-events: auto;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  color: #eafcff;
+  background: rgb(19 28 39 / 90%);
+  border: 1px solid #6ee7ff;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgb(110 231 255 / 35%);
+  cursor: pointer;
+}
+
+.pulse-button:focus-visible {
+  outline: 2px solid #4da3ff;
+  outline-offset: 2px;
+}
+
+/* Below 100 PULSE. */
+.pulse-button--charging {
+  opacity: 0.35;
+  border-color: #233040;
+}

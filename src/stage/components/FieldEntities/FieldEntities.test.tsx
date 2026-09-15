@@ -16,13 +16,13 @@ const VIEW: BattleView = {
   enemies: [{ id: 3, kind: 'medium' }],
   boss: { id: 4, size: 1.5, hp: 900, maxHp: 1350, pose: 'winding', move: 'beam' },
   beam: { id: 8 },
-  pulse: null,
+  pulse: { id: 10 },
   bursts: [{ id: 9, tone: 'enemy', size: 'small' }],
   fps: 0,
   worst: 0,
 };
 
-it('paints the player, bullets, enemies, boss, beam and bursts in that order', () => {
+it('paints the player, bullets, enemies, boss, beam, Pulse and bursts in order', () => {
   const { container } = render(
     <div data-testid="field">
       <FieldEntities view={VIEW} register={vi.fn()} />
@@ -38,6 +38,7 @@ it('paints the player, bullets, enemies, boss, beam and bursts in that order', (
     'enemy enemy--medium',
     'boss',
     'beam',
+    'pulse',
     'burst burst--enemy burst--small',
   ]);
 
@@ -53,9 +54,10 @@ it('registers every outer element under its entity id', () => {
 
   const registered = new Map(register.mock.calls.map(([id, element]) => [id, element]));
 
-  expect([...registered.keys()].sort((a, b) => a - b)).toEqual([1, 3, 4, 5, 7, 8, 9]);
+  expect([...registered.keys()].sort((a, b) => a - b)).toEqual([1, 3, 4, 5, 7, 8, 9, 10]);
   expect(registered.get(1)).toBe(container.querySelector('.ally'));
   expect(registered.get(8)).toBe(container.querySelector('.beam'));
+  expect(registered.get(10)).toBe(container.querySelector('.pulse'));
 });
 
 it('keeps unchanged entities registered and unregisters removed ones', () => {
@@ -64,7 +66,13 @@ it('keeps unchanged entities registered and unregisters removed ones', () => {
 
   register.mockClear();
 
-  const remaining = { ...VIEW, bullets: [VIEW.bullets[1]], boss: null, beam: null };
+  const remaining = {
+    ...VIEW,
+    bullets: [VIEW.bullets[1]],
+    boss: null,
+    beam: null,
+    pulse: null,
+  };
 
   rerender(<FieldEntities view={remaining} register={register} />);
 
@@ -73,8 +81,9 @@ it('keeps unchanged entities registered and unregisters removed ones', () => {
       [7, null],
       [4, null],
       [8, null],
+      [10, null],
     ]),
   );
 
-  expect(register.mock.calls.length).toBe(3);
+  expect(register.mock.calls.length).toBe(4);
 });

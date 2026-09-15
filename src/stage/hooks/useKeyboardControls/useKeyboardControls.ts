@@ -1,17 +1,27 @@
 import { useEffect, useRef } from 'react';
-import { type Direction, arrowDirection, isArrowKey } from '~app/stage/models/controls';
+import {
+  type Direction,
+  arrowDirection,
+  isArrowKey,
+  isPulseKey,
+} from '~app/stage/models/controls';
 
 interface KeyboardHandlers {
   onSteer: (direction: Direction) => void;
   onRoll: () => void;
   onPause: () => void;
+  onPulse: () => void;
 }
 
-/** Keyboard input on the stage (game-spec 12.4). Auto-repeat is not filtered. */
+/**
+ * Keyboard input on the stage (game-spec 12.4, PULSE DRIVE 3). Auto-repeat is not
+ * filtered.
+ */
 export function useKeyboardControls({
   onSteer,
   onRoll,
   onPause,
+  onPulse,
 }: KeyboardHandlers): void {
   const held = useRef(new Set<string>());
 
@@ -28,6 +38,8 @@ export function useKeyboardControls({
         onRoll();
       } else if (event.key === 'Escape') {
         onPause();
+      } else if (isPulseKey(event.key)) {
+        onPulse();
       }
     };
 
@@ -53,5 +65,5 @@ export function useKeyboardControls({
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', handleBlur);
     };
-  }, [onSteer, onRoll, onPause]);
+  }, [onSteer, onRoll, onPause, onPulse]);
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatLean, nextLean, placementTransform } from './placement';
+import { formatLean, formatRadius, nextLean, placementTransform } from './placement';
 
 describe('nextLean', () => {
   it('stays level without sideways travel', () => {
@@ -28,4 +28,9 @@ it('places the centre and turns by the angle', () => {
 it('writes lean with 3 decimals', () => {
   expect(formatLean(0)).toBe('0.000');
   expect(formatLean(0.18765)).toBe('0.188');
+});
+
+it('writes a radius with 2 decimals', () => {
+  expect(formatRadius(0)).toBe('0.00');
+  expect(formatRadius(89.99999999999997)).toBe('90.00');
 });

@@ -1,0 +1,28 @@
+/*
+ * Sized by `--radius`, the gameplay radius in u written with every placement, so the
+ * drawing is simulation state: it freezes while paused and has no animation of its own,
+ * which also leaves reduced motion nothing to remove (PULSE DRIVE 10).
+ */
+.pulse {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(var(--radius, 0) * 2px);
+  height: calc(var(--radius, 0) * 2px);
+  translate: -50% -50%;
+  border: 3px solid #6ee7ff;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle,
+      rgb(110 231 255 / 8%) 0%,
+      rgb(77 163 255 / 12%) 55%,
+      rgb(110 231 255 / 0%) 72%
+    );
+  box-shadow:
+    0 0 18px rgb(110 231 255 / 65%),
+    inset 0 0 18px rgb(77 163 255 / 35%);
+  /* The radius grows linearly with Pulse time: 0.85 at 0 u (0 s), 0.15 at 180 u (0.6 s). */
+  opacity: calc(0.85 - var(--radius, 0) * 0.7 / 180);
+  pointer-events: none;
+}

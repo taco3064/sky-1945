@@ -14,6 +14,7 @@ import { EnemyCraft } from '../EnemyCraft';
 import type { EnemyKind } from '~app/battle/models/enemies';
 import type { PlacementRegistry } from '~app/stage/models/placement';
 import { AllyCraft } from '../AllyCraft';
+import { Pulse } from '../Pulse';
 
 type Register = PlacementRegistry['register'];
 
@@ -66,6 +67,12 @@ const PlacedBeam = memo(function PlacedBeam({ id, register }: Placed) {
   return <Beam ref={ref} />;
 });
 
+const PlacedPulse = memo(function PlacedPulse({ id, register }: Placed) {
+  const ref = usePlacedRef(id, register);
+
+  return <Pulse ref={ref} />;
+});
+
 const PlacedBurst = memo(function PlacedBurst({ id, register, tone, size }: BurstProps) {
   const ref = usePlacedRef(id, register);
 
@@ -77,9 +84,13 @@ interface FieldEntitiesProps {
   register: Register;
 }
 
-/** Every entity in field paint order, each group in order of creation (game-spec 8.3). */
+/**
+ * Every entity in field paint order, each group in order of creation (game-spec 8.3).
+ * The Pulse covers the aircraft, bullets and beam; bursts still cover everything
+ * (PULSE DRIVE 10).
+ */
 export function FieldEntities({ view, register }: FieldEntitiesProps) {
-  const { player, boss, beam } = view;
+  const { player, boss, beam, pulse } = view;
 
   return (
     <>
@@ -107,6 +118,7 @@ export function FieldEntities({ view, register }: FieldEntitiesProps) {
         />
       )}
       {beam && <PlacedBeam key={beam.id} id={beam.id} register={register} />}
+      {pulse && <PlacedPulse key={pulse.id} id={pulse.id} register={register} />}
       {view.bursts.map(({ id, tone, size }) => (
         <PlacedBurst key={id} id={id} register={register} tone={tone} size={size} />
       ))}

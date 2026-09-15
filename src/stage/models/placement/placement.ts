@@ -21,3 +21,8 @@ export function placementTransform(x: number, y: number, angle: number): string 
 export function formatLean(lean: number): string {
   return lean.toFixed(3);
 }
+
+/** `--radius` is a unitless u count with 2 decimals; the drawing multiplies it by 1px. */
+export function formatRadius(radius: number): string {
+  return radius.toFixed(2);
+}

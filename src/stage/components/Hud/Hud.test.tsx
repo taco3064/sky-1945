@@ -15,6 +15,7 @@ const BOSS = {
 
 function setup(overrides: Partial<HudProps> = {}) {
   const onPause = vi.fn();
+  const onPulse = vi.fn();
 
   const props: HudProps = {
     lives: 3,
@@ -22,18 +23,20 @@ function setup(overrides: Partial<HudProps> = {}) {
     boss: null,
     fps: 0,
     worst: 0,
+    energy: 0,
     phase: 'playing',
     onPause,
+    onPulse,
     ...overrides,
   };
 
   const view = render(<Hud {...props} />);
   const hud = view.container.firstElementChild as HTMLElement;
 
-  return { onPause, props, hud, ...view };
+  return { onPause, onPulse, props, hud, ...view };
 }
 
-it('lays out lives, round, boss bar, frame meter and pause button in that order', () => {
+it('lays out lives, round, boss bar, meters, PULSE and pause buttons in order', () => {
   const { hud } = setup({ boss: BOSS });
 
   expect(hud.className).toBe('hud');
@@ -43,8 +46,22 @@ it('lays out lives, round, boss bar, frame meter and pause button in that order'
     'hud__round',
     'boss-bar boss-bar--normal',
     'hud__frame-meter',
+    'pulse-meter',
+    'pulse-button pulse-button--charging',
     'hud__pause',
   ]);
+});
+
+it('shows PULSE energy on the meter and the button, and attempts a Pulse', () => {
+  const { onPulse } = setup({ energy: 100 });
+
+  expect(screen.getByText('READY')).toBeTruthy();
+  const button = screen.getByRole('button', { name: 'PULSE' });
+
+  fireEvent.pointerDown(button);
+
+  expect(button.className).toBe('pulse-button');
+  expect(onPulse).toHaveBeenCalledTimes(1);
 });
 
 it('shows one life icon per remaining life and the round', () => {
@@ -82,8 +99,15 @@ it.each<[StagePhase, string, string]>([
   expect(onPause).toHaveBeenCalledTimes(1);
 });
 
-it('hides the pause button during game over', () => {
-  setup({ phase: 'gameover', lives: 0 });
+it('keeps the PULSE button visible while paused', () => {
+  setup({ phase: 'paused', energy: 100 });
+
+  expect(screen.getByRole('button', { name: 'PULSE' })).toBeTruthy();
+});
+
+it('hides the PULSE and pause buttons during game over, keeping the meter', () => {
+  const { hud } = setup({ phase: 'gameover', lives: 0, energy: 40 });
 
   expect(screen.queryByRole('button')).toBeNull();
+  expect(hud.querySelector('.pulse-meter')?.textContent).toBe('PULSE40%');
 });

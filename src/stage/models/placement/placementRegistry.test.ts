@@ -18,6 +18,22 @@ it('places a registered element and eases its lean from 0 on the first frame', (
   expect(element.style.getPropertyValue('--lean')).toBe('0.148');
 });
 
+it('writes the radius only for entities that have one', () => {
+  const registry = createPlacementRegistry();
+  const pulse = document.createElement('div');
+  const bullet = document.createElement('div');
+
+  registry.register(6, pulse);
+  registry.register(7, bullet);
+
+  registry.place({ id: 6, x: 270, y: 800, angle: 0, radius: 45 });
+  registry.place({ id: 7, x: 270, y: 700, angle: 0 });
+
+  expect(pulse.style.transform).toBe('translate3d(270px, 800px, 0) rotate(0deg)');
+  expect(pulse.style.getPropertyValue('--radius')).toBe('45.00');
+  expect(bullet.style.getPropertyValue('--radius')).toBe('');
+});
+
 it('ignores entities without an element and forgets unregistered ones', () => {
   const registry = createPlacementRegistry();
   const element = document.createElement('div');

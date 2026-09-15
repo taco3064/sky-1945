@@ -1,0 +1,44 @@
+.pulse-meter {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  width: min(42%, 18rem);
+  transform: translateX(-50%);
+}
+
+.pulse-meter__reading {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  color: #9bb4c9;
+}
+
+.pulse-meter__value {
+  font-variant-numeric: tabular-nums;
+}
+
+.pulse-meter__track {
+  overflow: hidden;
+  height: 6px;
+  background: #16202c;
+  border: 1px solid #233040;
+  border-radius: 999px;
+}
+
+/* No transition: the meter never moves while the game is paused. */
+.pulse-meter__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2b6ba8 0%, #4da3ff 55%, #6ee7ff 100%);
+}
+
+.pulse-meter--ready .pulse-meter__reading {
+  color: #6ee7ff;
+}
+
+.pulse-meter--ready .pulse-meter__track {
+  box-shadow: 0 0 10px rgb(110 231 255 / 45%);
+}

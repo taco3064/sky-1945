@@ -1,11 +1,13 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Battle } from '~app/battle/hooks/useBattle';
-import type { Place } from '~app/battle/models/simulation';
+import type { BattleStore, BattleView, Place } from '~app/battle/models/simulation';
 import { Stage } from './Stage';
 
+/** View fields to show instead of the run's own, and the store of the latest run. */
 const battle = vi.hoisted(() => ({
-  gameOver: false,
+  view: {} as Partial<BattleView>,
+  store: null as BattleStore | null,
 }));
 
 vi.mock('~app/battle/hooks/useBattle', async (importOriginal) => {
@@ -16,19 +18,22 @@ vi.mock('~app/battle/hooks/useBattle', async (importOriginal) => {
     useBattle: (speedPoints: number, place: Place): Battle => {
       const result = actual.useBattle(speedPoints, place);
 
-      if (!battle.gameOver) {
-        return result;
-      }
+      battle.store = result.store;
 
-      return { ...result, view: { ...result.view, gameOver: true, lives: 0, round: 4 } };
+      return { ...result, view: { ...result.view, ...battle.view } };
     },
   };
 });
 
 let frames: FrameRequestCallback[] = [];
 
+/** Spies on Pulse attempts reaching the run. */
+function spyPulse() {
+  return vi.spyOn(battle.store as BattleStore, 'pulse');
+}
+
 beforeEach(() => {
-  battle.gameOver = false;
+  battle.view = {};
   frames = [];
 
   vi.spyOn(window, 'requestAnimationFrame')
@@ -158,9 +163,56 @@ describe('pause', () => {
   });
 });
 
+describe('PULSE DRIVE', () => {
+  it('attempts a Pulse from X and the PULSE button while playing', () => {
+    setup();
+    const pulse = spyPulse();
+
+    fireEvent.keyDown(window, { key: 'x' });
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'PULSE' }));
+
+    expect(pulse).toHaveBeenCalledTimes(2);
+  });
+
+  it('does nothing from X or the still visible PULSE button while paused', () => {
+    setup();
+    const pulse = spyPulse();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.keyDown(window, { key: 'X' });
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'PULSE' }));
+
+    expect(pulse).not.toHaveBeenCalled();
+  });
+
+  it('lets another finger press PULSE while one steers, without a roll', () => {
+    const { stage } = setup();
+    const pulse = spyPulse();
+    const surface = stage.querySelector('.stage__touch') as HTMLElement;
+
+    const button = screen.getByRole('button', { name: 'PULSE' });
+
+    fireEvent.pointerDown(surface, { pointerId: 1, clientX: 50, clientY: 60 });
+    fireEvent.pointerDown(button, { pointerId: 2 });
+
+    expect(pulse).toHaveBeenCalledTimes(1);
+    expect(stage.querySelector('.ally')?.className).toBe('ally ally--protected');
+  });
+
+  it('draws an active Pulse in the field and shows the meter in the HUD', () => {
+    battle.view = { energy: 100, pulse: { id: 99 } };
+    const { stage } = setup();
+
+    const field = stage.querySelector('.stage__field') as HTMLElement;
+
+    expect(childClasses(field)).toEqual(['speed-lines', 'ally ally--protected', 'pulse']);
+    expect(stage.querySelector('.hud .pulse-meter__value')?.textContent).toBe('READY');
+  });
+});
+
 describe('game over', () => {
   it('shows the round reached, hides pause, ignores Escape and stops simulating', () => {
-    battle.gameOver = true;
+    battle.view = { gameOver: true, lives: 0, round: 4 };
     const { onQuit } = setup();
 
     fireEvent.keyDown(window, { key: 'Escape' });
@@ -173,5 +225,16 @@ describe('game over', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'TITLE' }));
     expect(onQuit).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides the PULSE button and ignores X', () => {
+    battle.view = { gameOver: true, lives: 0, energy: 100 };
+    setup();
+    const pulse = spyPulse();
+
+    fireEvent.keyDown(window, { key: 'x' });
+
+    expect(screen.queryByRole('button', { name: 'PULSE' })).toBeNull();
+    expect(pulse).not.toHaveBeenCalled();
   });
 });

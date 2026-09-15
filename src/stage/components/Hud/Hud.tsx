@@ -1,6 +1,8 @@
 import type { BossView } from '~app/battle/models/simulation';
 import { BossHealthBar } from '../BossHealthBar';
 import { LifeIcon } from '../LifeIcon';
+import { PulseButton } from '../PulseButton';
+import { PulseMeter } from '../PulseMeter';
 import { frameMeterText, isSlowFrameRate } from '~app/stage/models/frameMeterText';
 import './Hud.css';
 
@@ -12,12 +14,25 @@ interface HudProps {
   boss: BossView | null;
   fps: number;
   worst: number;
+  /** PULSE energy, 0–100. */
+  energy: number;
   phase: StagePhase;
   onPause: () => void;
+  onPulse: () => void;
 }
 
 /** The HUD frame over the scaled field, unscaled itself (game-spec 8.5). */
-export function Hud({ lives, round, boss, fps, worst, phase, onPause }: HudProps) {
+export function Hud({
+  lives,
+  round,
+  boss,
+  fps,
+  worst,
+  energy,
+  phase,
+  onPause,
+  onPulse,
+}: HudProps) {
   const paused = phase === 'paused';
 
   const meterClass = isSlowFrameRate(fps)
@@ -43,15 +58,19 @@ export function Hud({ lives, round, boss, fps, worst, phase, onPause }: HudProps
       <p className={meterClass}>
         {frameMeterText(fps, worst)}
       </p>
+      <PulseMeter energy={energy} />
       {phase !== 'gameover' && (
-        <button
-          className="hud__pause"
-          type="button"
-          aria-label={paused ? 'Resume' : 'Pause'}
-          onClick={onPause}
-        >
-          {paused ? '▶' : '❚❚'}
-        </button>
+        <>
+          <PulseButton energy={energy} onPulse={onPulse} />
+          <button
+            className="hud__pause"
+            type="button"
+            aria-label={paused ? 'Resume' : 'Pause'}
+            onClick={onPause}
+          >
+            {paused ? '▶' : '❚❚'}
+          </button>
+        </>
       )}
     </div>
   );

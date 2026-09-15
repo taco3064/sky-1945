@@ -37,9 +37,16 @@ export function Stage({ speedPoints, onQuit }: StageProps) {
     }
   }, [gameOver]);
 
+  // X and the PULSE button do nothing while paused or after game over (PULSE DRIVE 3).
+  const attemptPulse = useCallback(() => {
+    if (phase === 'playing') {
+      store.pulse();
+    }
+  }, [phase, store]);
+
   useStageScale(viewportRef);
   useBattleLoop(store, phase === 'playing', registry.place);
-  useKeyboardControls({ onSteer, onRoll, onPause: togglePause });
+  useKeyboardControls({ onSteer, onRoll, onPause: togglePause, onPulse: attemptPulse });
   const { stickRef, ...touchSurface } = usePointerSteering({ onSteer, onRoll });
 
   return (
@@ -72,8 +79,10 @@ export function Stage({ speedPoints, onQuit }: StageProps) {
         boss={view.boss}
         fps={view.fps}
         worst={view.worst}
+        energy={view.energy}
         phase={phase}
         onPause={togglePause}
+        onPulse={attemptPulse}
       />
     </div>
   );

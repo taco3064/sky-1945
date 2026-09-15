@@ -15,6 +15,11 @@ export function isArrowKey(key: string): boolean {
   return Object.hasOwn(ARROWS, key);
 }
 
+/** X attempts a Pulse Drive, with or without Shift or Caps Lock (PULSE DRIVE 3). */
+export function isPulseKey(key: string): boolean {
+  return key === 'x' || key === 'X';
+}
+
 /** Held arrows summed into a direction; opposite keys cancel (game-spec 12.4). */
 export function arrowDirection(held: Iterable<string>): Direction {
   let x = 0;
