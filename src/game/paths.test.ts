@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { inwardSign, pathPosition, type Edge, type PathName, type Point } from './paths.ts'
+import type { Point } from './field.ts'
+import { inwardSign, pathPosition, type Edge, type PathName } from './paths.ts'
 
 function assertNear(actual: number, expected: number, label: string) {
   assert.ok(Math.abs(actual - expected) <= 0.005 + 1e-9, `${label}: ${actual} ≉ ${expected}`)

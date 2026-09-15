@@ -1,8 +1,8 @@
+import type { Point } from './field.ts'
+
 export type Edge = 'top' | 'left' | 'right'
 
 export type PathName = 'dive' | 'weave' | 'arc' | 'hover' | 'feint'
-
-export type Point = { x: number; y: number }
 
 /** Unit heading of a craft entering from each edge. */
 const HEADINGS: Record<Edge, { hx: number; hy: number }> = {

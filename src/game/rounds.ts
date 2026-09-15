@@ -1,4 +1,5 @@
-import type { Edge, PathName, Point } from './paths.ts'
+import type { Point } from './field.ts'
+import type { Edge, PathName } from './paths.ts'
 
 export type EnemyKind = 'small' | 'medium' | 'large'
 
