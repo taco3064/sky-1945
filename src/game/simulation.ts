@@ -23,7 +23,17 @@ import {
   updatePlayer,
   type Player,
 } from './player.ts'
-import { grazePulse, isGraze } from './pulse.ts'
+import {
+  PULSE_BOSS_DAMAGE,
+  PULSE_ENEMY_DAMAGE,
+  PULSE_MAX,
+  grazePulse,
+  inPulse,
+  isGraze,
+  pulseRadius,
+  startPulseDrive,
+  type PulseDrive,
+} from './pulse.ts'
 import { roundMultiplier, roundSchedule, type Squad } from './rounds.ts'
 import { shotVelocity, type Shot } from './shots.ts'
 
@@ -78,6 +88,8 @@ export class Simulation {
   boss: Boss | null = null
   beam: Beam | null = null
   bursts: Burst[] = []
+  /** The active Pulse Drive, centred on the aircraft; null when none is running. */
+  pulseDrive: PulseDrive | null = null
 
   readonly #speedMultiplier: number
   readonly #powerMultiplier: number
@@ -85,7 +97,10 @@ export class Simulation {
   readonly #physics = new Physics()
   readonly #bodies = new Map<object, Body>()
   readonly #owners = new Map<number, Owner>()
-  /** Entities removed by contacts in the current pass, dropped from their lists once contacts are resolved. */
+  /**
+   * Entities removed by the Pulse Drive or by contacts in the current pass, dropped from their lists before
+   * contacts are detected and once they are resolved.
+   */
   readonly #removed = new Set<object>()
 
   #phase: 'waves' | 'boss' = 'waves'
@@ -109,6 +124,20 @@ export class Simulation {
     return tryRoll(this.player, this.time)
   }
 
+  /**
+   * Starts a Pulse Drive when PULSE is full, the aircraft has flown in and no drive is running. It spends
+   * all PULSE and protects the aircraft for the drive, never shortening protection it already has.
+   */
+  tryPulseDrive(): boolean {
+    const { player } = this
+    if (this.pulse < PULSE_MAX || player.flyingIn || this.pulseDrive) return false
+
+    this.pulse = 0
+    this.pulseDrive = startPulseDrive(this.time)
+    player.invulnerableUntil = Math.max(player.invulnerableUntil, this.pulseDrive.endsAt)
+    return true
+  }
+
   /** One simulation step: `dt` seconds split into 4 equal passes. */
   step(dt: number): void {
     const passDt = dt / PASSES_PER_STEP
@@ -130,6 +159,7 @@ export class Simulation {
 
     this.#moveBullets(dt)
     this.#ageBursts(dt)
+    this.#drivePulse()
     this.#resolveContacts(this.#detectContacts(dt))
     this.#graze()
     this.#advanceRound()
@@ -218,6 +248,39 @@ export class Simulation {
     })
   }
 
+  /**
+   * Ends the drive once its time is up; until then, removes every enemy bullet whose centre is inside the
+   * Pulse and hits each enemy aircraft and boss it reaches once. It runs before contacts are detected, so a
+   * cleared bullet or a destroyed enemy never touches anything in this pass.
+   */
+  #drivePulse(): void {
+    const drive = this.pulseDrive
+    if (!drive) return
+    if (this.time >= drive.endsAt) {
+      this.pulseDrive = null
+      return
+    }
+
+    const { player, boss } = this
+    const radius = pulseRadius(this.time - drive.startedAt)
+    const distance = (entity: { x: number; y: number }) => Math.hypot(entity.x - player.x, entity.y - player.y)
+
+    for (const bullet of this.bullets) {
+      if (bullet.side === 'enemy' && inPulse(distance(bullet), radius)) this.#removed.add(bullet)
+    }
+    for (const enemy of this.enemies) {
+      if (drive.touched.has(enemy) || !inPulse(distance(enemy), radius, ENEMY_STATS[enemy.kind].radius)) continue
+      drive.touched.add(enemy)
+      this.#damageEnemy(enemy, PULSE_ENEMY_DAMAGE)
+    }
+    // A shielded boss still counts as hit: the damage is discarded and this drive cannot hit it again.
+    if (boss && !drive.touched.has(boss) && inPulse(distance(boss), radius, bossHitRadius(boss.size))) {
+      drive.touched.add(boss)
+      this.#damageBoss(boss, PULSE_BOSS_DAMAGE)
+    }
+    this.#dropRemoved()
+  }
+
   #detectContacts(dt: number): [Body, Body][] {
     const place = (entity: { x: number; y: number }) => {
       this.#physics.place(this.#bodies.get(entity) as Body, entity.x, entity.y)
@@ -237,7 +300,10 @@ export class Simulation {
       const b = this.#owners.get(bodyB.id)
       if (a && b && !this.#contact(a, b)) this.#contact(b, a)
     }
+    this.#dropRemoved()
+  }
 
+  #dropRemoved(): void {
     if (this.#removed.size === 0) return
     this.bullets = this.bullets.filter((bullet) => !this.#removed.has(bullet))
     this.enemies = this.enemies.filter((enemy) => !this.#removed.has(enemy))
@@ -295,6 +361,8 @@ export class Simulation {
     this.bursts.push({ x: player.x, y: player.y, tone: 'ally', size: 'large', age: 0 })
     relaunchPlayer(player, this.time)
     this.lives -= 1
+    // PULSE is kept; only the running drive ends.
+    this.pulseDrive = null
   }
 
   /**
