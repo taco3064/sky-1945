@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
+import type { Enemy } from './enemies.ts'
 import { isOutside } from './field.ts'
 import { isProtected } from './player.ts'
 import { pulseRadius } from './pulse.ts'
@@ -87,7 +88,7 @@ function driveAt(sim: Simulation, elapsed: number) {
 }
 
 /** Makes an enemy dive from `entry`, so an instant step leaves it there. */
-function holdEnemy(enemy: Simulation['enemies'][number], entry: { x: number; y: number }, hp = enemy.hp): void {
+function holdEnemy(enemy: Enemy, entry: { x: number; y: number }, hp = enemy.hp): void {
   Object.assign(enemy, { path: 'dive', edge: 'top', entry, travelled: 0, age: 0, hp })
 }
 
