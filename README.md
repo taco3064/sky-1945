@@ -1,75 +1,50 @@
-# React + TypeScript + Vite
+# sky-1945 — with blueprint
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![SKY-1945](public/logo.webp)
 
-Currently, two official plugins are available:
+This branch is sky-1945 built with [@kekkai/blueprint](https://www.npmjs.com/package/@kekkai/blueprint) 4.0.0,
+from the same specification and the same starting files as the build without it on
+[`experiment/no-blueprint`](https://github.com/taco3064/sky-1945/tree/experiment/no-blueprint).
+It records what the code looks like under this architecture contract. It is not a verdict on either
+approach; the original blueprint-governed version is on [`main`](https://github.com/taco3064/sky-1945/tree/main).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## How it was built
 
-## React Compiler
+- It starts from the repository's initial commit and a Vite React + TypeScript template with ESLint
+  (`create-vite@9.2.1 --template react-ts --eslint`), file for file the same scaffold the no-blueprint
+  build started from.
+- The input was the game specification in [`.claude/docs/game-spec.md`](.claude/docs/game-spec.md),
+  which says nothing about how the code should be organised, plus the instruction to adopt blueprint.
+- Development happened in a separate clone that held only this branch, so neither `main` nor its history
+  was in the working copy.
+- Runtime and build dependencies are pinned to the versions the specification lists.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## How the contract changed during the build
 
-## Expanding the ESLint configuration
+- It started as a module-first config with eleven game-domain modules and its own `components`, `hooks`
+  and `lib` layers, without `reactPreset`, so only the structural rules were active.
+- The modules were then consolidated into `title`, `loadout`, `stage` and `battle`.
+- The config then adopted `reactPreset` in module-first shape: the reserved `app` module holds the screen
+  flow, the preset's inner layers stay as the preset declares them (`components`, `hooks`, `contexts`,
+  `services`), and a `models` layer, which owns `matter-js`, holds the framework-free game rules.
+- The last step fixed the preset's rule findings and switched the rules on. All 17 optional gates are active.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## What differs from `main`
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- The modules are `app`, `title`, `loadout`, `stage` and `battle`; `main` has `app`, `session`, `title`,
+  `loadout` and `stage`.
+- The layers are the preset's plus `models`; `main` replaces `services` with an `engine` layer that owns
+  `matter-js` and `requestAnimationFrame`.
+- Tests run on Vitest with a 100% coverage threshold over all of `src`; `main` holds 100% over `engine`
+  and `hooks`.
+- There is no CI workflow on this branch.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Running it
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
+`npm run lint`, `npm test`, `npm run test:coverage`, `npm run build` and `npx blueprint doctor` are also
+available.
