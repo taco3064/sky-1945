@@ -1,0 +1,55 @@
+.title {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.title__heading {
+  margin: 0;
+  line-height: 0;
+}
+
+.title__logo {
+  display: block;
+  width: min(88vw, 32rem);
+  height: auto;
+}
+
+.title__prompt {
+  margin: 0;
+  font-size: clamp(0.75rem, 3.5vw, 1rem);
+  letter-spacing: 0.28em;
+  color: #9bb4c9;
+  animation: breathe 2.4s ease-in-out infinite;
+}
+
+.title__tap {
+  display: none;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .title__key {
+    display: none;
+  }
+
+  .title__tap {
+    display: inline;
+  }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .title__prompt {
+    animation: none;
+    opacity: 0.8;
+  }
+}
