@@ -4,7 +4,7 @@ import { expect, it } from 'vitest';
 import { burstShards } from '~app/battle/models/bursts';
 import { Burst } from './Burst';
 
-it('paints the flash first, then one shard per table row with its direction and spin', () => {
+it('paints the flash, then a shard per table row with its direction and spin', () => {
   const ref = createRef<HTMLDivElement>();
   const { container } = render(<Burst ref={ref} tone="ally" size="large" />);
 
@@ -17,9 +17,13 @@ it('paints the flash first, then one shard per table row with its direction and 
   expect(flash.className).toBe('burst__flash');
   expect(shards.map((shard) => shard.className)).toEqual(Array(10).fill('burst__shard'));
 
-  expect(
-    shards.map((shard) => ['--dx', '--dy', '--spin'].map((name) => shard.style.getPropertyValue(name))),
-  ).toEqual(burstShards('large').map(({ dx, dy, spin }) => [String(dx), String(dy), `${spin}deg`]));
+  const shardVars = (shard: HTMLElement) =>
+    ['--dx', '--dy', '--spin'].map((name) => shard.style.getPropertyValue(name));
+
+  const expected = burstShards('large')
+    .map(({ dx, dy, spin }) => [String(dx), String(dy), `${spin}deg`]);
+
+  expect(shards.map(shardVars)).toEqual(expected);
 });
 
 it('gives a small enemy burst six shards', () => {

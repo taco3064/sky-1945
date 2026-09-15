@@ -30,12 +30,15 @@ describe('allocation', () => {
     expect(DEFAULT_SPEED_POINTS).toBe(5);
   });
 
-  it.each(LOADOUT_TABLE)('%i speed points give SPEED %i%% and POWER %i%%', (points, speed, power) => {
-    expect(speedPercent(points)).toBe(speed);
-    expect(powerPercent(points)).toBe(power);
-    expect(speedMultiplier(points)).toBeCloseTo(speed / 100, 12);
-    expect(powerMultiplier(points)).toBeCloseTo(power / 100, 12);
-  });
+  it.each(LOADOUT_TABLE)(
+    '%i speed points give SPEED %i%% and POWER %i%%',
+    (points, speed, power) => {
+      expect(speedPercent(points)).toBe(speed);
+      expect(powerPercent(points)).toBe(power);
+      expect(speedMultiplier(points)).toBeCloseTo(speed / 100, 12);
+      expect(powerMultiplier(points)).toBeCloseTo(power / 100, 12);
+    },
+  );
 
   it('rounds and clamps points to 0–10', () => {
     expect(clampPoints(-1)).toBe(0);

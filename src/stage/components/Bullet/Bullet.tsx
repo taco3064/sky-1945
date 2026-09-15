@@ -7,7 +7,10 @@ interface BulletProps {
   side: BulletSide;
 }
 
-/** A player capsule or an enemy round shot (game-spec 10.1, 10.2). `ref` is the placed element. */
+/**
+ * A player capsule or an enemy round shot (game-spec 10.1, 10.2). `ref` is the placed
+ * element.
+ */
 export function Bullet({ ref, side }: BulletProps) {
   return <div ref={ref} className={`bullet bullet--${side}`} />;
 }

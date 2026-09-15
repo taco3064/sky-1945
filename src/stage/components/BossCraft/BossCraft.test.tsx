@@ -5,16 +5,22 @@ import { BossCraft } from './BossCraft';
 
 it('draws the charge line under the scaled craft, parts in paint order', () => {
   const ref = createRef<HTMLDivElement>();
-  const { container } = render(<BossCraft ref={ref} size={1.25} pose="winding" move="beam" />);
+
+  const { container } = render(
+    <BossCraft ref={ref} size={1.25} pose="winding" move="beam" />,
+  );
 
   const mount = container.firstElementChild as HTMLElement;
+  const craft = mount.lastElementChild as HTMLElement;
 
   expect(ref.current).toBe(mount);
   expect(mount.className).toBe('boss');
   expect(mount.style.getPropertyValue('--boss-scale')).toBe('1.25');
-  expect([...mount.children].map((child) => child.className)).toEqual(['boss__charge', 'boss__craft']);
 
-  expect([...(mount.lastElementChild?.children ?? [])].map((part) => part.className)).toEqual([
+  expect([...mount.children].map((child) => child.className))
+    .toEqual(['boss__charge', 'boss__craft']);
+
+  expect([...craft.children].map((part) => part.className)).toEqual([
     'boss__wing',
     'boss__arm-left',
     'boss__arm-right',

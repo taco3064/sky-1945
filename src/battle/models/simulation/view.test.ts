@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createBoss } from '../boss';
-import { createBullet } from '../bullets';
+import { type BulletLaunch, createBullet } from '../bullets';
 import { createBurst } from '../bursts';
 import { createEnemy, roundSchedule } from '../enemies';
 import { tryRoll } from '../player';
@@ -8,6 +8,15 @@ import { buildView } from './view';
 import { createWorld } from './world';
 
 const READINGS = { fps: 0, worst: 0 };
+
+const SHOT: BulletLaunch = {
+  side: 'player',
+  x: 0,
+  y: 0,
+  heading: -90,
+  speed: 780,
+  damage: 1,
+};
 
 describe('buildView', () => {
   it('shows a fresh run', () => {
@@ -43,20 +52,26 @@ describe('buildView', () => {
   it('lists entities in creation order and replaces only the lists that changed', () => {
     const world = createWorld(5, Math.random);
 
-    world.bullets.push(createBullet(2, { side: 'player', x: 0, y: 0, heading: -90, speed: 780, damage: 1 }));
+    world.bullets.push(createBullet(2, SHOT));
     world.enemies.push(createEnemy(3, roundSchedule(1)[5], 0));
     const previous = buildView(world, READINGS, null);
 
-    world.bullets.push(createBullet(4, { side: 'enemy', x: 0, y: 0, heading: 90, speed: 260, damage: 8 }));
-    world.bursts.push(createBurst(5, 0, 0, 'enemy', 'small'));
+    world.bullets.push(createBullet(4, { ...SHOT, side: 'enemy', heading: 90 }));
+    world.bursts.push(createBurst(5, { x: 0, y: 0, tone: 'enemy', size: 'small' }));
     const next = buildView(world, READINGS, previous);
 
     expect(next).not.toBe(previous);
-    expect(next.bullets.map(({ id, side }) => [id, side])).toEqual([[2, 'player'], [4, 'enemy']]);
+
+    expect(next.bullets.map(({ id, side }) => [id, side]))
+      .toEqual([[2, 'player'], [4, 'enemy']]);
+
     expect(next.bullets).not.toBe(world.bullets);
     expect(next.enemies).toBe(previous.enemies);
     expect(next.enemies.map(({ id, kind }) => [id, kind])).toEqual([[3, 'large']]);
-    expect(next.bursts.map(({ id, tone, size }) => [id, tone, size])).toEqual([[5, 'enemy', 'small']]);
+
+    expect(next.bursts.map(({ id, tone, size }) => [id, tone, size]))
+      .toEqual([[5, 'enemy', 'small']]);
+
     expect(next.player).toBe(previous.player);
   });
 
@@ -67,22 +82,33 @@ describe('buildView', () => {
     tryRoll(world.player, 0);
     world.time = 0.1;
 
-    expect(buildView(world, READINGS, previous).player).toEqual({ id: 1, rolling: true, protected: true, spent: true });
+    expect(buildView(world, READINGS, previous).player)
+      .toEqual({ id: 1, rolling: true, protected: true, spent: true });
   });
 
-  it('shows the boss without a move while entering, then its attack, hit points and beam', () => {
+  it('shows the boss with no move while entering, then its attack, hp and beam', () => {
     const world = createWorld(5, Math.random);
 
     world.boss = createBoss(7, 2, { size: 1.5, seed: 1 });
     const entering = buildView(world, READINGS, null);
 
-    expect(entering.boss).toEqual({ id: 7, size: 1.5, hp: 2325, maxHp: 2325, pose: 'entering', move: null });
+    expect(entering.boss)
+      .toEqual({ id: 7, size: 1.5, hp: 2325, maxHp: 2325, pose: 'entering', move: null });
+
     expect(entering.beam).toBeNull();
 
-    Object.assign(world.boss, { pose: 'firing', attack: 'beam', hp: 2000, beam: { id: 8, x: 0, y: 0 } });
+    Object.assign(world.boss, {
+      pose: 'firing',
+      attack: 'beam',
+      hp: 2000,
+      beam: { id: 8, x: 0, y: 0 },
+    });
+
     const firing = buildView(world, READINGS, entering);
 
-    expect(firing.boss).toEqual({ id: 7, size: 1.5, hp: 2000, maxHp: 2325, pose: 'firing', move: 'beam' });
+    expect(firing.boss)
+      .toEqual({ id: 7, size: 1.5, hp: 2000, maxHp: 2325, pose: 'firing', move: 'beam' });
+
     expect(firing.beam).toEqual({ id: 8 });
     expect(buildView(world, READINGS, firing)).toBe(firing);
 
@@ -96,6 +122,7 @@ describe('buildView', () => {
 
     Object.assign(world, { lives: 0, round: 4, gameOver: true });
 
-    expect(buildView(world, { fps: 58, worst: 21 }, previous)).toMatchObject({ lives: 0, round: 4, gameOver: true, fps: 58, worst: 21 });
+    expect(buildView(world, { fps: 58, worst: 21 }, previous))
+      .toMatchObject({ lives: 0, round: 4, gameOver: true, fps: 58, worst: 21 });
   });
 });

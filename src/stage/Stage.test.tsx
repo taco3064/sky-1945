@@ -16,7 +16,11 @@ vi.mock('~app/battle/hooks/useBattle', async (importOriginal) => {
     useBattle: (speedPoints: number, place: Place): Battle => {
       const result = actual.useBattle(speedPoints, place);
 
-      return battle.gameOver ? { ...result, view: { ...result.view, gameOver: true, lives: 0, round: 4 } } : result;
+      if (!battle.gameOver) {
+        return result;
+      }
+
+      return { ...result, view: { ...result.view, gameOver: true, lives: 0, round: 4 } };
     },
   };
 });
@@ -26,7 +30,9 @@ let frames: FrameRequestCallback[] = [];
 beforeEach(() => {
   battle.gameOver = false;
   frames = [];
-  vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => frames.push(callback));
+
+  vi.spyOn(window, 'requestAnimationFrame')
+    .mockImplementation((callback) => frames.push(callback));
 
   vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {
     frames = [];
@@ -48,6 +54,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** Class names of an element's children, in paint order. */
+function childClasses(parent: Element): string[] {
+  return [...parent.children].map((child) => child.className);
+}
+
 function setup(speedPoints = 5) {
   const onQuit = vi.fn();
   const view = render(<Stage speedPoints={speedPoints} onQuit={onQuit} />);
@@ -61,22 +72,27 @@ describe('layout', () => {
     const { stage } = setup(8);
 
     expect(stage.className).toBe('stage');
-    expect([...stage.children].map((child) => child.className)).toEqual(['stage__field', 'stage__touch', 'touch-stick', 'hud']);
-    const field = stage.firstElementChild as HTMLElement;
 
-    expect([...field.children].map((child) => child.className)).toEqual(['speed-lines', 'ally ally--protected']);
-    expect((field.firstElementChild as HTMLElement).style.getPropertyValue('--pace')).toBe('1.8');
+    expect(childClasses(stage))
+      .toEqual(['stage__field', 'stage__touch', 'touch-stick', 'hud']);
+
+    const field = stage.firstElementChild as HTMLElement;
+    const speedLines = field.firstElementChild as HTMLElement;
+
+    expect(childClasses(field)).toEqual(['speed-lines', 'ally ally--protected']);
+    expect(speedLines.style.getPropertyValue('--pace')).toBe('1.8');
   });
 
   it('places the aircraft at its launch point before the first frame', () => {
     const { stage } = setup();
 
-    expect(stage.querySelector<HTMLElement>('.ally')?.style.transform).toBe('translate3d(270px, 1020px, 0) rotate(0deg)');
+    expect(stage.querySelector<HTMLElement>('.ally')?.style.transform)
+      .toBe('translate3d(270px, 1020px, 0) rotate(0deg)');
   });
 });
 
 describe('playing', () => {
-  it('runs the simulation every animation frame and places new entities in the same frame', () => {
+  it('runs the simulation every frame and places new entities in that frame', () => {
     const { stage } = setup();
 
     act(() => frames.shift()?.(performance.now() + 16));
@@ -92,22 +108,27 @@ describe('playing', () => {
     const { stage } = setup();
 
     fireEvent.keyDown(window, { key: ' ' });
-    expect(stage.querySelector('.ally')?.className).toBe('ally ally--protected ally--rolling ally--spent');
+
+    expect(stage.querySelector('.ally')?.className)
+      .toBe('ally ally--protected ally--rolling ally--spent');
 
     const surface = stage.querySelector('.stage__touch') as HTMLElement;
+    const stick = stage.querySelector('.touch-stick');
 
     fireEvent.pointerDown(surface, { pointerId: 1, clientX: 50, clientY: 60 });
-    expect(stage.querySelector('.touch-stick')?.classList.contains('touch-stick--active')).toBe(true);
+    expect(stick?.classList.contains('touch-stick--active')).toBe(true);
   });
 });
 
 describe('pause', () => {
-  it('pauses on Escape: the overlay covers the stage under the HUD and the simulation stops', () => {
+  it('pauses on Escape: the overlay goes under the HUD and the simulation stops', () => {
     const { stage } = setup();
 
     fireEvent.keyDown(window, { key: 'Escape' });
 
-    expect([...stage.children].map((child) => child.className)).toEqual(['stage__field', 'stage__touch', 'touch-stick', 'overlay', 'hud']);
+    expect(childClasses(stage))
+      .toEqual(['stage__field', 'stage__touch', 'touch-stick', 'overlay', 'hud']);
+
     expect(screen.getByText('PAUSED')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Resume' }).textContent).toBe('▶');
     expect(frames.length).toBe(0);
@@ -138,7 +159,7 @@ describe('pause', () => {
 });
 
 describe('game over', () => {
-  it('shows the round reached, hides the pause button, ignores Escape and stops the simulation', () => {
+  it('shows the round reached, hides pause, ignores Escape and stops simulating', () => {
     battle.gameOver = true;
     const { onQuit } = setup();
 

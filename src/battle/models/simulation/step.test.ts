@@ -15,7 +15,12 @@ function setup(random: () => number = () => 0) {
 
 /** The player sits at (270, 800), in control and unprotected, and holds fire. */
 function controlled(world = setup()) {
-  Object.assign(world.player, { flyingIn: false, y: 800, protectedUntil: 0, fireTimer: -100 });
+  Object.assign(world.player, {
+    flyingIn: false,
+    y: 800,
+    protectedUntil: 0,
+    fireTimer: -100,
+  });
 
   return world;
 }
@@ -47,9 +52,14 @@ describe('waves', () => {
 
     runPass(world, PASS);
 
-    expect(world.enemies.map((enemy) => [enemy.kind, enemy.path])).toEqual(Array(4).fill(['small', 'weave']));
+    expect(world.enemies.map(({ kind, path }) => [kind, path]))
+      .toEqual(Array(4).fill(['small', 'weave']));
+
     expect(world.enemies.every((enemy) => enemy.travelled === 165 * PASS)).toBe(true);
-    expect(world.enemies.every((enemy) => world.collisions.bodies.has(enemy.id))).toBe(true);
+
+    expect(world.enemies.every((enemy) => world.collisions.bodies.has(enemy.id)))
+      .toBe(true);
+
     expect(world.nextSquad).toBe(1);
   });
 
@@ -100,11 +110,12 @@ describe('waves', () => {
 });
 
 describe('bullets', () => {
-  it('adds the player\'s, then the enemies\', then the boss\'s bullets and moves each once', () => {
+  it('adds player, then enemy, then boss bullets, moving each once', () => {
     const world = controlled();
 
     world.player.fireTimer = FIRE_INTERVAL;
-    const shooter = createEnemy(nextId(world), { ...roundSchedule(1)[1], entries: [{ x: 100, y: 300 }] }, 0);
+    const squad = { ...roundSchedule(1)[1], entries: [{ x: 100, y: 300 }] };
+    const shooter = createEnemy(nextId(world), squad, 0);
 
     shooter.fireTimer = 5;
     addEnemy(world, shooter);
@@ -116,7 +127,9 @@ describe('bullets', () => {
 
     runPass(world, PASS);
 
-    expect(world.bullets.map((bullet) => bullet.side)).toEqual(['player', 'player', 'enemy', 'enemy']);
+    expect(world.bullets.map((bullet) => bullet.side))
+      .toEqual(['player', 'player', 'enemy', 'enemy']);
+
     expect(world.bullets[0].y).toBeCloseTo(774 - 780 * PASS, 9);
     expect(world.bullets[2].x).toBeCloseTo(shooter.x, 9);
     expect(world.bullets.at(-1)?.y).toBeCloseTo(boss.y + 66 + 320 * PASS, 9);
@@ -124,7 +137,15 @@ describe('bullets', () => {
 
   it('removes bullets outside the field by more than 24 u', () => {
     const world = controlled();
-    const leaving = createBullet(nextId(world), { side: 'player', x: 100, y: -23.9, heading: -90, speed: 780, damage: 1 });
+
+    const leaving = createBullet(nextId(world), {
+      side: 'player',
+      x: 100,
+      y: -23.9,
+      heading: -90,
+      speed: 780,
+      damage: 1,
+    });
 
     addBullet(world, leaving);
     world.nextSquad = world.schedule.length;
@@ -141,7 +162,10 @@ describe('bursts', () => {
     const world = controlled();
 
     world.nextSquad = world.schedule.length;
-    world.bursts.push(createBurst(nextId(world), 0, 0, 'enemy', 'small'));
+
+    world.bursts.push(
+      createBurst(nextId(world), { x: 0, y: 0, tone: 'enemy', size: 'small' }),
+    );
 
     runPass(world, 0.3);
     expect(world.bursts.length).toBe(1);
@@ -152,11 +176,12 @@ describe('bursts', () => {
 });
 
 describe('hits', () => {
-  it('detects contacts after moving everything and resolves them in the same pass', () => {
+  it('detects and resolves contacts after moving everything, in the same pass', () => {
     const world = controlled();
 
     world.nextSquad = world.schedule.length;
-    const rammer = createEnemy(nextId(world), { ...roundSchedule(3)[2], kind: 'large' }, 0);
+    const squad = { ...roundSchedule(3)[2], kind: 'large' as const };
+    const rammer = createEnemy(nextId(world), squad, 0);
 
     Object.assign(rammer, { entry: { x: 270, y: 800 }, x: 0, y: 0 });
     addEnemy(world, rammer);
@@ -169,7 +194,7 @@ describe('hits', () => {
 });
 
 describe('round phase', () => {
-  it('summons the boss once every squad has appeared and no enemy aircraft remain', () => {
+  it('summons the boss once every squad has appeared and the field is clear', () => {
     const draws = [0.5, 0.25];
     const world = controlled(setup(() => draws.shift() as number));
 
@@ -178,7 +203,14 @@ describe('round phase', () => {
     runPass(world, PASS);
 
     expect(world.phase).toBe('boss');
-    expect(world.boss).toMatchObject({ size: 1.4, seed: Math.floor(0.25 * 0xffffffff), pose: 'entering', maxHp: 1260 });
+
+    expect(world.boss).toMatchObject({
+      size: 1.4,
+      seed: Math.floor(0.25 * 0xffffffff),
+      pose: 'entering',
+      maxHp: 1260,
+    });
+
     expect(world.collisions.bodies.has(world.boss?.id as number)).toBe(true);
   });
 
@@ -193,13 +225,21 @@ describe('round phase', () => {
     expect([world.phase, world.boss]).toEqual(['waves', null]);
   });
 
-  it('starts the next round once the boss is killed; its first squad arrives on the next pass', () => {
+  it('starts the next round when the boss dies; its first squad comes next pass', () => {
     const world = controlled();
 
     world.phase = 'boss';
 
     runPass(world, PASS);
-    expect(world).toMatchObject({ round: 2, phase: 'waves', roundClock: 0, nextSquad: 0, enemies: [] });
+
+    expect(world).toMatchObject({
+      round: 2,
+      phase: 'waves',
+      roundClock: 0,
+      nextSquad: 0,
+      enemies: [],
+    });
+
     expect(world.schedule).toEqual(roundSchedule(2));
 
     runPass(world, PASS);
@@ -212,7 +252,14 @@ describe('round phase', () => {
     world.phase = 'boss';
     const boss = createBoss(nextId(world), 1, { size: 1, seed: 0 });
 
-    Object.assign(boss, { pose: 'winding', attack: 'beam', stanceTime: 1.4, x: 270, y: 150 });
+    Object.assign(boss, {
+      pose: 'winding',
+      attack: 'beam',
+      stanceTime: 1.4,
+      x: 270,
+      y: 150,
+    });
+
     addBoss(world, boss);
     world.player.x = 30;
 

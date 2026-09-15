@@ -28,7 +28,8 @@ export interface BulletLaunch {
   damage: number;
 }
 
-export function createBullet(id: number, { side, x, y, heading, speed, damage }: BulletLaunch): Bullet {
+export function createBullet(id: number, launch: BulletLaunch): Bullet {
+  const { side, x, y, heading, speed, damage } = launch;
   const velocity = headingVelocity(heading, speed);
 
   return { id, side, x, y, vx: velocity.x, vy: velocity.y, damage };

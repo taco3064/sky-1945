@@ -1,16 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createBattleStore } from './battleStore';
 
-function placements(store: ReturnType<typeof createBattleStore>) {
-  const found = new Map<number, [number, number, number]>();
+function placements(store: ReturnType<typeof createBattleStore>): Map<number, number[]> {
+  const found = new Map<number, number[]>();
 
-  store.forEachPlacement((id, x, y, angle) => found.set(id, [x, y, angle]));
+  store.forEachPlacement(({ id, x, y, angle }) => found.set(id, [x, y, angle]));
 
   return found;
 }
 
+type Store = ReturnType<typeof createBattleStore>;
+
 /** Runs `frames` frames of `frameMs` from a resume at 0. */
-function run(store: ReturnType<typeof createBattleStore>, frames: number, frameMs = 1000 / 60) {
+function run(store: Store, frames: number, frameMs = 1000 / 60) {
   store.resume(0);
 
   for (let frame = 1; frame <= frames; frame++) {
@@ -44,7 +46,7 @@ describe('frames', () => {
 
     const { enemies } = store.getSnapshot();
 
-    expect(enemies.map((enemy) => enemy.kind)).toEqual(['small', 'small', 'small', 'small']);
+    expect(enemies.map((enemy) => enemy.kind)).toEqual(Array(4).fill('small'));
     expect(placements(store).get(enemies[0].id)?.[2]).toBe(180);
   });
 

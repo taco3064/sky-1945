@@ -2,12 +2,20 @@ import { createBoss, rollBoss, updateBoss } from '../boss';
 import { hasBulletLeft, moveBullet } from '../bullets';
 import type { Bullet } from '../bullets';
 import { ageBurst } from '../bursts';
-import { createEnemy, updateEnemy, roundSchedule } from '../enemies';
-import { updatePlayer } from '../player';
+import { type EnemyTick, createEnemy, roundSchedule, updateEnemy } from '../enemies';
+import { type PlayerTick, updatePlayer } from '../player';
 import { detectContacts, moveBody } from './collisions';
 import { resolveContacts } from './contacts';
 import { roundMultiplier } from './rounds';
-import { type World, addBeam, addBoss, addBullet, addEnemy, nextId, removeCollider } from './world';
+import {
+  type World,
+  addBeam,
+  addBoss,
+  addBullet,
+  addEnemy,
+  nextId,
+  removeCollider,
+} from './world';
 
 /** Each step is split into this many equal passes (game-spec 13.2). */
 export const PASSES_PER_STEP = 4;
@@ -29,13 +37,18 @@ export function stepWorld(world: World, dt: number): void {
 
 export function runPass(world: World, dt: number): void {
   world.time += dt;
-  const next = () => nextId(world);
-  const m = roundMultiplier(world.round);
+
+  const tick: EnemyTick & PlayerTick = {
+    dt,
+    now: world.time,
+    m: roundMultiplier(world.round),
+    nextId: () => nextId(world),
+  };
 
   spawnSquads(world, dt);
-  const enemyBullets = updateEnemies(world, dt, m, next);
-  const bossBullets = updateBossPass(world, dt, m, next);
-  const playerBullets = updatePlayer(world.player, dt, world.time, next);
+  const enemyBullets = updateEnemies(world, tick);
+  const bossBullets = updateBossPass(world, tick);
+  const playerBullets = updatePlayer(world.player, tick);
 
   for (const bullet of [...playerBullets, ...enemyBullets, ...bossBullets]) {
     addBullet(world, bullet);
@@ -55,19 +68,25 @@ function spawnSquads(world: World, dt: number): void {
 
   world.roundClock += dt;
 
-  while (world.nextSquad < world.schedule.length && world.schedule[world.nextSquad].time <= world.roundClock) {
+  while (
+    world.nextSquad < world.schedule.length
+    && world.schedule[world.nextSquad].time <= world.roundClock
+  ) {
     const squad = world.schedule[world.nextSquad];
 
     world.nextSquad += 1;
-    squad.lanes.forEach((_, lane) => addEnemy(world, createEnemy(nextId(world), squad, lane)));
+
+    squad.lanes.forEach((_, lane) => {
+      addEnemy(world, createEnemy(nextId(world), squad, lane));
+    });
   }
 }
 
-function updateEnemies(world: World, dt: number, m: number, next: () => number): Bullet[] {
+function updateEnemies(world: World, tick: EnemyTick): Bullet[] {
   const bullets: Bullet[] = [];
 
   world.enemies = world.enemies.filter((enemy) => {
-    const pass = updateEnemy(enemy, dt, m, next);
+    const pass = updateEnemy(enemy, tick);
 
     if (pass.left) {
       removeCollider(world, enemy.id);
@@ -83,12 +102,12 @@ function updateEnemies(world: World, dt: number, m: number, next: () => number):
   return bullets;
 }
 
-function updateBossPass(world: World, dt: number, m: number, next: () => number): Bullet[] {
+function updateBossPass(world: World, tick: EnemyTick): Bullet[] {
   if (!world.boss) {
     return [];
   }
 
-  const pass = updateBoss(world.boss, dt, m, world.player.x, next);
+  const pass = updateBoss(world.boss, { ...tick, playerX: world.player.x });
 
   if (pass.beamOpened) {
     addBeam(world, pass.beamOpened);
@@ -118,22 +137,25 @@ function moveBullets(world: World, dt: number): void {
 function syncBodies(world: World): void {
   const { collisions, player, boss } = world;
 
-  moveBody(collisions, player.id, player.x, player.y);
+  moveBody(collisions, player.id, player);
 
   for (const entity of [...world.bullets, ...world.enemies]) {
-    moveBody(collisions, entity.id, entity.x, entity.y);
+    moveBody(collisions, entity.id, entity);
   }
 
   if (boss) {
-    moveBody(collisions, boss.id, boss.x, boss.y);
+    moveBody(collisions, boss.id, boss);
 
     if (boss.beam) {
-      moveBody(collisions, boss.beam.id, boss.beam.x, boss.beam.y);
+      moveBody(collisions, boss.beam.id, boss.beam);
     }
   }
 }
 
-/** Summon the boss once the field is clear of the round's squads; start the next round once it is killed. */
+/**
+ * Summon the boss once the field is clear of the round's squads; start the next round
+ * once it is killed.
+ */
 function advanceRound(world: World): void {
   if (world.phase === 'waves') {
     if (world.nextSquad === world.schedule.length && world.enemies.length === 0) {

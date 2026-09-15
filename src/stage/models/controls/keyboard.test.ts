@@ -2,7 +2,9 @@ import { expect, it } from 'vitest';
 import { arrowDirection, isArrowKey } from './keyboard';
 
 it('recognises the four arrow keys only', () => {
-  expect(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].every(isArrowKey)).toBe(true);
+  const arrows = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+
+  expect(arrows.every(isArrowKey)).toBe(true);
   expect([' ', 'Escape', 'w', 'toString'].some(isArrowKey)).toBe(false);
 });
 

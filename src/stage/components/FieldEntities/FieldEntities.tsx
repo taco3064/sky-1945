@@ -1,12 +1,15 @@
 import { memo, useCallback } from 'react';
-import type { BattleView } from '~app/battle/models/simulation';
-import type { BossAttack, BossPose } from '~app/battle/models/boss';
+import type {
+  BattleView,
+  BossView,
+  BurstView,
+  PlayerView,
+} from '~app/battle/models/simulation';
 import { Beam } from '../Beam';
 import { BossCraft } from '../BossCraft';
 import { Bullet } from '../Bullet';
 import type { BulletSide } from '~app/battle/models/bullets';
 import { Burst } from '../Burst';
-import type { BurstSize, BurstTone } from '~app/battle/models/bursts';
 import { EnemyCraft } from '../EnemyCraft';
 import type { EnemyKind } from '~app/battle/models/enemies';
 import type { PlacementRegistry } from '~app/stage/models/placement';
@@ -19,30 +22,39 @@ interface Placed {
   register: Register;
 }
 
+type AllyProps = Placed & Omit<PlayerView, 'id'>;
+type BulletProps = Placed & { side: BulletSide };
+type EnemyProps = Placed & { kind: EnemyKind };
+type BossProps = Placed & Pick<BossView, 'size' | 'pose' | 'move'>;
+type BurstProps = Placed & Omit<BurstView, 'id'>;
+
 /** A stable ref that registers the entity's outer element for placement. */
 function usePlacedRef(id: number, register: Register) {
-  return useCallback((element: HTMLDivElement | null) => register(id, element), [id, register]);
+  return useCallback(
+    (element: HTMLDivElement | null) => register(id, element),
+    [id, register],
+  );
 }
 
-const PlacedAlly = memo(function PlacedAlly({ id, register, ...state }: Placed & { rolling: boolean; protected: boolean; spent: boolean }) {
+const PlacedAlly = memo(function PlacedAlly({ id, register, ...state }: AllyProps) {
   const ref = usePlacedRef(id, register);
 
   return <AllyCraft ref={ref} {...state} />;
 });
 
-const PlacedBullet = memo(function PlacedBullet({ id, register, side }: Placed & { side: BulletSide }) {
+const PlacedBullet = memo(function PlacedBullet({ id, register, side }: BulletProps) {
   const ref = usePlacedRef(id, register);
 
   return <Bullet ref={ref} side={side} />;
 });
 
-const PlacedEnemy = memo(function PlacedEnemy({ id, register, kind }: Placed & { kind: EnemyKind }) {
+const PlacedEnemy = memo(function PlacedEnemy({ id, register, kind }: EnemyProps) {
   const ref = usePlacedRef(id, register);
 
   return <EnemyCraft ref={ref} kind={kind} />;
 });
 
-const PlacedBoss = memo(function PlacedBoss({ id, register, ...boss }: Placed & { size: number; pose: BossPose; move: BossAttack | null }) {
+const PlacedBoss = memo(function PlacedBoss({ id, register, ...boss }: BossProps) {
   const ref = usePlacedRef(id, register);
 
   return <BossCraft ref={ref} {...boss} />;
@@ -54,7 +66,7 @@ const PlacedBeam = memo(function PlacedBeam({ id, register }: Placed) {
   return <Beam ref={ref} />;
 });
 
-const PlacedBurst = memo(function PlacedBurst({ id, register, tone, size }: Placed & { tone: BurstTone; size: BurstSize }) {
+const PlacedBurst = memo(function PlacedBurst({ id, register, tone, size }: BurstProps) {
   const ref = usePlacedRef(id, register);
 
   return <Burst ref={ref} tone={tone} size={size} />;
@@ -85,7 +97,14 @@ export function FieldEntities({ view, register }: FieldEntitiesProps) {
         <PlacedEnemy key={id} id={id} register={register} kind={kind} />
       ))}
       {boss && (
-        <PlacedBoss key={boss.id} id={boss.id} register={register} size={boss.size} pose={boss.pose} move={boss.move} />
+        <PlacedBoss
+          key={boss.id}
+          id={boss.id}
+          register={register}
+          size={boss.size}
+          pose={boss.pose}
+          move={boss.move}
+        />
       )}
       {beam && <PlacedBeam key={beam.id} id={beam.id} register={register} />}
       {view.bursts.map(({ id, tone, size }) => (

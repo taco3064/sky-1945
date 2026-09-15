@@ -1,5 +1,11 @@
 import { type PointerEvent, useRef } from 'react';
-import { type Direction, type Steering, isTap, moveSteering, startSteering } from '~app/stage/models/controls';
+import {
+  type Direction,
+  type Steering,
+  isTap,
+  moveSteering,
+  startSteering,
+} from '~app/stage/models/controls';
 
 interface PointerHandlers {
   onSteer: (direction: Direction) => void;
@@ -18,7 +24,10 @@ export interface PointerSteering {
 const ACTIVE = 'touch-stick--active';
 
 /** Pointer input on the touch surface, driving the touch stick (game-spec 8.8, 12.4). */
-export function usePointerSteering({ onSteer, onRoll }: PointerHandlers): PointerSteering {
+export function usePointerSteering({
+  onSteer,
+  onRoll,
+}: PointerHandlers): PointerSteering {
   const stickRef = useRef<HTMLDivElement>(null);
   const steering = useRef<Steering | null>(null);
 
@@ -54,7 +63,9 @@ export function usePointerSteering({ onSteer, onRoll }: PointerHandlers): Pointe
         return;
       }
 
-      steering.current = startSteering(event.pointerId, event.clientX, event.clientY, performance.now());
+      const down = { x: event.clientX, y: event.clientY };
+
+      steering.current = startSteering(event.pointerId, down, performance.now());
       event.currentTarget.setPointerCapture(event.pointerId);
       stickRef.current?.style.setProperty('--stick-x', `${event.clientX}px`);
       stickRef.current?.style.setProperty('--stick-y', `${event.clientY}px`);

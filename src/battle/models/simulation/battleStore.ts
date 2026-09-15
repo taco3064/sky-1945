@@ -21,7 +21,10 @@ export interface BattleStore {
 }
 
 /** A fresh run with `speedPoints` on SPEED. */
-export function createBattleStore(speedPoints: number, random: () => number = Math.random): BattleStore {
+export function createBattleStore(
+  speedPoints: number,
+  random: () => number = Math.random,
+): BattleStore {
   const world = createWorld(speedPoints, random);
   const meter = createFrameMeter();
   const listeners = new Set<() => void>();

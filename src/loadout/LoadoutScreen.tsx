@@ -11,9 +11,15 @@ interface LoadoutScreenProps {
 }
 
 /** The loadout screen (game-spec 7). */
-export function LoadoutScreen({ speedPoints, onSpeedPointsChange, onStart }: LoadoutScreenProps) {
+export function LoadoutScreen({
+  speedPoints,
+  onSpeedPointsChange,
+  onStart,
+}: LoadoutScreenProps) {
+  const setPoints = (points: number) => onSpeedPointsChange(clampPoints(points));
+
   useLoadoutKeys({
-    onStep: (delta) => onSpeedPointsChange(clampPoints(speedPoints + delta)),
+    onStep: (delta) => setPoints(speedPoints + delta),
     onStart,
   });
 
@@ -39,7 +45,7 @@ export function LoadoutScreen({ speedPoints, onSpeedPointsChange, onStart }: Loa
           step="1"
           value={speedPoints}
           aria-label="Points spent on speed"
-          onChange={(event) => onSpeedPointsChange(clampPoints(Number(event.currentTarget.value)))}
+          onChange={(event) => setPoints(Number(event.currentTarget.value))}
         />
         <span className="loadout__slider-end">SPEED</span>
       </div>

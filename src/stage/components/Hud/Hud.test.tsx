@@ -2,14 +2,35 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 import { Hud, type StagePhase } from './Hud';
 
-const BOSS = { id: 4, size: 1, hp: 450, maxHp: 900, pose: 'firing', move: 'radial' } as const;
+type HudProps = Parameters<typeof Hud>[0];
 
-function setup(overrides: Partial<Parameters<typeof Hud>[0]> = {}) {
+const BOSS = {
+  id: 4,
+  size: 1,
+  hp: 450,
+  maxHp: 900,
+  pose: 'firing',
+  move: 'radial',
+} as const;
+
+function setup(overrides: Partial<HudProps> = {}) {
   const onPause = vi.fn();
-  const view = render(<Hud lives={3} round={2} boss={null} fps={0} worst={0} phase="playing" onPause={onPause} {...overrides} />);
+
+  const props: HudProps = {
+    lives: 3,
+    round: 2,
+    boss: null,
+    fps: 0,
+    worst: 0,
+    phase: 'playing',
+    onPause,
+    ...overrides,
+  };
+
+  const view = render(<Hud {...props} />);
   const hud = view.container.firstElementChild as HTMLElement;
 
-  return { onPause, hud, ...view };
+  return { onPause, props, hud, ...view };
 }
 
 it('lays out lives, round, boss bar, frame meter and pause button in that order', () => {
@@ -35,13 +56,15 @@ it('shows one life icon per remaining life and the round', () => {
 });
 
 it('reads the frame meter, amber when slow', () => {
-  const { hud, rerender, onPause } = setup();
+  const { hud, rerender, props } = setup();
 
   expect(screen.getByText('—').className).toBe('hud__frame-meter');
 
-  rerender(<Hud lives={3} round={2} boss={null} fps={48} worst={33} phase="playing" onPause={onPause} />);
+  rerender(<Hud {...props} fps={48} worst={33} />);
 
-  expect(hud.querySelector('.hud__frame-meter')?.className).toBe('hud__frame-meter hud__frame-meter--slow');
+  expect(hud.querySelector('.hud__frame-meter')?.className)
+    .toBe('hud__frame-meter hud__frame-meter--slow');
+
   expect(screen.getByText('48 FPS · 33ms')).toBeTruthy();
 });
 

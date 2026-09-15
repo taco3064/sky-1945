@@ -1,6 +1,11 @@
 import { useEffect, useLayoutEffect, useState, useSyncExternalStore } from 'react';
 import { flushSync } from 'react-dom';
-import { type BattleStore, type BattleView, type Place, createBattleStore } from '~app/battle/models/simulation';
+import {
+  type BattleStore,
+  type BattleView,
+  type Place,
+  createBattleStore,
+} from '~app/battle/models/simulation';
 
 export interface Battle {
   store: BattleStore;

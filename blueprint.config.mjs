@@ -59,7 +59,4 @@ export default defineBlueprint({
       },
     ],
   },
-  // reactPreset arc: the preset rules are held back until the code is brought in line
-  // with them (steps 3 and 4), then this override is removed.
-  rules: {},
 });

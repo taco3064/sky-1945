@@ -14,7 +14,15 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function Harness(props: { onSteer: () => void; onRoll: () => void; withStick?: boolean }) {
+const STICK_VARS = ['--stick-x', '--stick-y', '--knob-x', '--knob-y'];
+
+interface HarnessProps {
+  onSteer: () => void;
+  onRoll: () => void;
+  withStick?: boolean;
+}
+
+function Harness(props: HarnessProps) {
   const { stickRef, ...handlers } = usePointerSteering(props);
 
   return (
@@ -28,18 +36,21 @@ function Harness(props: { onSteer: () => void; onRoll: () => void; withStick?: b
 function setup(withStick = true) {
   const onSteer = vi.fn();
   const onRoll = vi.fn();
-  const view = render(<Harness onSteer={onSteer} onRoll={onRoll} withStick={withStick} />);
+
+  const view = render(
+    <Harness onSteer={onSteer} onRoll={onRoll} withStick={withStick} />,
+  );
+
   const surface = view.getByTestId('surface');
   const stick = view.queryByTestId('stick');
 
-  const vars = () =>
-    ['--stick-x', '--stick-y', '--knob-x', '--knob-y'].map((name) => stick?.style.getPropertyValue(name));
+  const vars = () => STICK_VARS.map((name) => stick?.style.getPropertyValue(name));
 
   return { onSteer, onRoll, surface, stick, vars };
 }
 
 describe('steering pointer', () => {
-  it('captures the first pointer and shows the stick at the touch point with the knob centred', () => {
+  it('captures the first pointer and shows the stick at the touch, knob centred', () => {
     const { surface, stick, vars } = setup();
 
     fireEvent.pointerDown(surface, { pointerId: 7, clientX: 120, clientY: 640 });

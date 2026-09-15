@@ -7,7 +7,11 @@ function setup(speedPoints: number) {
   const onStart = vi.fn();
 
   const view = render(
-    <LoadoutScreen speedPoints={speedPoints} onSpeedPointsChange={onSpeedPointsChange} onStart={onStart} />,
+    <LoadoutScreen
+      speedPoints={speedPoints}
+      onSpeedPointsChange={onSpeedPointsChange}
+      onStart={onStart}
+    />,
   );
 
   return { onSpeedPointsChange, onStart, ...view };
@@ -16,7 +20,8 @@ function setup(speedPoints: number) {
 it('lays out the loadout children in spec order', () => {
   const { container } = setup(5);
 
-  const children = [...(container.firstElementChild?.children ?? [])].map((child) => child.className);
+  const loadout = container.firstElementChild as HTMLElement;
+  const children = [...loadout.children].map((child) => child.className);
 
   expect(children).toEqual([
     'loadout__heading',
@@ -35,7 +40,8 @@ it('lays out the loadout children in spec order', () => {
 it('shows SPEED then POWER for the allocation', () => {
   const { container } = setup(3);
 
-  const stats = [...container.querySelectorAll('.loadout__stat')].map((stat) => [stat.className, stat.textContent]);
+  const statElements = [...container.querySelectorAll('.loadout__stat')];
+  const stats = statElements.map((stat) => [stat.className, stat.textContent]);
 
   expect(stats).toEqual([
     ['loadout__stat loadout__stat--speed', 'SPEED130%'],
@@ -46,10 +52,13 @@ it('shows SPEED then POWER for the allocation', () => {
 it('offers a 0–10 slider of speed points between POWER and SPEED', () => {
   const { container } = setup(7);
 
-  const slider = screen.getByRole('slider', { name: 'Points spent on speed' }) as HTMLInputElement;
+  const name = 'Points spent on speed';
+  const slider = screen.getByRole('slider', { name }) as HTMLInputElement;
+  const { type, min, max, step, value } = slider;
 
-  expect([slider.type, slider.min, slider.max, slider.step, slider.value]).toEqual(['range', '0', '10', '1', '7']);
-  const row = [...(container.querySelector('.loadout__slider-row')?.children ?? [])].map((child) => child.textContent);
+  expect([type, min, max, step, value]).toEqual(['range', '0', '10', '1', '7']);
+  const sliderRow = container.querySelector('.loadout__slider-row') as HTMLElement;
+  const row = [...sliderRow.children].map((child) => child.textContent);
 
   expect(row).toEqual(['POWER', '', 'SPEED']);
 });

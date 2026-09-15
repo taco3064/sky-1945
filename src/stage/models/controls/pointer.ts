@@ -16,8 +16,13 @@ export interface Steering {
   moved: boolean;
 }
 
-export function startSteering(pointerId: number, x: number, y: number, time: number): Steering {
-  return { pointerId, downX: x, downY: y, downTime: time, moved: false };
+/** `down` is where the pointer went down, in screen px. */
+export function startSteering(
+  pointerId: number,
+  down: Direction,
+  time: number,
+): Steering {
+  return { pointerId, downX: down.x, downY: down.y, downTime: time, moved: false };
 }
 
 export interface SteeringMove {
@@ -26,7 +31,10 @@ export interface SteeringMove {
   knob: Direction;
 }
 
-/** The finger's offset from the down point: a direction outside the dead zone, and the capped knob offset. */
+/**
+ * The finger's offset from the down point: a direction outside the dead zone, and the
+ * capped knob offset.
+ */
 export function moveSteering(steering: Steering, x: number, y: number): SteeringMove {
   const offset = { x: x - steering.downX, y: y - steering.downY };
   const distance = Math.hypot(offset.x, offset.y);

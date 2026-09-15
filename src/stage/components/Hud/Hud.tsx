@@ -20,6 +20,10 @@ interface HudProps {
 export function Hud({ lives, round, boss, fps, worst, phase, onPause }: HudProps) {
   const paused = phase === 'paused';
 
+  const meterClass = isSlowFrameRate(fps)
+    ? 'hud__frame-meter hud__frame-meter--slow'
+    : 'hud__frame-meter';
+
   return (
     <div className="hud">
       <div className="hud__lives">
@@ -28,12 +32,24 @@ export function Hud({ lives, round, boss, fps, worst, phase, onPause }: HudProps
         ))}
       </div>
       <p className="hud__round">{`ROUND ${round}`}</p>
-      {boss && <BossHealthBar hp={boss.hp} maxHp={boss.maxHp} pose={boss.pose} move={boss.move} />}
-      <p className={isSlowFrameRate(fps) ? 'hud__frame-meter hud__frame-meter--slow' : 'hud__frame-meter'}>
+      {boss && (
+        <BossHealthBar
+          hp={boss.hp}
+          maxHp={boss.maxHp}
+          pose={boss.pose}
+          move={boss.move}
+        />
+      )}
+      <p className={meterClass}>
         {frameMeterText(fps, worst)}
       </p>
       {phase !== 'gameover' && (
-        <button className="hud__pause" type="button" aria-label={paused ? 'Resume' : 'Pause'} onClick={onPause}>
+        <button
+          className="hud__pause"
+          type="button"
+          aria-label={paused ? 'Resume' : 'Pause'}
+          onClick={onPause}
+        >
           {paused ? '▶' : '❚❚'}
         </button>
       )}

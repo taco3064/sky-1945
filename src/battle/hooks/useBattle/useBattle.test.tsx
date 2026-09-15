@@ -7,7 +7,10 @@ let frames: FrameRequestCallback[] = [];
 
 beforeEach(() => {
   frames = [];
-  vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => frames.push(callback));
+
+  vi.spyOn(window, 'requestAnimationFrame')
+    .mockImplementation((callback) => frames.push(callback));
+
   vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
   vi.spyOn(performance, 'now').mockReturnValue(0);
 });
@@ -33,7 +36,7 @@ describe('useBattle', () => {
 
     expect(result.current.store).toBe(store);
     expect(result.current.view).toMatchObject({ lives: 3, round: 1 });
-    expect(place).toHaveBeenCalledWith(1, 270, 1020, 0);
+    expect(place).toHaveBeenCalledWith({ id: 1, x: 270, y: 1020, angle: 0 });
   });
 
   it('re-renders with the published view', () => {
@@ -49,13 +52,19 @@ describe('useBattle', () => {
 });
 
 describe('useBattleLoop', () => {
-  function Loop({ store, running, place }: { store: BattleStore; running: boolean; place: () => void }) {
+  interface LoopProps {
+    store: BattleStore;
+    running: boolean;
+    place: () => void;
+  }
+
+  function Loop({ store, running, place }: LoopProps) {
     useBattleLoop(store, running, place);
 
     return null;
   }
 
-  it('steps and places once per animation frame while running, measuring from the start', () => {
+  it('steps and places once per frame while running, timed from the start', () => {
     const { result } = renderHook(() => useBattle(5, vi.fn()));
     const { store } = result.current;
     const place = vi.fn();
@@ -70,7 +79,10 @@ describe('useBattleLoop', () => {
 
     expect(resume).toHaveBeenCalledWith(500);
     expect(frame.mock.calls).toEqual([[516], [532]]);
-    expect(place).toHaveBeenCalledWith(1, 270, expect.any(Number), 0);
+
+    expect(place)
+      .toHaveBeenCalledWith({ id: 1, x: 270, y: expect.any(Number), angle: 0 });
+
     expect(frames.length).toBe(1);
   });
 

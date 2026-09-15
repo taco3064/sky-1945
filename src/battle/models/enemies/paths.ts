@@ -27,6 +27,21 @@ export interface PathOffset {
   across: number;
 }
 
+/** Where a craft entered and which path it flies. */
+export interface Route {
+  path: EnemyPath;
+  edge: EntryEdge;
+  entry: Point;
+}
+
+/** How far along its path a craft is. */
+export interface PathProgress {
+  /** u travelled; drives every path but weave. */
+  travelled: number;
+  /** Seconds since it appeared; drives weave. */
+  age: number;
+}
+
 /** The arc bends toward the field centre: sign of c, or 1 when c = 0. */
 export function inwardSign(edge: EntryEdge, entry: Point): number {
   const heading = EDGE_HEADINGS[edge];
@@ -36,16 +51,25 @@ export function inwardSign(edge: EntryEdge, entry: Point): number {
 }
 
 /** weave depends on time (`age`); the other paths on distance (`travelled`). */
-export function pathOffset(path: EnemyPath, travelled: number, age: number, inward: number): PathOffset {
+export function pathOffset(
+  path: EnemyPath,
+  { travelled, age }: PathProgress,
+  inward: number,
+): PathOffset {
   switch (path) {
     case 'dive':
       return { along: travelled, across: 0 };
     case 'weave':
-      return { along: travelled, across: Math.sin(age * WEAVE_FREQUENCY * 2 * Math.PI) * WEAVE_AMPLITUDE };
+      return {
+        along: travelled,
+        across: Math.sin(age * WEAVE_FREQUENCY * 2 * Math.PI) * WEAVE_AMPLITUDE,
+      };
     case 'arc':
       return {
         along: travelled,
-        across: Math.sin(Math.min(travelled / ARC_LENGTH, 1) * Math.PI) * ARC_AMPLITUDE * inward,
+        across: Math.sin(Math.min(travelled / ARC_LENGTH, 1) * Math.PI)
+          * ARC_AMPLITUDE
+          * inward,
       };
     case 'hover':
       return { along: hoverAlong(travelled), across: 0 };
@@ -70,10 +94,11 @@ function feintAlong(travelled: number): number {
   return travelled - FEINT_LENGTH / 2;
 }
 
-/** Field position of a craft that entered at `entry` from `edge`. */
-export function pathPosition(path: EnemyPath, edge: EntryEdge, entry: Point, travelled: number, age: number): Point {
+/** Field position of a craft on `route`, `progress` along its path. */
+export function pathPosition(route: Route, progress: PathProgress): Point {
+  const { path, edge, entry } = route;
   const heading = EDGE_HEADINGS[edge];
-  const { along, across } = pathOffset(path, travelled, age, inwardSign(edge, entry));
+  const { along, across } = pathOffset(path, progress, inwardSign(edge, entry));
 
   return {
     x: entry.x + heading.x * along - heading.y * across,

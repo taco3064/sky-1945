@@ -5,6 +5,7 @@ export type FirePattern = 'straight' | 'spread' | 'radial';
 
 const SPREAD_OFFSETS = [-30, -15, 0, 15, 30];
 const RADIAL_BULLETS = 10;
+const RADIAL_STEP = 360 / RADIAL_BULLETS;
 
 /** Bullet headings of one volley; radial ignores the heading. */
 export function patternHeadings(pattern: FirePattern, heading: number): number[] {
@@ -14,7 +15,7 @@ export function patternHeadings(pattern: FirePattern, heading: number): number[]
     case 'spread':
       return SPREAD_OFFSETS.map((offset) => heading + offset);
     case 'radial':
-      return Array.from({ length: RADIAL_BULLETS }, (_, index) => (index * 360) / RADIAL_BULLETS);
+      return Array.from({ length: RADIAL_BULLETS }, (_, index) => index * RADIAL_STEP);
   }
 }
 
@@ -28,8 +29,10 @@ export interface Volley {
 }
 
 /** Fires one enemy-side volley from (x, y), one new id per bullet. */
-export function fireVolley({ pattern, x, y, heading, speed, damage }: Volley, nextId: () => number): Bullet[] {
+export function fireVolley(volley: Volley, nextId: () => number): Bullet[] {
+  const { pattern, heading, ...launch } = volley;
+
   return patternHeadings(pattern, heading).map((bulletHeading) =>
-    createBullet(nextId(), { side: 'enemy', x, y, heading: bulletHeading, speed, damage }),
+    createBullet(nextId(), { ...launch, side: 'enemy', heading: bulletHeading }),
   );
 }

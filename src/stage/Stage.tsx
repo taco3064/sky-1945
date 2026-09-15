@@ -18,12 +18,16 @@ interface StageProps {
   onQuit: () => void;
 }
 
-/** The stage shown while playing, paused and after game over (game-spec 8). Mounting starts a fresh run. */
+/**
+ * The stage shown while playing, paused and after game over (game-spec 8). Mounting
+ * starts a fresh run.
+ */
 export function Stage({ speedPoints, onQuit }: StageProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [registry] = useState(createPlacementRegistry);
   const [paused, setPaused] = useState(false);
   const { store, view } = useBattle(speedPoints, registry.place);
+  const { steer: onSteer, roll: onRoll } = store;
   const { gameOver } = view;
   const phase: StagePhase = gameOver ? 'gameover' : paused ? 'paused' : 'playing';
 
@@ -35,8 +39,8 @@ export function Stage({ speedPoints, onQuit }: StageProps) {
 
   useStageScale(viewportRef);
   useBattleLoop(store, phase === 'playing', registry.place);
-  useKeyboardControls({ onSteer: store.steer, onRoll: store.roll, onPause: togglePause });
-  const { stickRef, ...touchSurface } = usePointerSteering({ onSteer: store.steer, onRoll: store.roll });
+  useKeyboardControls({ onSteer, onRoll, onPause: togglePause });
+  const { stickRef, ...touchSurface } = usePointerSteering({ onSteer, onRoll });
 
   return (
     <div className="stage" ref={viewportRef}>
@@ -55,7 +59,13 @@ export function Stage({ speedPoints, onQuit }: StageProps) {
           ]}
         />
       )}
-      {phase === 'gameover' && <Overlay title="GAME OVER" reached={view.round} actions={[{ label: 'TITLE', onClick: onQuit }]} />}
+      {phase === 'gameover' && (
+        <Overlay
+          title="GAME OVER"
+          reached={view.round}
+          actions={[{ label: 'TITLE', onClick: onQuit }]}
+        />
+      )}
       <Hud
         lives={view.lives}
         round={view.round}

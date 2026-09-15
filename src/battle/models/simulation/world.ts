@@ -2,10 +2,21 @@ import type { Beam, Boss } from '../boss';
 import { BOSS_ANGLE, BEAM_LENGTH, BEAM_WIDTH, bossHitRadius } from '../boss';
 import { BULLET_HIT_RADIUS, type Bullet } from '../bullets';
 import type { Burst } from '../bursts';
-import { ENEMY_ANGLE, type Enemy, type Squad, roundSchedule } from '../enemies';
-import { ENEMY_KINDS } from '../enemies';
+import {
+  ENEMY_ANGLE,
+  ENEMY_KINDS,
+  type Enemy,
+  type Squad,
+  roundSchedule,
+} from '../enemies';
 import { PLAYER_HIT_RADIUS, PLAYER_LIVES, type Player, createPlayer } from '../player';
-import { type Collisions, addCircle, addRectangle, createCollisions, removeBody } from './collisions';
+import {
+  type Collisions,
+  addCircle,
+  addRectangle,
+  createCollisions,
+  removeBody,
+} from './collisions';
 
 /** What a physics body stands for. */
 export type Collider
@@ -46,7 +57,13 @@ export function createWorld(speedPoints: number, random: () => number): World {
   const collisions = createCollisions<Collider>();
   const player = createPlayer(1, speedPoints, 0);
 
-  addCircle(collisions, player.id, { kind: 'player', player }, player.x, player.y, PLAYER_HIT_RADIUS);
+  addCircle(collisions, {
+    id: player.id,
+    owner: { kind: 'player', player },
+    x: player.x,
+    y: player.y,
+    radius: PLAYER_HIT_RADIUS,
+  });
 
   return {
     time: 0,
@@ -76,46 +93,86 @@ export function nextId(world: World): number {
 
 export function addBullet(world: World, bullet: Bullet): void {
   world.bullets.push(bullet);
-  addCircle(world.collisions, bullet.id, { kind: 'bullet', bullet }, bullet.x, bullet.y, BULLET_HIT_RADIUS);
+
+  addCircle(world.collisions, {
+    id: bullet.id,
+    owner: { kind: 'bullet', bullet },
+    x: bullet.x,
+    y: bullet.y,
+    radius: BULLET_HIT_RADIUS,
+  });
 }
 
 export function addEnemy(world: World, enemy: Enemy): void {
   world.enemies.push(enemy);
-  const radius = ENEMY_KINDS[enemy.kind].radius;
 
-  addCircle(world.collisions, enemy.id, { kind: 'enemy', enemy }, enemy.x, enemy.y, radius, ENEMY_ANGLE);
+  addCircle(world.collisions, {
+    id: enemy.id,
+    owner: { kind: 'enemy', enemy },
+    x: enemy.x,
+    y: enemy.y,
+    radius: ENEMY_KINDS[enemy.kind].radius,
+    angle: ENEMY_ANGLE,
+  });
 }
 
 export function addBoss(world: World, boss: Boss): void {
   world.boss = boss;
-  addCircle(world.collisions, boss.id, { kind: 'boss', boss }, boss.x, boss.y, bossHitRadius(boss), BOSS_ANGLE);
+
+  addCircle(world.collisions, {
+    id: boss.id,
+    owner: { kind: 'boss', boss },
+    x: boss.x,
+    y: boss.y,
+    radius: bossHitRadius(boss),
+    angle: BOSS_ANGLE,
+  });
 }
 
 export function addBeam(world: World, beam: Beam): void {
-  addRectangle(world.collisions, beam.id, { kind: 'beam', beam }, beam.x, beam.y, BEAM_WIDTH, BEAM_LENGTH);
+  addRectangle(world.collisions, {
+    id: beam.id,
+    owner: { kind: 'beam', beam },
+    x: beam.x,
+    y: beam.y,
+    width: BEAM_WIDTH,
+    height: BEAM_LENGTH,
+  });
 }
 
 export function removeCollider(world: World, id: number): void {
   removeBody(world.collisions, id);
 }
 
-export type Place = (id: number, x: number, y: number, angle: number) => void;
+/** An entity's centre and the angle it is drawn at. */
+export interface Placement {
+  id: number;
+  x: number;
+  y: number;
+  angle: number;
+}
 
-/** Visits every entity's centre and angle: 180° for enemy aircraft and the boss, 0 otherwise. */
+export type Place = (placement: Placement) => void;
+
+/** Visits every entity: 180° for enemy aircraft and the boss, 0 otherwise. */
 export function forEachPlacement(world: World, place: Place): void {
   const { player, boss } = world;
 
-  place(player.id, player.x, player.y, 0);
-  world.bullets.forEach((bullet) => place(bullet.id, bullet.x, bullet.y, 0));
-  world.enemies.forEach((enemy) => place(enemy.id, enemy.x, enemy.y, ENEMY_ANGLE));
+  const at = ({ id, x, y }: Omit<Placement, 'angle'>, angle = 0) => {
+    place({ id, x, y, angle });
+  };
+
+  at(player);
+  world.bullets.forEach((bullet) => at(bullet));
+  world.enemies.forEach((enemy) => at(enemy, ENEMY_ANGLE));
 
   if (boss) {
-    place(boss.id, boss.x, boss.y, BOSS_ANGLE);
+    at(boss, BOSS_ANGLE);
 
     if (boss.beam) {
-      place(boss.beam.id, boss.beam.x, boss.beam.y, 0);
+      at(boss.beam);
     }
   }
 
-  world.bursts.forEach((burst) => place(burst.id, burst.x, burst.y, 0));
+  world.bursts.forEach((burst) => at(burst));
 }

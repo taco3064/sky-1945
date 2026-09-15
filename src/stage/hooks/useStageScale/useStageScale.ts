@@ -16,7 +16,9 @@ export function useStageScale(viewportRef: RefObject<HTMLElement | null>): void 
     const observer = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect;
 
-      viewport.style.setProperty('--stage-scale', String(Math.min(width / FIELD_WIDTH, height / FIELD_HEIGHT)));
+      const scale = Math.min(width / FIELD_WIDTH, height / FIELD_HEIGHT);
+
+      viewport.style.setProperty('--stage-scale', String(scale));
     });
 
     observer.observe(viewport);

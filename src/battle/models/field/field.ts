@@ -9,5 +9,6 @@ export interface Point {
 
 /** A point is outside by margin M when x < −M, x > 540 + M, y < −M or y > 960 + M. */
 export function isOutsideBy({ x, y }: Point, margin: number): boolean {
-  return x < -margin || x > FIELD_WIDTH + margin || y < -margin || y > FIELD_HEIGHT + margin;
+  return x < -margin || x > FIELD_WIDTH + margin
+    || y < -margin || y > FIELD_HEIGHT + margin;
 }

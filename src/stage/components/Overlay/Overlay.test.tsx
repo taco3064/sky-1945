@@ -16,7 +16,9 @@ it('shows the title and one button per action', () => {
     />,
   );
 
-  expect([...(container.firstElementChild?.children ?? [])].map((child) => child.className)).toEqual([
+  const overlay = container.firstElementChild as HTMLElement;
+
+  expect([...overlay.children].map((child) => child.className)).toEqual([
     'overlay__title',
     'overlay__actions',
   ]);
@@ -28,9 +30,15 @@ it('shows the title and one button per action', () => {
 });
 
 it('shows the round reached under the title', () => {
-  const { container } = render(<Overlay title="GAME OVER" reached={7} actions={[{ label: 'TITLE', onClick: vi.fn() }]} />);
+  const actions = [{ label: 'TITLE', onClick: vi.fn() }];
 
-  expect([...(container.firstElementChild?.children ?? [])].map((child) => child.textContent)).toEqual([
+  const { container } = render(
+    <Overlay title="GAME OVER" reached={7} actions={actions} />,
+  );
+
+  const overlay = container.firstElementChild as HTMLElement;
+
+  expect([...overlay.children].map((child) => child.textContent)).toEqual([
     'GAME OVER',
     'REACHED ROUND 7',
     'TITLE',

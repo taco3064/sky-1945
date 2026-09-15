@@ -61,11 +61,19 @@ export function createEnemy(id: number, squad: Squad, lane: number): Enemy {
   };
 }
 
+/** What one pass hands an enemy aircraft. */
+export interface EnemyTick {
+  dt: number;
+  /** The round multiplier. */
+  m: number;
+  nextId: () => number;
+}
+
 /** One pass: move along the path, leave if far outside, then fire when due. */
-export function updateEnemy(enemy: Enemy, dt: number, m: number, nextId: () => number): EnemyPass {
-  enemy.age += dt;
-  enemy.travelled += enemyMoveSpeed(enemy.kind, m) * dt;
-  const position = pathPosition(enemy.path, enemy.edge, enemy.entry, enemy.travelled, enemy.age);
+export function updateEnemy(enemy: Enemy, tick: EnemyTick): EnemyPass {
+  enemy.age += tick.dt;
+  enemy.travelled += enemyMoveSpeed(enemy.kind, tick.m) * tick.dt;
+  const position = pathPosition(enemy, enemy);
 
   enemy.x = position.x;
   enemy.y = position.y;
@@ -74,10 +82,10 @@ export function updateEnemy(enemy: Enemy, dt: number, m: number, nextId: () => n
     return { left: true, bullets: [] };
   }
 
-  return { left: false, bullets: fire(enemy, dt, m, nextId) };
+  return { left: false, bullets: fire(enemy, tick) };
 }
 
-function fire(enemy: Enemy, dt: number, m: number, nextId: () => number): Bullet[] {
+function fire(enemy: Enemy, { dt, m, nextId }: EnemyTick): Bullet[] {
   if (enemy.y <= 0) {
     return [];
   }

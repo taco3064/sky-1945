@@ -5,6 +5,7 @@ import {
   LAUNCH_Y,
   PLAYER_HIT_RADIUS,
   PLAYER_LIVES,
+  type PlayerTick,
   ROLL_DURATION,
   createPlayer,
   isProtected,
@@ -23,11 +24,16 @@ function ids() {
   return () => ++id;
 }
 
+/** A pass of `dt` ending at `now`. */
+function tick(dt: number, now: number, nextId = ids()): PlayerTick {
+  return { dt, now, nextId };
+}
+
 /** A player that has finished flying in, at (270, 800). */
 function controlledPlayer(speedPoints = 5) {
   const player = createPlayer(1, speedPoints, 0);
 
-  updatePlayer(player, 1, 1, ids());
+  updatePlayer(player, tick(1, 1));
   player.fireTimer = 0;
 
   return player;
@@ -42,7 +48,15 @@ describe('launch', () => {
   it('starts 60 u below the field, flying in, protected for 3 s', () => {
     const player = createPlayer(9, 5, 2);
 
-    expect(player).toMatchObject({ id: 9, x: 270, y: 1020, flyingIn: true, direction: { x: 0, y: 0 }, fireTimer: 0 });
+    expect(player).toMatchObject({
+      id: 9,
+      x: 270,
+      y: 1020,
+      flyingIn: true,
+      direction: { x: 0, y: 0 },
+      fireTimer: 0,
+    });
+
     expect([LAUNCH_X, LAUNCH_Y]).toEqual([270, 1020]);
     expect(isProtected(player, 4.999)).toBe(true);
     expect(isProtected(player, 5)).toBe(false);
@@ -71,7 +85,7 @@ describe('fly-in', () => {
 
     player.direction = { x: 1, y: 0 };
 
-    updatePlayer(player, 0.1, 0.1, ids());
+    updatePlayer(player, tick(0.1, 0.1));
 
     expect(player.x).toBe(270);
     expect(player.y).toBeCloseTo(958, 9);
@@ -83,10 +97,10 @@ describe('fly-in', () => {
 
     player.direction = { x: 1, y: 0 };
 
-    updatePlayer(player, 0.36, 0.36, ids());
+    updatePlayer(player, tick(0.36, 0.36));
     expect(player).toMatchObject({ x: 270, y: 800, flyingIn: false });
 
-    updatePlayer(player, 0.1, 0.46, ids());
+    updatePlayer(player, tick(0.1, 0.46));
     expect(player.x).toBeCloseTo(315, 9);
   });
 });
@@ -97,7 +111,7 @@ describe('steering', () => {
 
     player.direction = { x: 3, y: -4 };
 
-    updatePlayer(player, 0.1, 5, ids());
+    updatePlayer(player, tick(0.1, 5));
 
     expect(player.x).toBeCloseTo(270 + 0.6 * 60, 9);
     expect(player.y).toBeCloseTo(800 - 0.8 * 60, 9);
@@ -106,7 +120,7 @@ describe('steering', () => {
   it('stops on a zero direction', () => {
     const player = controlledPlayer();
 
-    updatePlayer(player, 0.1, 5, ids());
+    updatePlayer(player, tick(0.1, 5));
 
     expect([player.x, player.y]).toEqual([270, 800]);
   });
@@ -115,17 +129,17 @@ describe('steering', () => {
     const player = controlledPlayer(10);
 
     player.direction = { x: -1, y: 1 };
-    updatePlayer(player, 5, 10, ids());
+    updatePlayer(player, tick(5, 10));
     expect([player.x, player.y]).toEqual([24, 936]);
 
     player.direction = { x: 1, y: -1 };
-    updatePlayer(player, 5, 15, ids());
+    updatePlayer(player, tick(5, 15));
     expect([player.x, player.y]).toEqual([516, 24]);
   });
 });
 
 describe('fire', () => {
-  it('fires a volley every 1/7.5 s, first 0.1333 s into the run, even while flying in', () => {
+  it('fires every 1/7.5 s, first 0.1333 s into the run, even while flying in', () => {
     const player = createPlayer(1, 5, 0);
     const next = ids();
     let now = 0;
@@ -134,7 +148,7 @@ describe('fire', () => {
     for (let pass = 1; pass <= 70; pass++) {
       now += PASS;
 
-      if (updatePlayer(player, PASS, now, next).length) {
+      if (updatePlayer(player, tick(PASS, now, next)).length) {
         volleyPasses.push(pass);
       }
     }
@@ -148,20 +162,20 @@ describe('fire', () => {
   it('fires two parallel bullets from the muzzles, straight up at 780 u/s', () => {
     const player = controlledPlayer(0);
 
-    const bullets = updatePlayer(player, FIRE_INTERVAL, 5, ids());
+    const bullets = updatePlayer(player, tick(FIRE_INTERVAL, 5));
 
-    expect(bullets.map(({ id, side, x, y, damage }) => ({ id, side, x, y, damage }))).toEqual([
+    expect(bullets).toMatchObject([
       { id: 101, side: 'player', x: 257, y: 774, damage: 15 },
       { id: 102, side: 'player', x: 283, y: 774, damage: 15 },
     ]);
 
-    expect(bullets.every((bullet) => Math.abs(bullet.vx) < 1e-9 && bullet.vy === -780)).toBe(true);
+    expect(bullets.every(({ vx, vy }) => Math.abs(vx) < 1e-9 && vy === -780)).toBe(true);
   });
 
   it('fires every whole interval in one pass and keeps the remainder', () => {
     const player = controlledPlayer();
 
-    const bullets = updatePlayer(player, FIRE_INTERVAL * 3.5, 5, ids());
+    const bullets = updatePlayer(player, tick(FIRE_INTERVAL * 3.5, 5));
 
     expect(bullets.length).toBe(6);
     expect(player.fireTimer).toBeCloseTo(FIRE_INTERVAL / 2, 9);
@@ -198,19 +212,19 @@ describe('roll', () => {
     expect(tryRoll(createPlayer(1, 5, 0), 0)).toBe(true);
   });
 
-  it('silences the guns, capping the timer at one interval so a volley leaves right after', () => {
+  it('silences the guns, capping the timer at one interval for the next volley', () => {
     const player = controlledPlayer();
 
     tryRoll(player, 5);
 
-    expect(updatePlayer(player, 1, 6, ids())).toEqual([]);
+    expect(updatePlayer(player, tick(1, 6))).toEqual([]);
     expect(player.fireTimer).toBe(FIRE_INTERVAL);
-    expect(updatePlayer(player, PASS, 6.3, ids()).length).toBe(2);
+    expect(updatePlayer(player, tick(PASS, 6.3)).length).toBe(2);
   });
 });
 
 describe('relaunch', () => {
-  it('returns to the launch point with input and roll state cleared, keeping the fire timer', () => {
+  it('returns to launch with input and roll cleared, keeping the fire timer', () => {
     const player = controlledPlayer();
 
     player.direction = { x: 1, y: 0 };
@@ -220,7 +234,14 @@ describe('relaunch', () => {
 
     launchPlayer(player, 10.5);
 
-    expect(player).toMatchObject({ x: 270, y: 1020, flyingIn: true, direction: { x: 0, y: 0 }, fireTimer: 0.05 });
+    expect(player).toMatchObject({
+      x: 270,
+      y: 1020,
+      flyingIn: true,
+      direction: { x: 0, y: 0 },
+      fireTimer: 0.05,
+    });
+
     expect(isRolling(player, 10.5)).toBe(false);
     expect(isSpent(player, 10.5)).toBe(false);
     expect(tryRoll(player, 10.5)).toBe(true);

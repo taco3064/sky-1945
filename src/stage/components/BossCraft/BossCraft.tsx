@@ -2,7 +2,19 @@ import type { CSSProperties, Ref } from 'react';
 import type { BossAttack, BossPose } from '~app/battle/models/boss';
 import './BossCraft.css';
 
-const PARTS = ['wing', 'arm-left', 'arm-right', 'armour', 'pod-left', 'pod-right', 'body', 'spine', 'canopy', 'core', 'muzzle'];
+const PARTS = [
+  'wing',
+  'arm-left',
+  'arm-right',
+  'armour',
+  'pod-left',
+  'pod-right',
+  'body',
+  'spine',
+  'canopy',
+  'core',
+  'muzzle',
+];
 
 interface BossCraftProps {
   ref?: Ref<HTMLDivElement>;
@@ -13,7 +25,10 @@ interface BossCraftProps {
   move: BossAttack | null;
 }
 
-/** The boss, drawn nose-up at size 1 and scaled by `s` (game-spec 9.7). `ref` is the placed mount. */
+/**
+ * The boss, drawn nose-up at size 1 and scaled by `s` (game-spec 9.7). `ref` is the
+ * placed mount.
+ */
 export function BossCraft({ ref, size, pose, move }: BossCraftProps) {
   return (
     <div

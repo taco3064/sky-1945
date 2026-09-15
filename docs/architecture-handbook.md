@@ -192,6 +192,31 @@ Judgment rules no tool enforces — they hold in review and in the agent contrac
 - **Do not reopen settled designs.** — When the shape has been specified, implement it as spec. Raise genuine concerns once, with reasons — not as a menu of alternatives.
 - **"The user can work around it" does not park a bug.** — Judge by diff size, scope, and standalone impact; a normal-path bug that violates expectations deserves its ticket.
 
+## Rules
+
+| Rule | Tier | Option | Enforced by |
+| --- | --- | --- | --- |
+| `maxLines` | `error` | `400` | lint |
+| `maxLinesPerFunction` | `warn` | `100` | lint |
+| `maxParams` | `warn` | `3` | lint |
+| `maxStatements` | `warn` | `15` | lint |
+| `complexity` | `warn` | `12` | lint |
+| `unusedVars` | `error` | — | lint |
+| `explicitAny` | `error` | — | lint |
+| `codeStyle` | `error` | — | lint |
+| `statementsPerLine` | `error` | — | lint |
+| `statementPadding` | `error` | — | lint |
+| `importBlock` | `error` | — | lint |
+| `fixtureImports` | `error` | — | lint |
+| `cycles` | `error` | — | `blueprint inspect` |
+| `deadCode` | `error` | — | documentation only |
+| `usePrefix` | `error` | — | lint |
+| `testFilename` | `error` | — | lint |
+| `usePrefixReactivity` | `warn` | — | lint |
+| `typedefOnlyFile` | `warn` | — | lint |
+
+The tier is what the enforcing machine does with a violation: `error` fails, `warn` is advisory, `off` is disabled. Which machine differs — `lint` rows fail the project's lint run, `blueprint inspect` rows fail `blueprint inspect` and never appear in a lint run, documentation-only rows are recorded intent with no gate behind them at any tier, and a row reading `nothing` is lint-gated in general but cannot emit on THIS blueprint — the cell says which fact rules it out. Every row reaches only the files the architecture globs match: a declared position holding no code has nothing that can fail, which is runway rather than protection — `blueprint doctor` reports which of the two this repo has today.
+
 ## Naming
 
 | Concept | Convention |

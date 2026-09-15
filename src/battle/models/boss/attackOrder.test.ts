@@ -1,20 +1,38 @@
 import { expect, it } from 'vitest';
 import { attackAt, attackHash } from './attackOrder';
 
-// game-spec 14.6: attack index 0 → 19
-const SEQUENCES: [number, string][] = [
-  [0, 'straight straight ram ram beam straight spread straight straight straight beam radial radial beam ram beam straight radial straight spread'],
-  [1, 'ram straight ram straight radial radial ram straight spread ram ram radial ram spread beam ram beam spread straight ram'],
-  [42, 'straight beam ram spread radial beam radial beam straight spread beam ram beam spread straight straight ram ram straight beam'],
-  [123456789, 'ram beam radial spread ram ram ram radial radial beam ram radial ram ram straight ram ram ram spread ram'],
-  [3735928559, 'ram ram radial ram ram radial beam ram straight ram ram spread beam ram beam radial spread straight beam spread'],
-  [4294967294, 'beam straight beam spread straight ram beam ram spread radial beam radial ram beam straight radial ram beam straight straight'],
+// game-spec 14.6: attack index 0 → 9, then 10 → 19
+const SEQUENCES: [number, [string, string]][] = [
+  [0, [
+    'straight straight ram ram beam straight spread straight straight straight',
+    'beam radial radial beam ram beam straight radial straight spread',
+  ]],
+  [1, [
+    'ram straight ram straight radial radial ram straight spread ram',
+    'ram radial ram spread beam ram beam spread straight ram',
+  ]],
+  [42, [
+    'straight beam ram spread radial beam radial beam straight spread',
+    'beam ram beam spread straight straight ram ram straight beam',
+  ]],
+  [123456789, [
+    'ram beam radial spread ram ram ram radial radial beam',
+    'ram radial ram ram straight ram ram ram spread ram',
+  ]],
+  [3735928559, [
+    'ram ram radial ram ram radial beam ram straight ram',
+    'ram spread beam ram beam radial spread straight beam spread',
+  ]],
+  [4294967294, [
+    'beam straight beam spread straight ram beam ram spread radial',
+    'beam radial ram beam straight radial ram beam straight straight',
+  ]],
 ];
 
-it.each(SEQUENCES)('seed %i produces the game-spec 14.6 sequence', (seed, sequence) => {
+it.each(SEQUENCES)('seed %i produces the game-spec 14.6 sequence', (seed, halves) => {
   const attacks = Array.from({ length: 20 }, (_, index) => attackAt(seed, index));
 
-  expect(attacks.join(' ')).toBe(sequence);
+  expect(attacks.join(' ')).toBe(halves.join(' '));
 });
 
 it('hashes to unsigned 32-bit integers', () => {

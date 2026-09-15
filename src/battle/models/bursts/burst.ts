@@ -16,8 +16,11 @@ export interface Burst {
   age: number;
 }
 
-export function createBurst(id: number, x: number, y: number, tone: BurstTone, size: BurstSize): Burst {
-  return { id, x, y, tone, size, age: 0 };
+/** Where a burst appears and how it looks. */
+export type BurstSpec = Omit<Burst, 'id' | 'age'>;
+
+export function createBurst(id: number, spec: BurstSpec): Burst {
+  return { id, ...spec, age: 0 };
 }
 
 /** Ages a burst by `dt`; returns true once it is finished. */

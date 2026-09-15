@@ -1,16 +1,30 @@
 import { describe, expect, it } from 'vitest';
-import { ENEMY_KINDS, type EnemyKind, enemyBulletDamage, enemyBulletSpeed, enemyFireInterval, enemyMoveSpeed } from './kinds';
+import {
+  ENEMY_KINDS,
+  type EnemyKind,
+  enemyBulletDamage,
+  enemyBulletSpeed,
+  enemyFireInterval,
+  enemyMoveSpeed,
+} from './kinds';
 
 it('matches the game-spec 12.8 table', () => {
   expect(ENEMY_KINDS).toEqual({
-    small: { hp: 20, radius: 13, speed: 165, damage: 8, interval: 1.1, pattern: 'straight' },
-    medium: { hp: 60, radius: 20, speed: 115, damage: 10, interval: 1.6, pattern: 'spread' },
-    large: { hp: 160, radius: 32, speed: 72, damage: 12, interval: 2.2, pattern: 'radial' },
+    small: {
+      hp: 20, radius: 13, speed: 165, damage: 8, interval: 1.1, pattern: 'straight',
+    },
+    medium: {
+      hp: 60, radius: 20, speed: 115, damage: 10, interval: 1.6, pattern: 'spread',
+    },
+    large: {
+      hp: 160, radius: 32, speed: 72, damage: 12, interval: 2.2, pattern: 'radial',
+    },
   });
 });
 
 // game-spec 14.2: m, then move / fire every / bullet / dmg for S, M, L
-type Row = [number, [number, number, number, number], [number, number, number, number], [number, number, number, number]];
+type Stats = [number, number, number, number];
+type Row = [number, Stats, Stats, Stats];
 
 const ROUNDS: Row[] = [
   [1.0, [165, 1.1, 260, 8], [115, 1.6, 260, 10], [72, 2.2, 260, 12]],
@@ -27,11 +41,11 @@ const ROUNDS: Row[] = [
 ];
 
 describe.each(ROUNDS)('with m = %f', (m, small, medium, large) => {
-  it.each([
+  it.each<[EnemyKind, Stats]>([
     ['small', small],
     ['medium', medium],
     ['large', large],
-  ] as [EnemyKind, number[]][])('%s craft follow game-spec 14.2', (kind, [move, fireEvery, bullet, damage]) => {
+  ])('%s craft follow game-spec 14.2', (kind, [move, fireEvery, bullet, damage]) => {
     expect(enemyMoveSpeed(kind, m)).toBeCloseTo(move, 9);
     // The table rounds fire intervals to two decimals.
     expect(enemyFireInterval(kind, m)).toBeCloseTo(fireEvery, 2);

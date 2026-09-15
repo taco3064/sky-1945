@@ -7,8 +7,12 @@ interface KeyboardHandlers {
   onPause: () => void;
 }
 
-/** Keyboard input while the stage is shown (game-spec 12.4). Auto-repeat is not filtered. */
-export function useKeyboardControls({ onSteer, onRoll, onPause }: KeyboardHandlers): void {
+/** Keyboard input on the stage (game-spec 12.4). Auto-repeat is not filtered. */
+export function useKeyboardControls({
+  onSteer,
+  onRoll,
+  onPause,
+}: KeyboardHandlers): void {
   const held = useRef(new Set<string>());
 
   useEffect(() => {

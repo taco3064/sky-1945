@@ -76,7 +76,11 @@ function pathPool(round: number): EnemyPath[] {
     return ['dive', 'weave'];
   }
 
-  return round <= 3 ? ['dive', 'weave', 'arc'] : ['dive', 'weave', 'arc', 'hover', 'feint'];
+  if (round <= 3) {
+    return ['dive', 'weave', 'arc'];
+  }
+
+  return ['dive', 'weave', 'arc', 'hover', 'feint'];
 }
 
 function slotPath(round: number, slot: number): EnemyPath {

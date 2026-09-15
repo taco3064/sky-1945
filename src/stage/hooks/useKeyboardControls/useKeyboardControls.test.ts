@@ -9,7 +9,7 @@ function setup() {
   return { ...handlers, ...hook };
 }
 
-it('publishes the summed direction on every arrow press and release, preventing defaults', () => {
+it('steers by the held arrows on each press and release, preventing defaults', () => {
   const { onSteer } = setup();
 
   expect(fireEvent.keyDown(window, { key: 'ArrowUp', cancelable: true })).toBe(false);
@@ -44,7 +44,7 @@ it('toggles pause on Escape, auto-repeat included', () => {
   expect(onPause).toHaveBeenCalledTimes(2);
 });
 
-it('releases every arrow and stops when the window loses focus, even with none held', () => {
+it('stops steering and releases every arrow on blur, even with none held', () => {
   const { onSteer } = setup();
 
   fireEvent.keyDown(window, { key: 'ArrowDown' });
@@ -53,7 +53,8 @@ it('releases every arrow and stops when the window loses focus, even with none h
   fireEvent.blur(window);
   fireEvent.keyDown(window, { key: 'ArrowLeft' });
 
-  expect(onSteer.mock.calls.slice(1)).toEqual([[{ x: 0, y: 0 }], [{ x: 0, y: 0 }], [{ x: -1, y: 0 }]]);
+  expect(onSteer.mock.calls.slice(1))
+    .toEqual([[{ x: 0, y: 0 }], [{ x: 0, y: 0 }], [{ x: -1, y: 0 }]]);
 });
 
 it('ignores other keys and stops listening once unmounted', () => {
@@ -65,5 +66,7 @@ it('ignores other keys and stops listening once unmounted', () => {
   fireEvent.keyDown(window, { key: 'ArrowUp' });
   fireEvent.blur(window);
 
-  expect([onSteer, onRoll, onPause].map((handler) => handler.mock.calls.length)).toEqual([0, 0, 0]);
+  for (const handler of [onSteer, onRoll, onPause]) {
+    expect(handler).not.toHaveBeenCalled();
+  }
 });

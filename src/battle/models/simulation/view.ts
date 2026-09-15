@@ -1,4 +1,4 @@
-import type { BossAttack, BossPose } from '../boss';
+import type { Boss, BossAttack, BossPose } from '../boss';
 import type { BulletSide } from '../bullets';
 import type { BurstSize, BurstTone } from '../bursts';
 import type { EnemyKind } from '../enemies';
@@ -22,6 +22,12 @@ export interface BossView {
   readonly move: BossAttack | null;
 }
 
+export interface BurstView {
+  readonly id: number;
+  readonly tone: BurstTone;
+  readonly size: BurstSize;
+}
+
 /** What the screen shows; replaced only when something in it changed. */
 export interface BattleView {
   readonly lives: number;
@@ -32,7 +38,7 @@ export interface BattleView {
   readonly enemies: readonly { readonly id: number; readonly kind: EnemyKind }[];
   readonly boss: BossView | null;
   readonly beam: { readonly id: number } | null;
-  readonly bursts: readonly { readonly id: number; readonly tone: BurstTone; readonly size: BurstSize }[];
+  readonly bursts: readonly BurstView[];
   /** 0 until the first frame-meter window closes. */
   readonly fps: number;
   readonly worst: number;
@@ -44,17 +50,39 @@ export interface FrameReadings {
 }
 
 /** The view of `world`, reusing `previous` and every unchanged part of it. */
-export function buildView(world: World, readings: FrameReadings, previous: BattleView | null): BattleView {
-  const { player, boss } = world;
-
-  const playerView: PlayerView = {
-    id: player.id,
-    rolling: isRolling(player, world.time),
-    protected: isProtected(player, world.time),
-    spent: isSpent(player, world.time),
+export function buildView(
+  world: World,
+  readings: FrameReadings,
+  previous: BattleView | null,
+): BattleView {
+  const next: BattleView = {
+    lives: world.lives,
+    round: world.round,
+    gameOver: world.gameOver,
+    player: keep(previous?.player, playerView(world)),
+    bullets: sameList(previous?.bullets, world.bullets),
+    enemies: sameList(previous?.enemies, world.enemies),
+    boss: keep(previous?.boss, bossView(world.boss)),
+    beam: keep(previous?.beam, beamView(world.boss)),
+    bursts: sameList(previous?.bursts, world.bursts),
+    fps: readings.fps,
+    worst: readings.worst,
   };
 
-  const bossView: BossView | null = boss && {
+  return keep(previous ?? undefined, next);
+}
+
+function playerView({ player, time }: World): PlayerView {
+  return {
+    id: player.id,
+    rolling: isRolling(player, time),
+    protected: isProtected(player, time),
+    spent: isSpent(player, time),
+  };
+}
+
+function bossView(boss: Boss | null): BossView | null {
+  return boss && {
     id: boss.id,
     size: boss.size,
     hp: boss.hp,
@@ -62,33 +90,26 @@ export function buildView(world: World, readings: FrameReadings, previous: Battl
     pose: boss.pose,
     move: boss.pose === 'entering' ? null : boss.attack,
   };
+}
 
-  const beamView = boss?.beam ? { id: boss.beam.id } : null;
+function beamView(boss: Boss | null): { id: number } | null {
+  return boss?.beam ? { id: boss.beam.id } : null;
+}
 
-  const next: BattleView = {
-    lives: world.lives,
-    round: world.round,
-    gameOver: world.gameOver,
-    player: previous && sameFields(previous.player, playerView) ? previous.player : playerView,
-    bullets: sameList(previous?.bullets, world.bullets),
-    enemies: sameList(previous?.enemies, world.enemies),
-    boss: previous && sameFields(previous.boss, bossView) ? previous.boss : bossView,
-    beam: previous && sameFields(previous.beam, beamView) ? previous.beam : beamView,
-    bursts: sameList(previous?.bursts, world.bursts),
-    fps: readings.fps,
-    worst: readings.worst,
-  };
-
-  return previous && sameFields(previous, next) ? previous : next;
+/** The previous value when it has the same fields, else the next one. */
+function keep<T extends object | null>(previous: T | undefined, next: T): T {
+  return previous !== undefined && sameFields(previous, next) ? previous : next;
 }
 
 /** The previous list when it holds the same entities in the same order, else a copy. */
-function sameList<T extends { id: number }>(previous: readonly T[] | undefined, current: readonly T[]): readonly T[] {
-  if (previous && previous.length === current.length && previous.every((entity, index) => entity.id === current[index].id)) {
-    return previous;
-  }
+function sameList<T extends { id: number }>(
+  previous: readonly T[] | undefined,
+  current: readonly T[],
+): readonly T[] {
+  const unchanged = previous?.length === current.length
+    && previous.every((entity, index) => entity.id === current[index].id);
 
-  return current.slice();
+  return unchanged ? previous : current.slice();
 }
 
 function sameFields<T extends object>(previous: T | null, next: T | null): boolean {

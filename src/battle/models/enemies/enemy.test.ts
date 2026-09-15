@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { ENEMY_ANGLE, createEnemy, damageEnemy, updateEnemy } from './enemy';
+import {
+  ENEMY_ANGLE,
+  type EnemyTick,
+  createEnemy,
+  damageEnemy,
+  updateEnemy,
+} from './enemy';
 import type { Squad } from './waves';
 
 const PASS = 1 / 240;
@@ -17,10 +23,15 @@ function squad(overrides: Partial<Squad>): Squad {
   };
 }
 
-function ids() {
+/** A squad entering from the left at y 300, always inside the field. */
+function sideSquad(kind: Squad['kind'] = 'small'): Squad {
+  return squad({ kind, edge: 'left', entries: [{ x: -40, y: 300 }] });
+}
+
+function tick(dt: number, m: number): EnemyTick {
   let id = 0;
 
-  return () => ++id;
+  return { dt, m, nextId: () => ++id };
 }
 
 it('is turned over by 180°', () => {
@@ -29,7 +40,9 @@ it('is turned over by 180°', () => {
 
 describe('appearing', () => {
   it('starts at its lane entry with full HP and clocks at 0', () => {
-    const enemy = createEnemy(5, squad({ kind: 'medium', lanes: [0.2, 0.4], entries: [{ x: 1, y: 2 }, { x: 3, y: 4 }] }), 1);
+    const entries = [{ x: 1, y: 2 }, { x: 3, y: 4 }];
+    const pair = squad({ kind: 'medium', lanes: [0.2, 0.4], entries });
+    const enemy = createEnemy(5, pair, 1);
 
     expect(enemy).toEqual({
       id: 5,
@@ -51,7 +64,7 @@ describe('moving', () => {
   it('advances age and travels speed × m × dt along its path', () => {
     const enemy = createEnemy(1, squad({ kind: 'large' }), 0);
 
-    updateEnemy(enemy, 0.5, 1.5, ids());
+    updateEnemy(enemy, tick(0.5, 1.5));
 
     expect(enemy.age).toBe(0.5);
     expect(enemy.travelled).toBeCloseTo(72 * 1.5 * 0.5, 9);
@@ -65,10 +78,10 @@ describe('leaving', () => {
 
     enemy.travelled = 1059;
 
-    expect(updateEnemy(enemy, PASS, 1, ids()).left).toBe(false);
+    expect(updateEnemy(enemy, tick(PASS, 1)).left).toBe(false);
     expect(enemy.y).toBeLessThanOrEqual(1020);
     enemy.fireTimer = 5;
-    const pass = updateEnemy(enemy, 0.1, 1, ids());
+    const pass = updateEnemy(enemy, tick(0.1, 1));
 
     expect(enemy.y).toBeGreaterThan(1020);
     expect(pass).toEqual({ left: true, bullets: [] });
@@ -79,19 +92,19 @@ describe('firing', () => {
   it('runs the timer only while y > 0', () => {
     const enemy = createEnemy(1, squad({}), 0);
 
-    updateEnemy(enemy, 0.2, 1, ids());
+    updateEnemy(enemy, tick(0.2, 1));
 
     expect(enemy.y).toBeLessThan(0);
     expect(enemy.fireTimer).toBe(0);
   });
 
-  it('flies speed × interval inside the field before its first volley, whatever the round', () => {
+  it('flies speed × interval inside the field before its first volley, any round', () => {
     for (const m of [1, 1.3, 2]) {
-      const enemy = createEnemy(1, squad({ edge: 'left', entries: [{ x: -40, y: 300 }] }), 0);
+      const enemy = createEnemy(1, sideSquad(), 0);
       let travelledAtFire = 0;
 
       for (let pass = 0; pass < 2000 && !travelledAtFire; pass++) {
-        if (updateEnemy(enemy, PASS, m, ids()).bullets.length) {
+        if (updateEnemy(enemy, tick(PASS, m)).bullets.length) {
           travelledAtFire = enemy.travelled;
         }
       }
@@ -102,40 +115,49 @@ describe('firing', () => {
   });
 
   it('resets the timer to 0 after a volley, dropping the remainder', () => {
-    const enemy = createEnemy(1, squad({ edge: 'left', entries: [{ x: -40, y: 300 }] }), 0);
+    const enemy = createEnemy(1, sideSquad(), 0);
 
-    updateEnemy(enemy, 1.25, 1, ids());
+    updateEnemy(enemy, tick(1.25, 1));
 
     expect(enemy.fireTimer).toBe(0);
   });
 
   it('fires ENEMY-S straight from its nose, 19 u ahead', () => {
-    const enemy = createEnemy(1, squad({ kind: 'small', edge: 'left', entries: [{ x: -40, y: 300 }] }), 0);
+    const enemy = createEnemy(1, sideSquad('small'), 0);
 
-    const { bullets } = updateEnemy(enemy, 1.1, 1.1, ids());
+    const { bullets } = updateEnemy(enemy, tick(1.1, 1.1));
+
+    const nose = { x: enemy.x, y: enemy.y + 19 };
 
     expect(bullets.length).toBe(1);
-    expect(bullets[0]).toMatchObject({ side: 'enemy', x: enemy.x, y: enemy.y + 19, damage: 8.8 });
+    expect(bullets[0]).toMatchObject({ side: 'enemy', ...nose, damage: 8.8 });
     expect(bullets[0].vy).toBeCloseTo(272.25, 9);
   });
 
   it('fires an ENEMY-M spread from its nose, 26 u ahead', () => {
-    const enemy = createEnemy(1, squad({ kind: 'medium', edge: 'left', entries: [{ x: -40, y: 300 }] }), 0);
+    const enemy = createEnemy(1, sideSquad('medium'), 0);
 
-    const { bullets } = updateEnemy(enemy, 1.6, 1, ids());
+    const { bullets } = updateEnemy(enemy, tick(1.6, 1));
 
     expect(bullets.length).toBe(5);
-    expect(bullets.every((bullet) => bullet.y === enemy.y + 26 && bullet.damage === 10)).toBe(true);
+
+    bullets.forEach((bullet) => {
+      expect(bullet).toMatchObject({ y: enemy.y + 26, damage: 10 });
+    });
+
     expect(Math.hypot(bullets[0].vx, bullets[0].vy)).toBeCloseTo(260, 9);
   });
 
   it('fires an ENEMY-L radial ring from its centre', () => {
-    const enemy = createEnemy(1, squad({ kind: 'large', edge: 'left', entries: [{ x: -40, y: 300 }] }), 0);
+    const enemy = createEnemy(1, sideSquad('large'), 0);
 
-    const { bullets } = updateEnemy(enemy, 2.2, 1, ids());
+    const { bullets } = updateEnemy(enemy, tick(2.2, 1));
 
     expect(bullets.length).toBe(10);
-    expect(bullets.every((bullet) => bullet.x === enemy.x && bullet.y === enemy.y && bullet.damage === 12)).toBe(true);
+
+    bullets.forEach((bullet) => {
+      expect(bullet).toMatchObject({ x: enemy.x, y: enemy.y, damage: 12 });
+    });
   });
 });
 

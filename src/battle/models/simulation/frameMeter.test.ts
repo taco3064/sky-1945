@@ -5,7 +5,7 @@ it('reads 0 until the first window closes', () => {
   expect(createFrameMeter()).toMatchObject({ fps: 0, worst: 0 });
 });
 
-it('publishes fps and the longest frame once the window reaches 500 ms, then resets', () => {
+it('publishes fps and the longest frame per 500 ms window, then resets', () => {
   const meter = createFrameMeter();
   const frames = [16.6, 16.8, 40.2, ...Array.from({ length: 27 }, () => 15.8)];
 

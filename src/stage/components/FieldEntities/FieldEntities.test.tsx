@@ -27,7 +27,9 @@ it('paints the player, bullets, enemies, boss, beam and bursts in that order', (
     </div>,
   );
 
-  expect([...(container.firstElementChild?.children ?? [])].map((entity) => entity.className)).toEqual([
+  const field = container.firstElementChild as HTMLElement;
+
+  expect([...field.children].map((entity) => entity.className)).toEqual([
     'ally ally--protected ally--rolling ally--spent',
     'bullet bullet--player',
     'bullet bullet--enemy',
@@ -37,9 +39,10 @@ it('paints the player, bullets, enemies, boss, beam and bursts in that order', (
     'burst burst--enemy burst--small',
   ]);
 
-  const boss = container.querySelector<HTMLElement>('.boss');
+  const { dataset, style } = container.querySelector('.boss') as HTMLElement;
 
-  expect([boss?.dataset.pose, boss?.dataset.move, boss?.style.getPropertyValue('--boss-scale')]).toEqual(['winding', 'beam', '1.5']);
+  expect([dataset.pose, dataset.move, style.getPropertyValue('--boss-scale')])
+    .toEqual(['winding', 'beam', '1.5']);
 });
 
 it('registers every outer element under its entity id', () => {
@@ -59,7 +62,9 @@ it('keeps unchanged entities registered and unregisters removed ones', () => {
 
   register.mockClear();
 
-  rerender(<FieldEntities view={{ ...VIEW, bullets: [VIEW.bullets[1]], boss: null, beam: null }} register={register} />);
+  const remaining = { ...VIEW, bullets: [VIEW.bullets[1]], boss: null, beam: null };
+
+  rerender(<FieldEntities view={remaining} register={register} />);
 
   expect(register.mock.calls.map(([id, element]) => [id, element])).toEqual(
     expect.arrayContaining([

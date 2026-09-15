@@ -7,18 +7,18 @@ it.each([
   ['small', ['wing', 'body', 'core']],
   ['medium', ['wing', 'pod-left', 'pod-right', 'body', 'canopy']],
   ['large', ['wing', 'armour', 'pod-left', 'pod-right', 'body', 'core']],
-] as const)('draws the %s craft parts in paint order inside the placed mount', (kind, parts) => {
+] as const)('draws the %s parts in paint order in the placed mount', (kind, parts) => {
   const ref = createRef<HTMLDivElement>();
   const { container } = render(<EnemyCraft ref={ref} kind={kind} />);
 
   const mount = container.firstElementChild as HTMLElement;
+  const craft = mount.firstElementChild as HTMLElement;
 
   expect(ref.current).toBe(mount);
   expect(mount.className).toBe(`enemy enemy--${kind}`);
   expect(mount.children.length).toBe(1);
-  expect(mount.firstElementChild?.className).toBe('enemy__craft');
+  expect(craft.className).toBe('enemy__craft');
 
-  expect([...(mount.firstElementChild?.children ?? [])].map((part) => part.className)).toEqual(
-    parts.map((part) => `enemy__${part}`),
-  );
+  expect([...craft.children].map((part) => part.className))
+    .toEqual(parts.map((part) => `enemy__${part}`));
 });

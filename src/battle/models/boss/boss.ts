@@ -144,11 +144,21 @@ export function createBoss(id: number, round: number, { size, seed }: BossRoll):
   };
 }
 
+/** What one pass hands the boss. */
+export interface BossTick {
+  dt: number;
+  /** The round multiplier; it scales bullet damage only. */
+  m: number;
+  /** The player's x before the player moves this pass; the ram locks it. */
+  playerX: number;
+  nextId: () => number;
+}
+
 /** One pass: advance timers, move, move the beam, advance the stance machine. */
-export function updateBoss(boss: Boss, dt: number, m: number, playerX: number, nextId: () => number): BossPass {
-  boss.age += dt;
-  boss.stanceTime += dt;
-  boss.volleyTime += dt;
+export function updateBoss(boss: Boss, tick: BossTick): BossPass {
+  boss.age += tick.dt;
+  boss.stanceTime += tick.dt;
+  boss.volleyTime += tick.dt;
   moveBoss(boss);
 
   if (boss.beam) {
@@ -156,10 +166,14 @@ export function updateBoss(boss: Boss, dt: number, m: number, playerX: number, n
     boss.beam.y = beamCentreY(boss);
   }
 
-  return advanceStance(boss, m, playerX, nextId);
+  const pass: BossPass = { bullets: [], beamOpened: null, beamClosed: null };
+
+  STANCE_STEPS[boss.pose](boss, tick, pass);
+
+  return pass;
 }
 
-/** Player bullets are used up either way; damage only counts once the boss has arrived. */
+/** Player bullets are used up either way; damage counts once the boss has arrived. */
 export function damageBoss(boss: Boss, damage: number): BossHit {
   if (boss.pose === 'entering') {
     return 'shielded';
@@ -182,9 +196,9 @@ function moveBoss(boss: Boss): void {
     return;
   }
 
-  const t = boss.age - ENTRY_DURATION;
-  const patrolX = ENTRY_X + Math.sin((2 * Math.PI * t * PATROL_FREQUENCY_X) / boss.size) * PATROL_REACH;
-  const patrolY = ARRIVAL_Y + (1 - Math.cos((2 * Math.PI * t * PATROL_FREQUENCY_Y) / boss.size)) * PATROL_DEPTH;
+  const turn = (2 * Math.PI * (boss.age - ENTRY_DURATION)) / boss.size;
+  const patrolX = ENTRY_X + Math.sin(turn * PATROL_FREQUENCY_X) * PATROL_REACH;
+  const patrolY = ARRIVAL_Y + (1 - Math.cos(turn * PATROL_FREQUENCY_Y)) * PATROL_DEPTH;
   const offset = ramOffset(boss, patrolX, patrolY);
 
   boss.x = patrolX + offset.x;
@@ -215,58 +229,62 @@ function ramOffset(boss: Boss, patrolX: number, patrolY: number): Point {
   };
 }
 
-function advanceStance(boss: Boss, m: number, playerX: number, nextId: () => number): BossPass {
-  const pass: BossPass = { bullets: [], beamOpened: null, beamClosed: null };
-  const timing = ATTACK_TIMINGS[boss.attack];
+type StanceStep = (boss: Boss, tick: BossTick, pass: BossPass) => void;
 
-  switch (boss.pose) {
-    case 'entering':
-      if (boss.y >= ARRIVAL_Y) {
-        changeStance(boss, 'winding');
-      }
+/** The stance machine: each pose checks its way out once per pass (game-spec 12.9.6). */
+const STANCE_STEPS: Record<BossPose, StanceStep> = {
+  entering(boss) {
+    if (boss.y >= ARRIVAL_Y) {
+      changeStance(boss, 'winding');
+    }
+  },
+  winding(boss, tick, pass) {
+    if (boss.stanceTime >= ATTACK_TIMINGS[boss.attack].windUp) {
+      changeStance(boss, 'firing');
+      openAttack(boss, tick, pass);
+    }
+  },
+  firing(boss, tick, pass) {
+    const { duration, cadence } = ATTACK_TIMINGS[boss.attack];
 
-      break;
-    case 'winding':
-      if (boss.stanceTime >= timing.windUp) {
-        changeStance(boss, 'firing');
-        openAttack(boss, playerX, nextId, pass);
-      }
-
-      break;
-    case 'firing':
-      if (boss.stanceTime >= timing.duration) {
-        changeStance(boss, 'recovering');
-        boss.aimedX = null;
-        pass.beamClosed = boss.beam;
-        boss.beam = null;
-      } else if (timing.cadence !== undefined && (boss.volleyCount === 0 || boss.volleyTime >= timing.cadence / boss.size)) {
-        pass.bullets = fireBossVolley(boss, boss.attack as FirePattern, m, nextId);
-        boss.volleyTime = 0;
-        boss.volleyCount += 1;
-      }
-
-      break;
-    case 'recovering':
-      if (boss.stanceTime >= RECOVERY) {
-        boss.attackIndex += 1;
-        boss.attack = attackAt(boss.seed, boss.attackIndex);
-        changeStance(boss, 'winding');
-      }
-
-      break;
-  }
-
-  return pass;
-}
+    if (boss.stanceTime >= duration) {
+      closeAttack(boss, pass);
+    } else if (cadence !== undefined && isVolleyDue(boss, cadence)) {
+      pass.bullets = fireBossVolley(boss, tick);
+      boss.volleyTime = 0;
+      boss.volleyCount += 1;
+    }
+  },
+  recovering(boss) {
+    if (boss.stanceTime >= RECOVERY) {
+      boss.attackIndex += 1;
+      boss.attack = attackAt(boss.seed, boss.attackIndex);
+      changeStance(boss, 'winding');
+    }
+  },
+};
 
 /** On the pass the wind-up ends: the ram locks the player's column, the beam appears. */
-function openAttack(boss: Boss, playerX: number, nextId: () => number, pass: BossPass): void {
+function openAttack(boss: Boss, { playerX, nextId }: BossTick, pass: BossPass): void {
   if (boss.attack === 'ram') {
     boss.aimedX = playerX;
   } else if (boss.attack === 'beam') {
     boss.beam = { id: nextId(), x: boss.x, y: beamCentreY(boss) };
     pass.beamOpened = boss.beam;
   }
+}
+
+/** Firing ends: the ram's aim clears and the beam closes. */
+function closeAttack(boss: Boss, pass: BossPass): void {
+  changeStance(boss, 'recovering');
+  boss.aimedX = null;
+  pass.beamClosed = boss.beam;
+  boss.beam = null;
+}
+
+/** The first volley leaves on the first firing pass, then one each cadence / s. */
+function isVolleyDue(boss: Boss, cadence: number): boolean {
+  return boss.volleyCount === 0 || boss.volleyTime >= cadence / boss.size;
 }
 
 /** Every stance change resets the stance timer and the volley timer and count. */
@@ -277,7 +295,9 @@ function changeStance(boss: Boss, pose: BossPose): void {
   boss.volleyCount = 0;
 }
 
-function fireBossVolley(boss: Boss, pattern: FirePattern, m: number, nextId: () => number): Bullet[] {
+function fireBossVolley(boss: Boss, { m, nextId }: BossTick): Bullet[] {
+  const pattern = boss.attack as FirePattern;
+
   return fireVolley(
     {
       pattern,

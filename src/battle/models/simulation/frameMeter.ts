@@ -14,7 +14,7 @@ export function createFrameMeter(): FrameMeter {
   return { windowMs: 0, frames: 0, longestMs: 0, fps: 0, worst: 0 };
 }
 
-/** Adds one step's raw milliseconds; returns true when the window closed and published. */
+/** Adds one step's raw milliseconds; true when the window closed and published. */
 export function recordFrame(meter: FrameMeter, frameMs: number): boolean {
   meter.windowMs += frameMs;
   meter.frames += 1;

@@ -9,7 +9,12 @@ interface AllyCraftProps {
 }
 
 /** ALLY-01, the player's aircraft (game-spec 9.1). `ref` is the outer placed element. */
-export function AllyCraft({ ref, rolling, protected: isProtected, spent }: AllyCraftProps) {
+export function AllyCraft({
+  ref,
+  rolling,
+  protected: isProtected,
+  spent,
+}: AllyCraftProps) {
   const className = [
     'ally',
     isProtected && 'ally--protected',

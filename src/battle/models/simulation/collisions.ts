@@ -1,4 +1,5 @@
 import Matter from 'matter-js';
+import type { Point } from '../field';
 
 /**
  * Hit detection on matter-js (game-spec 12.11): every body is a sensor with no air
@@ -16,7 +17,13 @@ export interface Collisions<T> {
 
 export function createCollisions<T>(): Collisions<T> {
   const engine = Matter.Engine.create({ gravity: { x: 0, y: 0 } });
-  const collisions: Collisions<T> = { engine, bodies: new Map(), owners: new Map(), starts: [] };
+
+  const collisions: Collisions<T> = {
+    engine,
+    bodies: new Map(),
+    owners: new Map(),
+    starts: [],
+  };
 
   Matter.Events.on(engine, 'collisionStart', ({ pairs }) => {
     for (const pair of pairs) {
@@ -32,22 +39,57 @@ export function createCollisions<T>(): Collisions<T> {
 
 const SENSOR = { isSensor: true, frictionAir: 0 };
 
-/** A circle with matter-js's default polygon sides; `angle` in degrees. */
-export function addCircle<T>(collisions: Collisions<T>, id: number, owner: T, x: number, y: number, radius: number, angle = 0): void {
-  addBody(collisions, id, owner, Matter.Bodies.circle(x, y, radius, { ...SENSOR, angle: (angle * Math.PI) / 180 }));
+/** A body to add: the entity it stands for and its centre. */
+export interface BodySpec<T> extends Point {
+  id: number;
+  owner: T;
 }
 
-export function addRectangle<T>(collisions: Collisions<T>, id: number, owner: T, x: number, y: number, width: number, height: number): void {
-  addBody(collisions, id, owner, Matter.Bodies.rectangle(x, y, width, height, SENSOR));
+export interface CircleSpec<T> extends BodySpec<T> {
+  radius: number;
+  /** Degrees. */
+  angle?: number;
 }
 
-function addBody<T>(collisions: Collisions<T>, id: number, owner: T, body: Matter.Body): void {
+export interface RectangleSpec<T> extends BodySpec<T> {
+  width: number;
+  height: number;
+}
+
+/** A circle with matter-js's default polygon sides. */
+export function addCircle<T>(
+  collisions: Collisions<T>,
+  { radius, angle = 0, ...spec }: CircleSpec<T>,
+): void {
+  const options = { ...SENSOR, angle: (angle * Math.PI) / 180 };
+
+  addBody(collisions, spec, Matter.Bodies.circle(spec.x, spec.y, radius, options));
+}
+
+export function addRectangle<T>(
+  collisions: Collisions<T>,
+  { width, height, ...spec }: RectangleSpec<T>,
+): void {
+  const body = Matter.Bodies.rectangle(spec.x, spec.y, width, height, SENSOR);
+
+  addBody(collisions, spec, body);
+}
+
+function addBody<T>(
+  collisions: Collisions<T>,
+  { id, owner }: BodySpec<T>,
+  body: Matter.Body,
+): void {
   collisions.bodies.set(id, body);
   collisions.owners.set(body.id, owner);
   Matter.Composite.add(collisions.engine.world, body);
 }
 
-export function moveBody<T>(collisions: Collisions<T>, id: number, x: number, y: number): void {
+export function moveBody<T>(
+  collisions: Collisions<T>,
+  id: number,
+  { x, y }: Point,
+): void {
   const body = collisions.bodies.get(id);
 
   if (body && (body.position.x !== x || body.position.y !== y)) {
@@ -65,7 +107,7 @@ export function removeBody<T>(collisions: Collisions<T>, id: number): void {
   }
 }
 
-/** Runs the physics update for `dt` seconds and returns only the contacts that started. */
+/** Runs physics for `dt` seconds and returns only the contacts that started. */
 export function detectContacts<T>(collisions: Collisions<T>, dt: number): [T, T][] {
   Matter.Engine.update(collisions.engine, dt * 1000);
   const starts = collisions.starts;

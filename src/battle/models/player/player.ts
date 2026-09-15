@@ -72,7 +72,7 @@ export function createPlayer(id: number, speedPoints: number, now: number): Play
   return player;
 }
 
-/** (Re)launches from below: fly-in restarts, input and roll state reset, 3 s of protection. */
+/** (Re)launches from below: fly-in restarts, input and roll reset, 3 s protected. */
 export function launchPlayer(player: Player, now: number): void {
   player.x = LAUNCH_X;
   player.y = LAUNCH_Y;
@@ -109,15 +109,23 @@ export function tryRoll(player: Player, now: number): boolean {
   return true;
 }
 
+/** What one pass hands the player. */
+export interface PlayerTick {
+  dt: number;
+  /** Simulated time at the end of the pass. */
+  now: number;
+  nextId: () => number;
+}
+
 /** One pass: fly in or steer, then fire every volley that is due. */
-export function updatePlayer(player: Player, dt: number, now: number, nextId: () => number): Bullet[] {
+export function updatePlayer(player: Player, tick: PlayerTick): Bullet[] {
   if (player.flyingIn) {
-    flyIn(player, dt);
+    flyIn(player, tick.dt);
   } else {
-    steer(player, dt);
+    steer(player, tick.dt);
   }
 
-  return fire(player, dt, now, nextId);
+  return fire(player, tick);
 }
 
 function flyIn(player: Player, dt: number): void {
@@ -143,7 +151,7 @@ function steer(player: Player, dt: number): void {
   player.y = Math.min(MAX_Y, Math.max(MIN_Y, player.y + (y / length) * travel));
 }
 
-function fire(player: Player, dt: number, now: number, nextId: () => number): Bullet[] {
+function fire(player: Player, { dt, now, nextId }: PlayerTick): Bullet[] {
   if (isRolling(player, now)) {
     player.fireTimer = Math.min(player.fireTimer + dt, FIRE_INTERVAL);
 
