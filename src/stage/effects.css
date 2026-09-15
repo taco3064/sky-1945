@@ -1,0 +1,185 @@
+/* Player bullet */
+
+.bullet-player {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 18px;
+  margin-top: -9px;
+  margin-left: -4px;
+  background: linear-gradient(180deg, #eafcff 0%, #6ee7ff 45%, rgb(77 163 255 / 0%) 100%);
+  border-radius: 50% 50% 40% 40%;
+}
+
+.bullet-player::after {
+  content: '';
+  position: absolute;
+  inset: -3px -4px;
+  background: radial-gradient(ellipse at 50% 35%, rgb(110 231 255 / 55%), transparent 70%);
+}
+
+/* Enemy bullet */
+
+.bullet-enemy {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  margin-top: -5px;
+  margin-left: -5px;
+  background: radial-gradient(circle at 50% 40%, #fff3d0 0%, #ffb03a 40%, #d63a1a 100%);
+  border-radius: 50%;
+}
+
+.bullet-enemy::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  background: radial-gradient(circle, rgb(255 138 60 / 55%), transparent 70%);
+}
+
+/* Beam */
+
+.beam {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 88px;
+  height: 1000px;
+  margin-top: -500px;
+  margin-left: -44px;
+  will-change: transform;
+  background: linear-gradient(
+    90deg,
+    rgb(192 125 255 / 0%) 0%,
+    rgb(192 125 255 / 45%) 22%,
+    rgb(240 212 255 / 75%) 50%,
+    rgb(192 125 255 / 45%) 78%,
+    rgb(192 125 255 / 0%) 100%
+  );
+}
+
+.beam-core {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 18px;
+  height: 100%;
+  background: linear-gradient(180deg, #fff 0%, #f0d4ff 8%, rgb(240 212 255 / 60%) 100%);
+  box-shadow: 0 0 24px #c07dff;
+  transform: translateX(-50%);
+  animation: surge 0.12s steps(2, end) infinite alternate;
+}
+
+@keyframes surge {
+  from {
+    opacity: 0.82;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Burst (wreck) */
+
+.burst {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.burst[data-tone='ally'] {
+  --core: #eafcff;
+  --shard: #6ee7ff;
+  --edge: #2b6ba8;
+}
+
+.burst[data-tone='enemy'] {
+  --core: #fff3d0;
+  --shard: #ff8a5c;
+  --edge: #8f3216;
+}
+
+.burst[data-size='small'] {
+  --reach: 34px;
+  --piece: 5px;
+  --flash-size: 26px;
+}
+
+.burst[data-size='large'] {
+  --reach: 58px;
+  --piece: 7px;
+  --flash-size: 46px;
+}
+
+.burst-flash {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--flash-size);
+  height: var(--flash-size);
+  margin-top: calc(var(--flash-size) / -2);
+  margin-left: calc(var(--flash-size) / -2);
+  background: radial-gradient(circle, var(--core) 0%, var(--shard) 45%, transparent 72%);
+  border-radius: 50%;
+  animation: flash 180ms ease-out forwards;
+}
+
+.burst-shard {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--piece);
+  height: calc(var(--piece) * 1.8);
+  margin-top: calc(var(--piece) / -1);
+  margin-left: calc(var(--piece) / -2);
+  background: linear-gradient(180deg, var(--shard), var(--edge));
+  animation: scatter 600ms cubic-bezier(0.2, 0.6, 0.35, 1) forwards;
+}
+
+@keyframes flash {
+  from {
+    opacity: 1;
+    transform: scale(0.3);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+@keyframes scatter {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(calc(var(--dx, 1) * var(--reach)), calc(var(--dy, 1) * var(--reach)), 0)
+      rotate(var(--spin, 180deg));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .beam-core {
+    animation: none;
+    opacity: 1;
+  }
+
+  .burst-shard {
+    animation: none;
+    opacity: 0;
+  }
+
+  .burst-flash {
+    animation-duration: 400ms;
+  }
+}

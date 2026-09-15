@@ -1,0 +1,67 @@
+.speed-lines {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.speed-lines-far,
+.speed-lines-near {
+  position: absolute;
+  inset: -200px 0 0;
+  background-repeat: repeat-y;
+}
+
+.speed-lines-far {
+  background-image:
+    linear-gradient(180deg, transparent 0%, rgb(120 190 255 / 10%) 45%, transparent 70%),
+    linear-gradient(180deg, transparent 0%, rgb(120 190 255 / 8%) 30%, transparent 52%),
+    linear-gradient(180deg, transparent 0%, rgb(120 190 255 / 9%) 38%, transparent 60%);
+  background-size:
+    1px 200px,
+    1px 200px,
+    1px 200px;
+  background-position:
+    9% 0,
+    53% 0,
+    79% 0;
+  animation: rush calc(2.6s / var(--pace, 1)) linear infinite;
+}
+
+.speed-lines-near {
+  background-image:
+    linear-gradient(180deg, transparent 0%, rgb(160 220 255 / 20%) 34%, transparent 58%),
+    linear-gradient(180deg, transparent 0%, rgb(160 220 255 / 16%) 42%, transparent 66%),
+    linear-gradient(180deg, transparent 0%, rgb(160 220 255 / 22%) 28%, transparent 48%),
+    linear-gradient(180deg, transparent 0%, rgb(160 220 255 / 14%) 46%, transparent 72%);
+  background-size:
+    2px 200px,
+    2px 200px,
+    2px 200px,
+    2px 200px;
+  background-position:
+    24% 0,
+    38% 0,
+    64% 0,
+    91% 0;
+  animation: rush calc(1.35s / var(--pace, 1)) linear infinite;
+}
+
+@keyframes rush {
+  from {
+    background-position-y: 0;
+  }
+
+  to {
+    background-position-y: 200px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speed-lines-far,
+  .speed-lines-near {
+    animation: none;
+    opacity: 0.45;
+  }
+}

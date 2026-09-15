@@ -1,0 +1,577 @@
+/* ALLY-01 — the player */
+
+.ally {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 44px;
+  height: 52px;
+  margin-top: -26px;
+  margin-left: -22px;
+  will-change: transform;
+  perspective: 320px;
+}
+
+.ally-craft {
+  --hull: #131c27;
+  --face: #33485f;
+  --edge: #4da3ff;
+  --glow: #6ee7ff;
+
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: rotate(calc(var(--lean, 0) * 14deg));
+}
+
+.ally-craft > * {
+  position: absolute;
+}
+
+.ally-thrust {
+  bottom: -4%;
+  left: 28%;
+  width: 44%;
+  height: 20%;
+  background:
+    radial-gradient(ellipse 55% 100% at 30% 0%, var(--glow) 0%, transparent 70%),
+    radial-gradient(ellipse 55% 100% at 70% 0%, var(--glow) 0%, transparent 70%);
+  opacity: 0.85;
+  filter: blur(1.5px);
+  transform-origin: 50% 0%;
+  will-change: transform;
+  animation: burn 90ms ease-in-out infinite alternate;
+}
+
+.ally-wing {
+  top: 42%;
+  left: 0;
+  width: 100%;
+  height: 36%;
+  clip-path: polygon(0% 86%, 16% 6%, 40% 0%, 60% 0%, 84% 6%, 100% 86%, 100% 100%, 68% 62%, 32% 62%, 0% 100%);
+  background: linear-gradient(180deg, var(--face) 0%, var(--hull) 55%);
+}
+
+.ally-wing::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  clip-path: inherit;
+  background: linear-gradient(180deg, var(--glow) 0%, transparent 26%);
+}
+
+.ally-wing::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle 1.5px at 2% 84%, var(--glow) 0%, transparent 100%),
+    radial-gradient(circle 1.5px at 98% 84%, var(--glow) 0%, transparent 100%);
+}
+
+.ally-fin-left {
+  bottom: 2%;
+  left: 10%;
+  width: 22%;
+  height: 26%;
+  clip-path: polygon(100% 0%, 100% 100%, 0% 100%);
+  background: linear-gradient(180deg, var(--face), var(--hull));
+}
+
+.ally-fin-right {
+  bottom: 2%;
+  right: 10%;
+  width: 22%;
+  height: 26%;
+  clip-path: polygon(0% 0%, 100% 100%, 0% 100%);
+  background: linear-gradient(180deg, var(--face), var(--hull));
+}
+
+.ally-body {
+  top: 0;
+  left: 33%;
+  width: 34%;
+  height: 100%;
+  clip-path: polygon(50% 0%, 74% 20%, 66% 48%, 76% 74%, 62% 100%, 38% 100%, 24% 74%, 34% 48%, 26% 20%);
+  background: linear-gradient(
+    90deg,
+    var(--hull) 0%,
+    var(--face) 34%,
+    #52708f 50%,
+    var(--face) 66%,
+    var(--hull) 100%
+  );
+}
+
+.ally-body::before {
+  content: '';
+  position: absolute;
+  top: 34%;
+  left: 46%;
+  width: 8%;
+  height: 52%;
+  background: linear-gradient(180deg, var(--edge), transparent);
+  opacity: 0.9;
+}
+
+.ally-canopy {
+  top: 20%;
+  left: 39%;
+  width: 22%;
+  height: 22%;
+  border-radius: 52% 52% 40% 40%;
+  background: linear-gradient(155deg, #eafcff 0%, var(--glow) 42%, #14647f 100%);
+  box-shadow: 0 0 5px var(--glow);
+}
+
+.ally-craft[data-protected] {
+  animation: protected 260ms ease-in-out infinite alternate;
+}
+
+.ally-craft[data-rolling][data-protected] {
+  animation:
+    roll 1.2s linear,
+    protected 260ms ease-in-out infinite alternate;
+}
+
+.ally-craft[data-spent] .ally-thrust {
+  opacity: 0.35;
+  filter: saturate(0.4);
+}
+
+@keyframes burn {
+  from {
+    transform: scaleY(0.78);
+    opacity: 0.72;
+  }
+
+  to {
+    transform: scaleY(1.28);
+    opacity: 0.95;
+  }
+}
+
+@keyframes roll {
+  from {
+    transform: rotateY(0deg);
+  }
+
+  to {
+    transform: rotateY(1080deg);
+  }
+}
+
+@keyframes protected {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0.35;
+  }
+}
+
+/* Enemy aircraft — common layers */
+
+.enemy {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+
+.enemy-craft {
+  position: absolute;
+  inset: 0;
+  transform: rotate(calc(var(--lean, 0) * -14deg));
+}
+
+.enemy-craft > * {
+  position: absolute;
+}
+
+/* ENEMY-S */
+
+.enemy-small {
+  --shell: #ff8a5c;
+  --mid: #a63f22;
+  --deep: #8f3216;
+
+  width: 34px;
+  height: 36px;
+  margin-top: -18px;
+  margin-left: -17px;
+}
+
+.enemy-small .enemy-wing {
+  top: 34%;
+  left: 0;
+  width: 100%;
+  height: 42%;
+  clip-path: polygon(0% 0%, 100% 0%, 78% 100%, 22% 100%);
+  background: linear-gradient(180deg, var(--shell) 0%, var(--mid) 100%);
+}
+
+.enemy-small .enemy-body {
+  top: 0;
+  left: 32%;
+  width: 36%;
+  height: 82%;
+  clip-path: polygon(50% 0%, 100% 46%, 82% 100%, 18% 100%, 0% 46%);
+  background: linear-gradient(180deg, #ffc7a8 0%, var(--shell) 55%, var(--deep) 100%);
+}
+
+.enemy-small .enemy-core {
+  top: 44%;
+  left: 42%;
+  width: 16%;
+  height: 16%;
+  border-radius: 50%;
+  background: #ffe9c9;
+  box-shadow: 0 0 6px #ffb37a;
+}
+
+/* ENEMY-M */
+
+.enemy-medium {
+  --shell: #ff4d4d;
+  --mid: #7d1f1f;
+  --deep: #6e1a1a;
+
+  width: 54px;
+  height: 56px;
+  margin-top: -28px;
+  margin-left: -27px;
+}
+
+.enemy-medium .enemy-wing {
+  top: 30%;
+  left: 0;
+  width: 100%;
+  height: 44%;
+  clip-path: polygon(0% 14%, 20% 0%, 80% 0%, 100% 14%, 100% 74%, 62% 100%, 38% 100%, 0% 74%);
+  background: linear-gradient(180deg, var(--shell) 0%, var(--mid) 100%);
+}
+
+.enemy-medium .enemy-pod-left,
+.enemy-medium .enemy-pod-right {
+  top: 44%;
+  width: 15%;
+  height: 40%;
+  border-radius: 2px 2px 40% 40%;
+  background: linear-gradient(180deg, #9c2b2b, #4d1414);
+}
+
+.enemy-medium .enemy-pod-left {
+  left: 8%;
+}
+
+.enemy-medium .enemy-pod-right {
+  right: 8%;
+}
+
+.enemy-medium .enemy-body {
+  top: 0;
+  left: 34%;
+  width: 32%;
+  height: 100%;
+  clip-path: polygon(50% 0%, 100% 28%, 100% 84%, 66% 100%, 34% 100%, 0% 84%, 0% 28%);
+  background: linear-gradient(180deg, #ffb0b0 0%, var(--shell) 48%, var(--deep) 100%);
+}
+
+.enemy-medium .enemy-canopy {
+  top: 22%;
+  left: 42%;
+  width: 16%;
+  height: 18%;
+  border-radius: 50%;
+  background: #2a0d0d;
+}
+
+/* ENEMY-L */
+
+.enemy-large {
+  --shell: #b8322c;
+  --mid: #5e1512;
+  --deep: #4a100d;
+
+  width: 86px;
+  height: 78px;
+  margin-top: -39px;
+  margin-left: -43px;
+}
+
+.enemy-large .enemy-wing {
+  top: 26%;
+  left: 0;
+  width: 100%;
+  height: 46%;
+  clip-path: polygon(0% 20%, 14% 0%, 86% 0%, 100% 20%, 100% 100%, 72% 82%, 28% 82%, 0% 100%);
+  background: linear-gradient(180deg, var(--shell) 0%, var(--mid) 100%);
+}
+
+.enemy-large .enemy-armour {
+  top: 40%;
+  left: 12%;
+  width: 76%;
+  height: 16%;
+  background: repeating-linear-gradient(90deg, #7d211d 0 6px, #521310 6px 8px);
+}
+
+.enemy-large .enemy-pod-left,
+.enemy-large .enemy-pod-right {
+  top: 56%;
+  width: 11%;
+  height: 34%;
+  border-radius: 2px 2px 45% 45%;
+  background: linear-gradient(180deg, #8f2723, #38100e);
+}
+
+.enemy-large .enemy-pod-left {
+  left: 8%;
+}
+
+.enemy-large .enemy-pod-right {
+  right: 8%;
+}
+
+.enemy-large .enemy-body {
+  top: 0;
+  left: 36%;
+  width: 28%;
+  height: 100%;
+  clip-path: polygon(50% 0%, 100% 22%, 100% 86%, 70% 100%, 30% 100%, 0% 86%, 0% 22%);
+  background: linear-gradient(180deg, #f0a9a4 0%, var(--shell) 40%, var(--deep) 100%);
+}
+
+.enemy-large .enemy-core {
+  top: 30%;
+  left: 44%;
+  width: 12%;
+  height: 12%;
+  border-radius: 50%;
+  background: #ffdca8;
+  box-shadow: 0 0 8px #ff8a5c;
+}
+
+/* BOSS */
+
+.boss {
+  --plate: #2b1524;
+  --plate-lit: #4a2440;
+  --edge: #7d3f68;
+  --energy: #c07dff;
+  --energy-hot: #f0d4ff;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 140px;
+  height: 124px;
+  margin-top: -62px;
+  margin-left: -70px;
+  will-change: transform;
+}
+
+.boss-charge {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  width: 2px;
+  height: 900px;
+  background: linear-gradient(180deg, rgb(192 125 255 / 10%) 0%, var(--energy-hot) 100%);
+  opacity: 0;
+  transform: translateX(-50%);
+}
+
+.boss-craft {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+  scale: var(--boss-scale, 1);
+  transform: rotate(calc(var(--lean, 0) * -9deg));
+}
+
+.boss-craft > * {
+  position: absolute;
+}
+
+.boss-wing {
+  top: 22%;
+  left: 0;
+  width: 100%;
+  height: 52%;
+  clip-path: polygon(0% 26%, 10% 0%, 90% 0%, 100% 26%, 100% 100%, 74% 78%, 26% 78%, 0% 100%);
+  background: linear-gradient(180deg, var(--plate-lit) 0%, var(--plate) 100%);
+}
+
+.boss-arm-left {
+  top: 8%;
+  left: 2%;
+  width: 16%;
+  height: 44%;
+  clip-path: polygon(0% 30%, 100% 0%, 100% 100%, 20% 82%);
+  background: linear-gradient(180deg, var(--edge) 0%, var(--plate) 90%);
+}
+
+.boss-arm-right {
+  top: 8%;
+  right: 2%;
+  width: 16%;
+  height: 44%;
+  clip-path: polygon(0% 0%, 100% 30%, 80% 82%, 0% 100%);
+  background: linear-gradient(180deg, var(--edge) 0%, var(--plate) 90%);
+}
+
+.boss-armour {
+  top: 44%;
+  left: 10%;
+  width: 80%;
+  height: 13%;
+  background: repeating-linear-gradient(90deg, #57274a 0 7px, #24101f 7px 10px);
+}
+
+.boss-pod-left,
+.boss-pod-right {
+  top: 58%;
+  width: 10%;
+  height: 32%;
+  border-radius: 2px 2px 45% 45%;
+  background: linear-gradient(180deg, #4a2440, #180a15);
+}
+
+.boss-pod-left {
+  left: 14%;
+}
+
+.boss-pod-right {
+  right: 14%;
+}
+
+.boss-body {
+  top: 0;
+  left: 37%;
+  width: 26%;
+  height: 100%;
+  clip-path: polygon(50% 0%, 100% 20%, 100% 86%, 68% 100%, 32% 100%, 0% 86%, 0% 20%);
+  background: linear-gradient(180deg, #b98fae 0%, var(--plate-lit) 38%, #150a13 100%);
+}
+
+.boss-spine {
+  top: 12%;
+  left: 49%;
+  width: 2%;
+  height: 62%;
+  background: linear-gradient(180deg, var(--energy) 0%, transparent 100%);
+  opacity: 0.75;
+}
+
+.boss-canopy {
+  top: 16%;
+  left: 45%;
+  width: 10%;
+  height: 12%;
+  border-radius: 50%;
+  background: #120810;
+}
+
+.boss-core {
+  top: 34%;
+  left: 43%;
+  width: 14%;
+  height: 14%;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--energy-hot) 0%, var(--energy) 60%, #6a2fa0 100%);
+  box-shadow: 0 0 10px var(--energy);
+}
+
+.boss-muzzle {
+  top: -2%;
+  left: 44%;
+  width: 12%;
+  height: 8%;
+  border-radius: 50% 50% 0 0;
+  background: #120810;
+  box-shadow: inset 0 -2px 4px #000;
+}
+
+.boss[data-pose='winding'] .boss-core {
+  animation: charge 0.4s ease-in-out infinite alternate;
+}
+
+.boss[data-pose='winding'] .boss-spine {
+  opacity: 1;
+}
+
+.boss[data-pose='winding'][data-move='beam'] .boss-charge {
+  animation: aim 1.4s ease-in forwards;
+}
+
+.boss[data-pose='winding'][data-move='beam'] .boss-muzzle {
+  background: var(--energy);
+  box-shadow: 0 0 18px var(--energy-hot);
+}
+
+.boss[data-pose='firing'] .boss-pod-left,
+.boss[data-pose='firing'] .boss-pod-right {
+  background: linear-gradient(180deg, var(--energy) 0%, #4a2440 70%);
+  box-shadow: 0 0 12px var(--energy);
+}
+
+.boss[data-pose='firing'] .boss-core {
+  box-shadow: 0 0 20px var(--energy-hot);
+}
+
+.boss[data-pose='firing'][data-move='beam'] .boss-muzzle {
+  background: var(--energy-hot);
+  box-shadow: 0 0 30px var(--energy-hot);
+}
+
+@keyframes charge {
+  from {
+    box-shadow: 0 0 10px var(--energy);
+    transform: scale(1);
+  }
+
+  to {
+    box-shadow: 0 0 26px var(--energy-hot);
+    transform: scale(1.5);
+  }
+}
+
+@keyframes aim {
+  from {
+    width: 2px;
+    opacity: 0.35;
+  }
+
+  to {
+    width: 14px;
+    opacity: 0.9;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ally-thrust {
+    animation: none;
+    transform: scaleY(1.03);
+  }
+
+  .ally-craft[data-rolling] {
+    animation: none;
+    filter: brightness(1.6);
+  }
+
+  .boss[data-pose='winding'] .boss-core {
+    animation: none;
+    box-shadow: 0 0 26px var(--energy-hot);
+    transform: scale(1.4);
+  }
+
+  .boss[data-pose='winding'][data-move='beam'] .boss-charge {
+    animation: none;
+    width: 14px;
+    opacity: 0.9;
+  }
+}
