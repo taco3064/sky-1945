@@ -3,7 +3,8 @@
 ![SKY-1945](public/logo.webp)
 
 A vertical bullet-hell shooter built from the game specification in
-[`.claude/docs/game-spec.md`](.claude/docs/game-spec.md).
+[`.claude/docs/game-spec.md`](.claude/docs/game-spec.md), extended with the PULSE DRIVE mechanic from
+[`.claude/docs/SKY-1945 — PULSE DRIVE Change Request.md`](<.claude/docs/SKY-1945 — PULSE DRIVE Change Request.md>).
 
 ## How it was built
 
