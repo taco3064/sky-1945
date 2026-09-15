@@ -16,5 +16,6 @@ it('lists every binding under KEYS and TOUCH', () => {
     ['TH:row:STEER', 'TD::ARROW KEYS', 'TD::DRAG ANYWHERE'],
     ['TH:row:ROLL', 'TD::SPACE', 'TD::TAP OR 2ND FINGER'],
     ['TH:row:PAUSE', 'TD::ESC', 'TD::❚❚ BUTTON'],
+    ['TH:row:PULSE', 'TD::X', 'TD::PULSE BUTTON'],
   ]);
 });

@@ -4,9 +4,10 @@ const BINDINGS = [
   { action: 'STEER', keys: 'ARROW KEYS', touch: 'DRAG ANYWHERE' },
   { action: 'ROLL', keys: 'SPACE', touch: 'TAP OR 2ND FINGER' },
   { action: 'PAUSE', keys: 'ESC', touch: '❚❚ BUTTON' },
+  { action: 'PULSE', keys: 'X', touch: 'PULSE BUTTON' },
 ];
 
-/** The loadout controls table (game-spec 7.4). */
+/** The loadout controls table (game-spec 7.4, PULSE DRIVE 3). */
 export function ControlsTable() {
   return (
     <table className="controls-table">
