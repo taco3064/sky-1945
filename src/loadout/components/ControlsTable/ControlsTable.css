@@ -1,0 +1,29 @@
+.controls-table {
+  width: 100%;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  border-collapse: collapse;
+}
+
+.controls-table__caption {
+  padding-bottom: 0.6rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  color: #7d8fa0;
+}
+
+.controls-table th {
+  font-weight: 400;
+  color: #7d8fa0;
+  text-align: left;
+}
+
+.controls-table th[scope="row"] {
+  padding-right: 1rem;
+}
+
+.controls-table tbody td {
+  padding: 0.25rem 1rem 0.25rem 0;
+  color: #e8eef4;
+  text-align: left;
+}
