@@ -28,25 +28,30 @@ export default defineBlueprint({
     layers: [
       {
         name: 'pages',
+        layout: 'folder',
         does: 'Mounts the game shell.',
         mustNot: ['hold game logic', 'stack components directly'],
       },
       {
         name: 'containers',
+        layout: 'folder',
         does: 'Screens: title, loadout, stage, HUD. Assembles components, owns local state, drives a round.',
       },
       {
         name: 'components',
+        layout: 'folder',
         does: 'Presentational only — aircraft, bullets, bars. Props and refs, nothing else.',
         mustNot: ['own game state', 'read the engine', 'open an animation loop'],
       },
       {
         name: 'hooks',
+        layout: 'folder',
         does: 'Adapts the engine simulation to React. The only layer that may inject context.',
         owns: [{ package: 'react', imports: ['useContext'] }],
       },
       {
         name: 'contexts',
+        layout: 'folder',
         does: 'Defines and provides Context / Provider only — carries the world instance down.',
         owns: [{ package: 'react', imports: ['createContext'] }],
         allowedImporters: [
@@ -56,6 +61,7 @@ export default defineBlueprint({
       },
       {
         name: 'engine',
+        layout: 'folder',
         does: 'Pure TS simulation: physics world, collision, bullet patterns, damage, scheduling. Never imports React.',
         owns: ['matter-js', { global: 'requestAnimationFrame' }],
         allowedImporters: ['containers', 'hooks', 'contexts'],
@@ -74,7 +80,6 @@ export default defineBlueprint({
      * The default is the first entry alone; the second is this project's addition.
      */
     testFiles: ['**/*.{test,spec}.{ts,tsx}', '**/*.fixtures.ts'],
-    module: { layout: 'folder', entry: 'index', private: ['hooks', 'styles', 'types'] },
     naming: {
       component: 'PascalCase; the implementation file is named after the module',
       hook: 'useX — only when it genuinely uses reactivity',
