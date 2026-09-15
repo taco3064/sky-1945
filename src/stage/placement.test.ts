@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { entityTransform, fieldScale, nextLean } from './placement.ts'
+import { entityTransform, fieldScale, nextLean, pulseOpacity } from './placement.ts'
 
 describe('field scale', () => {
   it('fits the field to the narrower side of the viewport', () => {
@@ -25,5 +25,15 @@ describe('lean', () => {
 describe('entity transform', () => {
   it('translates to the centre in u and turns by the angle', () => {
     assert.equal(entityTransform(12.5, -40, 180), 'translate3d(12.5px, -40px, 0) rotate(180deg)')
+  })
+})
+
+describe('pulse opacity', () => {
+  it('fades linearly from 0.85 at activation to 0.15 at 0.6 s', () => {
+    const near = (a: number, b: number) => Math.abs(a - b) < 1e-12
+    assert.equal(pulseOpacity(0), 0.85)
+    assert.ok(near(pulseOpacity(0.3), 0.5))
+    assert.ok(near(pulseOpacity(0.6), 0.15))
+    assert.ok(near(pulseOpacity(1), 0.15))
   })
 })

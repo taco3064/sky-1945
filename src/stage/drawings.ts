@@ -64,6 +64,11 @@ export function drawBeam(): HTMLElement {
   return part('beam', part('beam-core'))
 }
 
+/** The Pulse Drive's filled circle; its radius and opacity are set as it expands. */
+export function drawPulse(): HTMLElement {
+  return part('pulse')
+}
+
 /** Shard directions and spins; a small burst uses the first 6, a large one all 10. */
 const SHARDS: [dx: number, dy: number, spin: string][] = [
   [-0.9, -0.5, '210deg'],

@@ -1,9 +1,10 @@
 import type { Boss } from '../game/boss.ts'
 import type { Enemy } from '../game/enemies.ts'
 import { isProtected, isRolling, isSpent, type Player } from '../game/player.ts'
+import { pulseRadius, type PulseDrive } from '../game/pulse.ts'
 import type { Beam, Bullet, Burst, Simulation } from '../game/simulation.ts'
-import { drawAlly, drawBeam, drawBoss, drawBullet, drawBurst, drawEnemy } from './drawings.ts'
-import { entityTransform, nextLean } from './placement.ts'
+import { drawAlly, drawBeam, drawBoss, drawBullet, drawBurst, drawEnemy, drawPulse } from './drawings.ts'
+import { entityTransform, nextLean, pulseOpacity } from './placement.ts'
 
 type View = {
   element: HTMLElement
@@ -90,7 +91,7 @@ function setData(element: HTMLElement, name: string, value: string | null): void
 
 const ENEMY_ANGLE = 180
 
-/** Draws the simulation's entities into the field, in the spec's paint order. */
+/** Draws the simulation's entities into the field, in the spec's paint order, with the Pulse over them all. */
 export class FieldRenderer {
   readonly #root: HTMLElement
   readonly #player: EntityLayer<Player>
@@ -99,6 +100,8 @@ export class FieldRenderer {
   readonly #boss: EntityLayer<Boss>
   readonly #beam: EntityLayer<Beam>
   readonly #bursts: EntityLayer<Burst>
+  /** Placed on the aircraft, since the Pulse follows it. */
+  readonly #pulse: EntityLayer<Player>
 
   constructor(root: HTMLElement) {
     this.#root = root
@@ -108,6 +111,7 @@ export class FieldRenderer {
     this.#boss = new EntityLayer(root, ENEMY_ANGLE, (boss) => drawBoss(boss.size))
     this.#beam = new EntityLayer(root, 0, drawBeam)
     this.#bursts = new EntityLayer(root, 0, drawBurst)
+    this.#pulse = new EntityLayer(root, 0, drawPulse)
   }
 
   /** One displayed frame: every entity's position, bank and state. */
@@ -121,6 +125,12 @@ export class FieldRenderer {
     })
     this.#beam.sync(sim.beam ? [sim.beam] : [])
     this.#bursts.sync(sim.bursts)
+    // Sized from simulated time, so the circle freezes with the simulation while paused.
+    this.#pulse.sync(sim.pulseDrive ? [sim.player] : [], (_, element) => {
+      const elapsed = sim.time - (sim.pulseDrive as PulseDrive).startedAt
+      element.style.setProperty('--pulse-radius', `${pulseRadius(elapsed).toFixed(2)}px`)
+      element.style.opacity = pulseOpacity(elapsed).toFixed(3)
+    })
   }
 
   /** Shows the aircraft's protected / rolling / spent state without waiting for the next frame. */

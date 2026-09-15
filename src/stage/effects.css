@@ -168,6 +168,30 @@
   }
 }
 
+/* Pulse Drive — sized and faded from the simulation every frame, so it has no animation of its own and
+   reduced motion keeps it expanding. `translate` centres it on its position at any size. */
+
+.pulse {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(var(--pulse-radius, 0px) * 2);
+  height: calc(var(--pulse-radius, 0px) * 2);
+  translate: -50% -50%;
+  border: 3px solid #6ee7ff;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgb(110 231 255 / 8%) 0%,
+    rgb(77 163 255 / 12%) 55%,
+    rgb(110 231 255 / 0%) 72%
+  );
+  box-shadow:
+    0 0 18px rgb(110 231 255 / 65%),
+    inset 0 0 18px rgb(77 163 255 / 35%);
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .beam-core {
     animation: none;
