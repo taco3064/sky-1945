@@ -4,7 +4,7 @@ import type { Enemy } from './enemies.ts'
 import { isOutside } from './field.ts'
 import { isProtected } from './player.ts'
 import { pulseRadius } from './pulse.ts'
-import { Simulation } from './simulation.ts'
+import { Simulation, type Bullet } from './simulation.ts'
 
 const STEP = 1 / 60
 const PASS = STEP / 4
@@ -16,6 +16,8 @@ function sequence(values: number[]): () => number {
 
 /** Size 1, and a seed whose first attack is the given one. */
 const STRAIGHT_FIRST = sequence([1 / 6, 0.5 / 0xffffffff])
+const SPREAD_FIRST = sequence([1 / 6, 3.5 / 0xffffffff])
+const RADIAL_FIRST = sequence([1 / 6, 8.5 / 0xffffffff])
 const BEAM_FIRST = () => sequence([1 / 6, (4294967294 + 0.5) / 0xffffffff])
 
 function run(sim: Simulation, seconds: number, beforeStep?: () => void): void {
@@ -379,6 +381,25 @@ describe('graze', () => {
     assert.deepEqual([sim.pulse, sim.player.flyingIn], [0, true])
   })
 
+  it('grants nothing for an enemy aircraft or the beam, however close', () => {
+    const { sim } = withEnemyBullets(0)
+    sim.step(INSTANT)
+    // A small enemy 20 u away: inside the graze distance, outside its 16 u contact distance.
+    holdEnemy(sim.enemies[0], { x: sim.player.x + 20, y: sim.player.y })
+    sim.step(INSTANT)
+    assert.deepEqual([sim.lives, sim.pulse], [3, 0])
+
+    const beamed = untilBoss(BEAM_FIRST())
+    const boss = beamed.boss
+    assert.ok(boss)
+    runUntil(beamed, () => beamed.beam !== null, 3)
+    for (const bullet of beamed.bullets) Object.assign(bullet, { ...PARKED, vx: 0, vy: 0 })
+    // 10 u clear of the beam's right edge.
+    Object.assign(beamed.player, { flyingIn: false, x: boss.x + 44 + 3 + 10, y: 700, invulnerableUntil: 0 })
+    beamed.step(INSTANT)
+    assert.deepEqual([beamed.lives, beamed.pulse], [3, 0])
+  })
+
   it("never grants PULSE for the player's own bullets", () => {
     const sim = new Simulation(5)
     run(sim, 0.15)
@@ -452,6 +473,40 @@ describe('pulse drive', () => {
     )
   })
 
+  it('keeps the protection of a roll that outlasts the drive', () => {
+    const { sim } = withEnemyBullets(0)
+    assert.ok(sim.tryRoll())
+    const rollProtection = sim.player.invulnerableUntil
+
+    sim.pulse = 100
+    assert.ok(sim.tryPulseDrive())
+    assert.equal(sim.player.invulnerableUntil, rollProtection)
+    runUntil(sim, () => sim.pulseDrive === null, 0.7)
+    assert.ok(isProtected(sim.player, sim.time))
+  })
+
+  it('leaves steering speed, fire rate and bullet damage as they are', () => {
+    const flight = (drive: boolean) => {
+      const { sim } = withEnemyBullets(0)
+      // Mid-interval, so a drive that touched the gun timer would shift every volley.
+      sim.player.fireTimer = 0.05
+      sim.setDirection(1, -1)
+      if (drive) driveAt(sim, 0)
+      const shots = new Set<Bullet>()
+      const collect = () => {
+        for (const bullet of sim.bullets) if (bullet.side === 'player') shots.add(bullet)
+      }
+      run(sim, 0.5, collect)
+      collect()
+      const damage = [...new Set([...shots].map((b) => b.damage))]
+      return { at: [sim.player.x, sim.player.y], fireTimer: sim.player.fireTimer, shots: shots.size, damage }
+    }
+
+    const driving = flight(true)
+    assert.ok(driving.shots > 0)
+    assert.deepEqual(driving, flight(false))
+  })
+
   it('removes enemy bullets whose centre is inside its radius around where the aircraft is now', () => {
     const { sim, bullets } = withEnemyBullets(2)
     driveAt(sim, 0.3)
@@ -500,6 +555,63 @@ describe('pulse drive', () => {
     drive.startedAt -= 0.1
     sim.step(INSTANT)
     assert.deepEqual([reached.hp, missed.hp], [950, 950])
+  })
+
+  it('clears and grazes medium spread and large radial volleys, and hits those craft for 50 HP too', () => {
+    for (const [kind, size] of [['medium', 5], ['large', 10]] as const) {
+      const sim = new Simulation(5)
+      sim.player.invulnerableUntil = Infinity
+      sim.player.fireTimer = -Infinity
+      runUntil(sim, () => sim.enemies.some((enemy) => enemy.kind === kind), 10)
+      const shooter = sim.enemies.find((enemy) => enemy.kind === kind) as Enemy
+      for (const bullet of sim.bullets) Object.assign(bullet, { ...PARKED, vx: 0, vy: 0 })
+      Object.assign(sim.player, { flyingIn: false, x: 270, y: 640, directionX: 0, directionY: 0, invulnerableUntil: 0 })
+      holdEnemy(shooter, { x: 270, y: 500 }, 1000)
+      shooter.fireTimer = 5
+
+      const known = new Set(sim.bullets)
+      sim.step(INSTANT)
+      const volley = sim.bullets.filter((bullet) => !known.has(bullet))
+      assert.equal(volley.length, size)
+
+      beside(sim, volley[0], 20)
+      sim.step(INSTANT)
+      assert.deepEqual([sim.lives, sim.pulse], [3, 8])
+
+      driveAt(sim, 0.59)
+      sim.step(INSTANT)
+      assert.ok(volley.every((bullet) => !sim.bullets.includes(bullet)))
+      assert.equal(shooter.hp, 950)
+    }
+  })
+
+  it('clears and grazes straight, spread and radial boss volleys like any enemy bullet', () => {
+    const sizes = { straight: 1, spread: 5, radial: 10 }
+    for (const [random, attack] of [[STRAIGHT_FIRST, 'straight'], [SPREAD_FIRST, 'spread'], [RADIAL_FIRST, 'radial']] as const) {
+      const sim = untilBoss(random)
+      const boss = sim.boss
+      assert.ok(boss)
+      for (const bullet of sim.bullets) Object.assign(bullet, { ...PARKED, vx: 0, vy: 0 })
+      runUntil(sim, () => boss.stance === 'firing', 3)
+      assert.equal(boss.attack, attack)
+
+      const known = new Set(sim.bullets)
+      runUntil(sim, () => sim.bullets.length > known.size, 1)
+      const volley = sim.bullets.filter((bullet) => !known.has(bullet))
+      assert.equal(volley.length, sizes[attack])
+
+      // Well away from the boss, so the aircraft can stand beside the bullet without touching anything.
+      Object.assign(sim.player, { flyingIn: false, x: 100, y: 700, invulnerableUntil: 0 })
+      beside(sim, volley[0], 20)
+      sim.step(INSTANT)
+      assert.deepEqual([sim.lives, sim.pulse], [3, 8])
+
+      Object.assign(sim.player, { x: boss.x, y: boss.y + 150 })
+      beside(sim, volley[0], 20)
+      driveAt(sim, 0.59)
+      sim.step(INSTANT)
+      assert.ok(volley.every((bullet) => !sim.bullets.includes(bullet)))
+    }
   })
 
   it('destroys an enemy it brings to 0 HP with the normal small burst, before it can touch the aircraft', () => {
@@ -608,6 +720,21 @@ describe('pulse through a death', () => {
 
     sim.step(INSTANT)
     assert.deepEqual([sim.lives, sim.pulseDrive, sim.pulse], [2, null, 72])
+  })
+})
+
+describe('pulse through a round change', () => {
+  it('keeps PULSE when the boss falls and the next round begins', () => {
+    const sim = untilBoss(STRAIGHT_FIRST)
+    const boss = sim.boss
+    assert.ok(boss)
+    Object.assign(sim.player, { flyingIn: false, y: 800, fireTimer: 0 })
+    runUntil(sim, () => boss.stance !== 'entering', 1)
+    boss.hp = 1
+    sim.pulse = 64
+
+    runUntil(sim, () => sim.round === 2, 5, () => (sim.player.x = boss.x))
+    assert.equal(sim.pulse, 64)
   })
 })
 
