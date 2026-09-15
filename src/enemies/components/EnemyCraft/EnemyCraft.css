@@ -1,0 +1,180 @@
+.enemy {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+
+.enemy__craft {
+  position: absolute;
+  inset: 0;
+  transform: rotate(calc(var(--lean, 0) * -14deg));
+}
+
+.enemy__craft > * {
+  position: absolute;
+}
+
+/* ENEMY-S (game-spec 9.4) */
+
+.enemy--small {
+  --shell: #ff8a5c;
+  --mid: #a63f22;
+  --deep: #8f3216;
+
+  width: 34px;
+  height: 36px;
+  margin-top: -18px;
+  margin-left: -17px;
+}
+
+.enemy--small .enemy__wing {
+  top: 34%;
+  left: 0;
+  width: 100%;
+  height: 42%;
+  clip-path: polygon(0% 0%, 100% 0%, 78% 100%, 22% 100%);
+  background: linear-gradient(180deg, var(--shell) 0%, var(--mid) 100%);
+}
+
+.enemy--small .enemy__body {
+  top: 0;
+  left: 32%;
+  width: 36%;
+  height: 82%;
+  clip-path: polygon(50% 0%, 100% 46%, 82% 100%, 18% 100%, 0% 46%);
+  background: linear-gradient(180deg, #ffc7a8 0%, var(--shell) 55%, var(--deep) 100%);
+}
+
+.enemy--small .enemy__core {
+  top: 44%;
+  left: 42%;
+  width: 16%;
+  height: 16%;
+  border-radius: 50%;
+  background: #ffe9c9;
+  box-shadow: 0 0 6px #ffb37a;
+}
+
+/* ENEMY-M (game-spec 9.5) */
+
+.enemy--medium {
+  --shell: #ff4d4d;
+  --mid: #7d1f1f;
+  --deep: #6e1a1a;
+
+  width: 54px;
+  height: 56px;
+  margin-top: -28px;
+  margin-left: -27px;
+}
+
+.enemy--medium .enemy__wing {
+  top: 30%;
+  left: 0;
+  width: 100%;
+  height: 44%;
+  clip-path: polygon(0% 14%, 20% 0%, 80% 0%, 100% 14%, 100% 74%, 62% 100%, 38% 100%, 0% 74%);
+  background: linear-gradient(180deg, var(--shell) 0%, var(--mid) 100%);
+}
+
+.enemy--medium .enemy__pod-left,
+.enemy--medium .enemy__pod-right {
+  top: 44%;
+  width: 15%;
+  height: 40%;
+  border-radius: 2px 2px 40% 40%;
+  background: linear-gradient(180deg, #9c2b2b, #4d1414);
+}
+
+.enemy--medium .enemy__pod-left {
+  left: 8%;
+}
+
+.enemy--medium .enemy__pod-right {
+  right: 8%;
+}
+
+.enemy--medium .enemy__body {
+  top: 0;
+  left: 34%;
+  width: 32%;
+  height: 100%;
+  clip-path: polygon(50% 0%, 100% 28%, 100% 84%, 66% 100%, 34% 100%, 0% 84%, 0% 28%);
+  background: linear-gradient(180deg, #ffb0b0 0%, var(--shell) 48%, var(--deep) 100%);
+}
+
+.enemy--medium .enemy__canopy {
+  top: 22%;
+  left: 42%;
+  width: 16%;
+  height: 18%;
+  border-radius: 50%;
+  background: #2a0d0d;
+}
+
+/* ENEMY-L (game-spec 9.6) */
+
+.enemy--large {
+  --shell: #b8322c;
+  --mid: #5e1512;
+  --deep: #4a100d;
+
+  width: 86px;
+  height: 78px;
+  margin-top: -39px;
+  margin-left: -43px;
+}
+
+.enemy--large .enemy__wing {
+  top: 26%;
+  left: 0;
+  width: 100%;
+  height: 46%;
+  clip-path: polygon(0% 20%, 14% 0%, 86% 0%, 100% 20%, 100% 100%, 72% 82%, 28% 82%, 0% 100%);
+  background: linear-gradient(180deg, var(--shell) 0%, var(--mid) 100%);
+}
+
+.enemy--large .enemy__armour {
+  top: 40%;
+  left: 12%;
+  width: 76%;
+  height: 16%;
+  background: repeating-linear-gradient(90deg, #7d211d 0 6px, #521310 6px 8px);
+}
+
+.enemy--large .enemy__pod-left,
+.enemy--large .enemy__pod-right {
+  top: 56%;
+  width: 11%;
+  height: 34%;
+  border-radius: 2px 2px 45% 45%;
+  background: linear-gradient(180deg, #8f2723, #38100e);
+}
+
+.enemy--large .enemy__pod-left {
+  left: 8%;
+}
+
+.enemy--large .enemy__pod-right {
+  right: 8%;
+}
+
+.enemy--large .enemy__body {
+  top: 0;
+  left: 36%;
+  width: 28%;
+  height: 100%;
+  clip-path: polygon(50% 0%, 100% 22%, 100% 86%, 70% 100%, 30% 100%, 0% 86%, 0% 22%);
+  background: linear-gradient(180deg, #f0a9a4 0%, var(--shell) 40%, var(--deep) 100%);
+}
+
+.enemy--large .enemy__core {
+  top: 30%;
+  left: 44%;
+  width: 12%;
+  height: 12%;
+  border-radius: 50%;
+  background: #ffdca8;
+  box-shadow: 0 0 8px #ff8a5c;
+}
