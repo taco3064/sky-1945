@@ -74,9 +74,8 @@ These are the only image files. Everything else is drawn with CSS.
 | `logo.webp` | 1024 × 596 | 219,970 | Title screen logo | `public/logo.webp` |
 | `favicon.ico` | 16, 32, 48 | 15,086 | Browser tab icon | `public/favicon.ico` |
 | `favicon-192.png` | 192 × 192 | 88,105 | High-DPI tab icon | `public/favicon-192.png` |
-| `apple-touch-icon.png` | 180 × 180 | 77,796 | iOS home screen | `public/apple-touch-icon.png` |
 
-Serve all four as static files at the site root (under the base path).
+Serve all three as static files at the site root (under the base path).
 No web fonts are loaded.
 
 ---
@@ -90,7 +89,6 @@ No web fonts are loaded.
 - Icons, in this order:
   - `<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">`
   - `<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">`
-  - `<link rel="apple-touch-icon" href="/apple-touch-icon.png">`
 - Viewport: `width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no`
 - One mount element, `<div id="root">`.
 
