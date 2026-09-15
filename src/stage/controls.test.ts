@@ -1,17 +1,27 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { PointerGesture, arrowsDirection, isArrowKey } from './controls.ts'
+import { PointerGesture, arrowsDirection, isArrowKey, isPulseKey } from './controls.ts'
 
 describe('arrow keys', () => {
   it('recognises only the four arrows', () => {
     assert.ok(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].every(isArrowKey))
-    assert.ok(![' ', 'Escape', 'a', 'Enter'].some(isArrowKey))
+    assert.ok(![' ', 'Escape', 'a', 'Enter', 'x'].some(isArrowKey))
   })
 
   it('sums held arrows, opposite keys cancelling', () => {
     assert.deepEqual(arrowsDirection([]), { x: 0, y: 0 })
     assert.deepEqual(arrowsDirection(['ArrowUp', 'ArrowRight']), { x: 1, y: -1 })
     assert.deepEqual(arrowsDirection(['ArrowLeft', 'ArrowRight', 'ArrowDown']), { x: 0, y: 1 })
+  })
+})
+
+describe('pulse key', () => {
+  it('is X in either case, or the X key whatever it types', () => {
+    assert.ok(isPulseKey('x', 'KeyX'))
+    assert.ok(isPulseKey('X', 'KeyX'))
+    assert.ok(isPulseKey('Process', 'KeyX'))
+    assert.ok(!isPulseKey('z', 'KeyZ'))
+    assert.ok(!isPulseKey(' ', 'Space'))
   })
 })
 

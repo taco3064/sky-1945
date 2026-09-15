@@ -40,15 +40,28 @@ export function Stage({ speedPoints, onExit }: StageProps) {
   const [frameReading, setFrameReading] = useState<FrameReading | null>(null)
   const hudRef = useRef(hud)
 
+  const syncHud = () => {
+    const next = readHud(sim)
+    if (sameHud(next, hudRef.current)) return
+    hudRef.current = next
+    setHud(next)
+  }
+
   const togglePause = () => setPhase(togglePhase)
   const steer = ({ x, y }: Vector) => sim.setDirection(x, y)
   const roll = () => {
     // A roll shows on the aircraft at once, even while paused.
     if (sim.tryRoll()) rendererRef.current?.renderPlayerState(sim)
   }
+  const pulse = () => {
+    // Only a run that is actively playing starts a drive: never while paused or after game over.
+    if (phase !== 'playing' || !sim.tryPulseDrive()) return
+    rendererRef.current?.renderPlayerState(sim)
+    syncHud()
+  }
 
   useStageScale(viewportRef)
-  useStageKeyboard({ onDirection: steer, onRoll: roll, onTogglePause: togglePause })
+  useStageKeyboard({ onDirection: steer, onRoll: roll, onTogglePause: togglePause, onPulse: pulse })
 
   useLayoutEffect(() => {
     const renderer = new FieldRenderer(entitiesRef.current as HTMLDivElement)
@@ -63,12 +76,8 @@ export function Stage({ speedPoints, onExit }: StageProps) {
   useAnimationFrame(phase === 'playing', (rawMs) => {
     sim.step(stepSeconds(rawMs))
     rendererRef.current?.render(sim)
+    syncHud()
 
-    const next = readHud(sim)
-    if (!sameHud(next, hudRef.current)) {
-      hudRef.current = next
-      setHud(next)
-    }
     const reading = meter.add(rawMs)
     if (reading) setFrameReading(reading)
     if (sim.lives <= 0) setPhase('gameover')
@@ -83,7 +92,7 @@ export function Stage({ speedPoints, onExit }: StageProps) {
       <TouchSteering onDirection={steer} onRoll={roll} />
       {phase === 'paused' && <Overlay kind="paused" onResume={togglePause} onQuit={onExit} />}
       {phase === 'gameover' && <Overlay kind="gameover" round={hud.round} onTitle={onExit} />}
-      <Hud hud={hud} frameReading={frameReading} phase={phase} onTogglePause={togglePause} />
+      <Hud hud={hud} frameReading={frameReading} phase={phase} onTogglePause={togglePause} onPulse={pulse} />
     </div>
   )
 }

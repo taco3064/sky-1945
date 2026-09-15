@@ -1,14 +1,15 @@
 import { useEffect, useEffectEvent } from 'react'
-import { arrowsDirection, isArrowKey, type Vector } from './controls.ts'
+import { arrowsDirection, isArrowKey, isPulseKey, type Vector } from './controls.ts'
 
 type StageKeyboard = {
   onDirection: (direction: Vector) => void
   onRoll: () => void
   onTogglePause: () => void
+  onPulse: () => void
 }
 
-/** Stage keys while the stage is shown: arrows steer, Space rolls, Escape toggles pause. */
-export function useStageKeyboard({ onDirection, onRoll, onTogglePause }: StageKeyboard): void {
+/** Stage keys while the stage is shown: arrows steer, Space rolls, Escape toggles pause, X starts a Pulse Drive. */
+export function useStageKeyboard({ onDirection, onRoll, onTogglePause, onPulse }: StageKeyboard): void {
   const handleKeyDown = useEffectEvent((event: KeyboardEvent, held: Set<string>) => {
     if (isArrowKey(event.key)) {
       event.preventDefault()
@@ -19,6 +20,8 @@ export function useStageKeyboard({ onDirection, onRoll, onTogglePause }: StageKe
       onRoll()
     } else if (event.key === 'Escape') {
       onTogglePause()
+    } else if (isPulseKey(event.key, event.code)) {
+      onPulse()
     }
   })
 

@@ -11,6 +11,11 @@ export function isArrowKey(key: string): boolean {
   return key in ARROWS
 }
 
+/** X starts a Pulse Drive, with or without Shift or Caps Lock, and from its key when a layout or IME types something else. */
+export function isPulseKey(key: string, code: string): boolean {
+  return key === 'x' || key === 'X' || code === 'KeyX'
+}
+
 /** Held arrow keys summed into a direction; opposite keys cancel. */
 export function arrowsDirection(held: Iterable<string>): Vector {
   let x = 0

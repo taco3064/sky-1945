@@ -1,7 +1,16 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { Simulation } from '../game/simulation.ts'
-import { bossBarFraction, bossBarState, readHud, sameHud, type BossHud } from './hudState.ts'
+import {
+  bossBarFraction,
+  bossBarState,
+  isPulseReady,
+  pulseMeterFill,
+  pulseMeterText,
+  readHud,
+  sameHud,
+  type BossHud,
+} from './hudState.ts'
 
 const boss = (overrides: Partial<BossHud> = {}): BossHud => ({
   hp: 900,
@@ -12,8 +21,14 @@ const boss = (overrides: Partial<BossHud> = {}): BossHud => ({
 })
 
 describe('HUD state', () => {
-  it('reads lives, round and no boss from a fresh run', () => {
-    assert.deepEqual(readHud(new Simulation(5)), { lives: 3, round: 1, boss: null })
+  it('reads lives, round, no boss and empty PULSE from a fresh run', () => {
+    assert.deepEqual(readHud(new Simulation(5)), { lives: 3, round: 1, boss: null, pulse: 0 })
+  })
+
+  it('reads PULSE as it changes', () => {
+    const sim = new Simulation(5)
+    sim.pulse = 64
+    assert.equal(readHud(sim).pulse, 64)
   })
 
   it('reads the boss as shielded while entering and warning while winding up a beam', () => {
@@ -31,11 +46,12 @@ describe('HUD state', () => {
   })
 
   it('compares every field', () => {
-    const hud = { lives: 3, round: 1, boss: boss() }
+    const hud = { lives: 3, round: 1, boss: boss(), pulse: 0 }
     assert.ok(sameHud(hud, { ...hud, boss: boss() }))
     assert.ok(sameHud({ ...hud, boss: null }, { ...hud, boss: null }))
     assert.ok(!sameHud(hud, { ...hud, lives: 2 }))
     assert.ok(!sameHud(hud, { ...hud, round: 2 }))
+    assert.ok(!sameHud(hud, { ...hud, pulse: 8 }))
     assert.ok(!sameHud(hud, { ...hud, boss: null }))
     assert.ok(!sameHud({ ...hud, boss: null }, hud))
     assert.ok(!sameHud(hud, { ...hud, boss: boss({ hp: 1 }) }))
@@ -57,5 +73,18 @@ describe('boss health bar', () => {
     assert.equal(bossBarState(boss({ shielded: true, hp: 100 })), 'shielded')
     assert.equal(bossBarState(boss({ hp: 225 })), 'low')
     assert.equal(bossBarState(boss({ hp: 226 })), 'normal')
+  })
+})
+
+describe('PULSE meter', () => {
+  it('shows the energy as a percentage and fills by energy / 100', () => {
+    assert.deepEqual([pulseMeterText(0), pulseMeterText(64), pulseMeterText(96)], ['0%', '64%', '96%'])
+    assert.deepEqual([pulseMeterFill(0), pulseMeterFill(64), pulseMeterFill(100)], [0, 0.64, 1])
+  })
+
+  it('reads READY only once PULSE is full', () => {
+    assert.ok(!isPulseReady(96))
+    assert.ok(isPulseReady(100))
+    assert.equal(pulseMeterText(100), 'READY')
   })
 })

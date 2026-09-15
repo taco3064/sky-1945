@@ -1,4 +1,5 @@
 import type { Boss } from '../game/boss.ts'
+import { PULSE_MAX } from '../game/pulse.ts'
 import type { Simulation } from '../game/simulation.ts'
 
 export type BossBarState = 'normal' | 'low' | 'shielded'
@@ -16,10 +17,12 @@ export type HudState = {
   lives: number
   round: number
   boss: BossHud | null
+  /** PULSE energy, 0–100. */
+  pulse: number
 }
 
 export function readHud(sim: Simulation): HudState {
-  return { lives: sim.lives, round: sim.round, boss: sim.boss && readBoss(sim.boss) }
+  return { lives: sim.lives, round: sim.round, boss: sim.boss && readBoss(sim.boss), pulse: sim.pulse }
 }
 
 function readBoss(boss: Boss): BossHud {
@@ -32,7 +35,7 @@ function readBoss(boss: Boss): BossHud {
 }
 
 export function sameHud(a: HudState, b: HudState): boolean {
-  if (a.lives !== b.lives || a.round !== b.round) return false
+  if (a.lives !== b.lives || a.round !== b.round || a.pulse !== b.pulse) return false
   if (a.boss === null || b.boss === null) return a.boss === b.boss
   return (
     a.boss.hp === b.boss.hp &&
@@ -49,4 +52,17 @@ export function bossBarFraction({ hp, maxHp }: BossHud): number {
 export function bossBarState(boss: BossHud): BossBarState {
   if (boss.shielded) return 'shielded'
   return bossBarFraction(boss) <= 0.25 ? 'low' : 'normal'
+}
+
+export function isPulseReady(pulse: number): boolean {
+  return pulse >= PULSE_MAX
+}
+
+/** `{pulse}%`, or `READY` once PULSE is full. */
+export function pulseMeterText(pulse: number): string {
+  return isPulseReady(pulse) ? 'READY' : `${pulse}%`
+}
+
+export function pulseMeterFill(pulse: number): number {
+  return pulse / PULSE_MAX
 }
