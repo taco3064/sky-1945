@@ -5,9 +5,9 @@ import { defineBlueprint, reactPreset } from '@kekkai/blueprint';
  * from the first commit.
  *
  * The preset's `principles`, `componentShape`, `playbook` and `rules` are
- * spread in UNCHANGED. They are what this project exists to observe: what an
- * architecture contract written for CRUD front ends grows when the domain is
- * a 60fps game loop. Editing them to suit the game would end the experiment.
+ * spread in UNCHANGED. They are what this project exists to observe: what the
+ * contract does to a 60fps game loop. Editing them to suit the game would end
+ * the experiment.
  *
  * Only `architecture` is replaced, in three deliberate ways:
  *
