@@ -251,6 +251,19 @@ describe('PULSE DRIVE', () => {
     expect(world.bullets.includes(bullet)).toBe(!pulsing);
   });
 
+  it('grants no graze for a bullet the Pulse cleared in the same pass', () => {
+    const world = controlled();
+
+    world.nextSquad = world.schedule.length;
+    const bullet = hittingBullet(world, 20);
+
+    activePulse(world, 0.3);
+    runPass(world, PASS);
+
+    expect(world.bullets.includes(bullet)).toBe(false);
+    expect(world.pulse.energy).toBe(0);
+  });
+
   it('clears bullets fired inside an already grown Pulse before they can hit', () => {
     const world = controlled();
 
