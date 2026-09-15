@@ -30,6 +30,8 @@ describe('frame meter', () => {
   })
 
   it('formats a reading, and marks 0 < fps < 55 as slow', () => {
+    assert.equal(frameMeterText(null), '—')
+    assert.equal(isSlowReading(null), false)
     assert.equal(frameMeterText({ fps: 0, worst: 2500 }), '—')
     assert.equal(frameMeterText({ fps: 60, worst: 17 }), '60 FPS · 17ms')
     assert.equal(isSlowReading({ fps: 0, worst: 0 }), false)

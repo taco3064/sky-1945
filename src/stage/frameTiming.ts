@@ -33,11 +33,12 @@ export class FrameMeter {
   }
 }
 
-export function frameMeterText({ fps, worst }: FrameReading): string {
-  return fps === 0 ? '—' : `${fps} FPS · ${worst}ms`
+/** `—` until something is measured, or while the rate rounds to 0. */
+export function frameMeterText(reading: FrameReading | null): string {
+  return !reading || reading.fps === 0 ? '—' : `${reading.fps} FPS · ${reading.worst}ms`
 }
 
 /** A measured rate below 55 fps shows in warning amber. */
-export function isSlowReading({ fps }: FrameReading): boolean {
-  return fps > 0 && fps < SLOW_FPS
+export function isSlowReading(reading: FrameReading | null): boolean {
+  return !!reading && reading.fps > 0 && reading.fps < SLOW_FPS
 }

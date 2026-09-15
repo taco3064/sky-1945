@@ -23,6 +23,6 @@ export default function App() {
         />
       )
     case 'stage':
-      return <Stage speedPoints={speedPoints} />
+      return <Stage speedPoints={speedPoints} onExit={() => setScreen('title')} />
   }
 }
