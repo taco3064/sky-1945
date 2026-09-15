@@ -16,12 +16,21 @@ describe('arrow keys', () => {
 })
 
 describe('pulse key', () => {
-  it('is X in either case, or the X key whatever it types', () => {
+  it('is X in either case, or the X key when an IME or a non-Latin layout types something else', () => {
     assert.ok(isPulseKey('x', 'KeyX'))
     assert.ok(isPulseKey('X', 'KeyX'))
+    // Dvorak types x on the B key.
+    assert.ok(isPulseKey('x', 'KeyB'))
     assert.ok(isPulseKey('Process', 'KeyX'))
+    assert.ok(isPulseKey('ч', 'KeyX'))
     assert.ok(!isPulseKey('z', 'KeyZ'))
     assert.ok(!isPulseKey(' ', 'Space'))
+  })
+
+  it('is not the X key when a Latin layout puts another letter there', () => {
+    // Dvorak types q on the X key.
+    assert.ok(!isPulseKey('q', 'KeyX'))
+    assert.ok(!isPulseKey('Q', 'KeyX'))
   })
 })
 

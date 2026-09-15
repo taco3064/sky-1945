@@ -11,9 +11,13 @@ export function isArrowKey(key: string): boolean {
   return key in ARROWS
 }
 
-/** X starts a Pulse Drive, with or without Shift or Caps Lock, and from its key when a layout or IME types something else. */
+/**
+ * X starts a Pulse Drive, with or without Shift or Caps Lock. The X key also does when an IME or a non-Latin
+ * layout types something else there, but not when a Latin layout such as Dvorak puts another letter on it.
+ */
 export function isPulseKey(key: string, code: string): boolean {
-  return key === 'x' || key === 'X' || code === 'KeyX'
+  if (key === 'x' || key === 'X') return true
+  return code === 'KeyX' && !/^[a-z]$/i.test(key)
 }
 
 /** Held arrow keys summed into a direction; opposite keys cancel. */
