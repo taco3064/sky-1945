@@ -1,75 +1,34 @@
-# React + TypeScript + Vite
+# sky-1945 — without blueprint
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![SKY-1945](public/logo.webp)
 
-Currently, two official plugins are available:
+This branch is sky-1945 built without [@kekkai/blueprint](https://www.npmjs.com/package/@kekkai/blueprint).
+It records what the code looks like when no architecture contract is in place. It is not a verdict
+on either approach; the blueprint-governed version is on [`main`](https://github.com/taco3064/sky-1945/tree/main).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## How it was built
 
-## React Compiler
+- It starts from the repository's initial commit and a Vite React + TypeScript template with ESLint
+  (`create-vite@9.2.1 --template react-ts --eslint`).
+- The only input was the game specification in [`.claude/docs/game-spec.md`](.claude/docs/game-spec.md):
+  what the game looks like, how it plays, and the numbers behind both. It says nothing about how the
+  code should be organised.
+- Development happened in a separate clone that held only this branch, so neither `main` nor its history
+  was in the working copy.
+- Runtime and build dependencies are pinned to the versions the specification lists.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## What differs from `main`
 
-## Expanding the ESLint configuration
+- There is no `blueprint.config.mjs`, and no generated lint rules, handbook or agent contract.
+- Lint is the template's ESLint configuration. Tests run on `node --test`.
+- The specification was written from the game on `main`, and the runtime and build dependencies use the
+  versions in `main`'s lockfile.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Running it
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
+`npm run lint`, `npm test` and `npm run build` are also available.
