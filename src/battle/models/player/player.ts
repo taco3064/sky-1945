@@ -87,6 +87,11 @@ export function isProtected(player: Player, now: number): boolean {
   return now < player.protectedUntil;
 }
 
+/** Invulnerable until the later of the current expiry and `until`; never shortened. */
+export function protectUntil(player: Player, until: number): void {
+  player.protectedUntil = Math.max(player.protectedUntil, until);
+}
+
 export function isRolling(player: Player, now: number): boolean {
   return now < player.rollEndsAt;
 }
@@ -104,7 +109,7 @@ export function tryRoll(player: Player, now: number): boolean {
 
   player.rollEndsAt = now + ROLL_DURATION;
   player.rollReadyAt = player.rollEndsAt + ROLL_COOLDOWN;
-  player.protectedUntil = Math.max(player.protectedUntil, player.rollEndsAt);
+  protectUntil(player, player.rollEndsAt);
 
   return true;
 }

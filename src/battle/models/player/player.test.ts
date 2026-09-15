@@ -12,6 +12,7 @@ import {
   isRolling,
   isSpent,
   launchPlayer,
+  protectUntil,
   tryRoll,
   updatePlayer,
 } from './player';
@@ -220,6 +221,18 @@ describe('roll', () => {
     expect(updatePlayer(player, tick(1, 6))).toEqual([]);
     expect(player.fireTimer).toBe(FIRE_INTERVAL);
     expect(updatePlayer(player, tick(PASS, 6.3)).length).toBe(2);
+  });
+});
+
+describe('protection', () => {
+  it('extends protection to a later expiry and never shortens it', () => {
+    const player = createPlayer(1, 5, 0);
+
+    protectUntil(player, 2);
+    expect(player.protectedUntil).toBe(3);
+
+    protectUntil(player, 3.6);
+    expect(player.protectedUntil).toBe(3.6);
   });
 });
 
