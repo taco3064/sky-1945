@@ -1,5 +1,24 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createBattleStore } from './battleStore';
+import type { World } from './world';
+
+/** Every world the stores under test created, newest last. */
+const worlds = vi.hoisted((): World[] => []);
+
+vi.mock('./world', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./world')>();
+
+  return {
+    ...actual,
+    createWorld: (...args: Parameters<typeof actual.createWorld>) => {
+      const world = actual.createWorld(...args);
+
+      worlds.push(world);
+
+      return world;
+    },
+  };
+});
 
 function placements(store: ReturnType<typeof createBattleStore>): Map<number, number[]> {
   const found = new Map<number, number[]>();
@@ -104,6 +123,50 @@ describe('input', () => {
 
     store.roll();
     expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a Pulse Drive at once at full energy, then grows it on the aircraft', () => {
+    const store = createBattleStore(5, () => 0);
+    const world = worlds.at(-1) as World;
+    const listener = vi.fn();
+
+    run(store, 30);
+    store.subscribe(listener);
+
+    store.pulse();
+    expect(listener).not.toHaveBeenCalled();
+
+    world.pulse.energy = 100;
+    store.pulse();
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    const { energy, pulse, player } = store.getSnapshot();
+
+    expect([energy, pulse]).toEqual([0, { id: world.lastId }]);
+
+    store.frame(31 * (1000 / 60));
+
+    const placed = new Map<number, number | undefined>();
+
+    store.forEachPlacement(({ id, radius }) => placed.set(id, radius));
+
+    expect(placed.get(pulse?.id as number)).toBeCloseTo(5, 9);
+    expect(placed.get(player.id)).toBeUndefined();
+  });
+
+  it('ignores a Pulse Drive once the run is over', () => {
+    const store = createBattleStore(5, () => 0);
+    const world = worlds.at(-1) as World;
+    const listener = vi.fn();
+
+    run(store, 30);
+    store.subscribe(listener);
+    Object.assign(world, { gameOver: true });
+    world.pulse.energy = 100;
+
+    store.pulse();
+
+    expect(listener).not.toHaveBeenCalled();
   });
 
   it('uses Math.random for the boss roll by default', () => {

@@ -26,11 +26,13 @@ describe('buildView', () => {
       lives: 3,
       round: 1,
       gameOver: false,
+      energy: 0,
       player: { id: 1, rolling: false, protected: true, spent: false },
       bullets: [],
       enemies: [],
       boss: null,
       beam: null,
+      pulse: null,
       bursts: [],
       fps: 0,
       worst: 0,
@@ -114,6 +116,31 @@ describe('buildView', () => {
 
     world.boss = null;
     expect(buildView(world, READINGS, firing)).toMatchObject({ boss: null, beam: null });
+  });
+
+  it('shows PULSE energy and the active Pulse, kept while unchanged', () => {
+    const world = createWorld(5, Math.random);
+    const previous = buildView(world, READINGS, null);
+
+    world.pulse.energy = 64;
+    const charged = buildView(world, READINGS, previous);
+
+    expect([charged.energy, charged.pulse]).toEqual([64, null]);
+
+    Object.assign(world.pulse, {
+      energy: 0,
+      active: { id: 9, startedAt: 0, reached: new Set() },
+    });
+
+    const active = buildView(world, READINGS, charged);
+
+    expect([active.energy, active.pulse]).toEqual([0, { id: 9 }]);
+
+    world.time = 0.3;
+    expect(buildView(world, READINGS, active)).toBe(active);
+
+    world.pulse.active = null;
+    expect(buildView(world, READINGS, active).pulse).toBeNull();
   });
 
   it('carries lives, round, game over and the frame readings', () => {

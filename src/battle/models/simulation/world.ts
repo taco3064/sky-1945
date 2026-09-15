@@ -10,6 +10,7 @@ import {
   roundSchedule,
 } from '../enemies';
 import { PLAYER_HIT_RADIUS, PLAYER_LIVES, type Player, createPlayer } from '../player';
+import { type PulseDrive, createPulseDrive, pulseRadius } from '../pulse';
 import {
   type Collisions,
   addCircle,
@@ -42,6 +43,8 @@ export interface World {
   lives: number;
   gameOver: boolean;
   readonly player: Player;
+  /** PULSE energy and the active Pulse; kept through deaths and rounds. */
+  readonly pulse: PulseDrive;
   /** Every group is kept in order of creation. */
   bullets: Bullet[];
   enemies: Enemy[];
@@ -75,6 +78,7 @@ export function createWorld(speedPoints: number, random: () => number): World {
     lives: PLAYER_LIVES,
     gameOver: false,
     player,
+    pulse: createPulseDrive(),
     bullets: [],
     enemies: [],
     boss: null,
@@ -150,13 +154,18 @@ export interface Placement {
   x: number;
   y: number;
   angle: number;
+  /** u; only the Pulse has one, grown with its simulated time. */
+  radius?: number;
 }
 
 export type Place = (placement: Placement) => void;
 
-/** Visits every entity: 180° for enemy aircraft and the boss, 0 otherwise. */
+/**
+ * Visits every entity: 180° for enemy aircraft and the boss, 0 otherwise. The Pulse is
+ * centred on the aircraft.
+ */
 export function forEachPlacement(world: World, place: Place): void {
-  const { player, boss } = world;
+  const { player, boss, pulse } = world;
 
   const at = ({ id, x, y }: Omit<Placement, 'angle'>, angle = 0) => {
     place({ id, x, y, angle });
@@ -172,6 +181,12 @@ export function forEachPlacement(world: World, place: Place): void {
     if (boss.beam) {
       at(boss.beam);
     }
+  }
+
+  if (pulse.active) {
+    const radius = pulseRadius(pulse.active, world.time);
+
+    place({ id: pulse.active.id, x: player.x, y: player.y, angle: 0, radius });
   }
 
   world.bursts.forEach((burst) => at(burst));

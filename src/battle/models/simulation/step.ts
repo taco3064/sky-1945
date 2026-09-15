@@ -6,6 +6,7 @@ import { type EnemyTick, createEnemy, roundSchedule, updateEnemy } from '../enem
 import { type PlayerTick, updatePlayer } from '../player';
 import { detectContacts, moveBody } from './collisions';
 import { resolveContacts } from './contacts';
+import { drivePulse, grazeBullets } from './pulseDrive';
 import { roundMultiplier } from './rounds';
 import {
   type World,
@@ -56,8 +57,10 @@ export function runPass(world: World, dt: number): void {
 
   moveBullets(world, dt);
   world.bursts = world.bursts.filter((burst) => !ageBurst(burst, dt));
+  drivePulse(world);
   syncBodies(world);
   resolveContacts(world, detectContacts(world.collisions, dt));
+  grazeBullets(world);
   advanceRound(world);
 }
 

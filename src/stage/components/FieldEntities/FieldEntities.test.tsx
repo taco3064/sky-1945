@@ -7,6 +7,7 @@ const VIEW: BattleView = {
   lives: 3,
   round: 1,
   gameOver: false,
+  energy: 0,
   player: { id: 1, rolling: true, protected: true, spent: true },
   bullets: [
     { id: 7, side: 'player' },
@@ -15,6 +16,7 @@ const VIEW: BattleView = {
   enemies: [{ id: 3, kind: 'medium' }],
   boss: { id: 4, size: 1.5, hp: 900, maxHp: 1350, pose: 'winding', move: 'beam' },
   beam: { id: 8 },
+  pulse: null,
   bursts: [{ id: 9, tone: 'enemy', size: 'small' }],
   fps: 0,
   worst: 0,

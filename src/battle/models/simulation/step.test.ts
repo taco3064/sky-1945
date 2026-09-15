@@ -4,8 +4,9 @@ import { createBullet } from '../bullets';
 import { createBurst } from '../bursts';
 import { createEnemy, roundSchedule } from '../enemies';
 import { FIRE_INTERVAL } from '../player';
+import { tryPulse } from './pulseDrive';
 import { PASSES_PER_STEP, runPass, stepDuration, stepWorld } from './step';
-import { addBoss, addBullet, addEnemy, createWorld, nextId } from './world';
+import { type World, addBoss, addBullet, addEnemy, createWorld, nextId } from './world';
 
 const PASS = 1 / 240;
 
@@ -190,6 +191,132 @@ describe('hits', () => {
 
     expect(world.lives).toBe(2);
     expect(world.bursts).toMatchObject([{ x: 270, y: 800, tone: 'ally' }]);
+  });
+});
+
+describe('PULSE DRIVE', () => {
+  /** An active Pulse started `elapsed` seconds ago. */
+  function activePulse(world: World, elapsed: number) {
+    world.pulse.active = {
+      id: nextId(world),
+      startedAt: world.time - elapsed,
+      reached: new Set(),
+    };
+  }
+
+  /** An enemy bullet that reaches the aircraft's centre in the next pass. */
+  function hittingBullet(world: World, dx = 0) {
+    const bullet = createBullet(nextId(world), {
+      side: 'enemy',
+      x: world.player.x + dx,
+      y: world.player.y - 1,
+      heading: 90,
+      speed: 260,
+      damage: 8,
+    });
+
+    addBullet(world, bullet);
+
+    return bullet;
+  }
+
+  /** A small enemy diving 20 u above the aircraft, firing straight into it this pass. */
+  function shooterAbove(world: World) {
+    const squad = { ...roundSchedule(1)[1], entries: [{ x: 270, y: 780 }] };
+    const shooter = createEnemy(nextId(world), squad, 0);
+
+    shooter.fireTimer = 5;
+    addEnemy(world, shooter);
+  }
+
+  it.each([
+    [false, 2],
+    [true, 3],
+  ])('with a Pulse active (%s) a bullet inside it is cleared before it can hit', (
+    pulsing,
+    lives,
+  ) => {
+    const world = controlled();
+
+    world.nextSquad = world.schedule.length;
+    const bullet = hittingBullet(world);
+
+    if (pulsing) {
+      activePulse(world, 0.3);
+    }
+
+    runPass(world, PASS);
+
+    expect(world.lives).toBe(lives);
+    expect(world.bullets.includes(bullet)).toBe(!pulsing);
+  });
+
+  it('clears bullets fired inside an already grown Pulse before they can hit', () => {
+    const world = controlled();
+
+    world.nextSquad = world.schedule.length;
+    shooterAbove(world);
+    activePulse(world, 0.3);
+
+    runPass(world, PASS);
+
+    expect([world.lives, world.bullets.length]).toEqual([3, 0]);
+    expect(world.bursts).toMatchObject([{ tone: 'enemy', size: 'small' }]);
+  });
+
+  it('grazes after hits: a bullet that hits this pass grants nothing', () => {
+    const grazed = controlled();
+
+    grazed.nextSquad = grazed.schedule.length;
+    hittingBullet(grazed, 20);
+    runPass(grazed, PASS);
+
+    const hit = controlled();
+
+    hit.nextSquad = hit.schedule.length;
+    hittingBullet(hit, 20);
+    hittingBullet(hit);
+    runPass(hit, PASS);
+
+    expect([grazed.lives, grazed.pulse.energy]).toEqual([3, 8]);
+    expect([hit.lives, hit.pulse.energy]).toEqual([2, 0]);
+  });
+
+  it('runs 0.6 s of passes, then ends', () => {
+    const world = controlled();
+
+    world.nextSquad = world.schedule.length;
+    world.pulse.energy = 100;
+    tryPulse(world);
+
+    for (let pass = 0; pass < 143; pass++) {
+      runPass(world, PASS);
+    }
+
+    expect(world.pulse.active).not.toBeNull();
+    runPass(world, PASS);
+    runPass(world, PASS);
+    expect(world.pulse.active).toBeNull();
+  });
+
+  it('kills the boss into the next round, keeping energy and the active Pulse', () => {
+    const world = controlled();
+
+    world.phase = 'boss';
+    Object.assign(world.player, { x: 230, y: 300 });
+    const boss = createBoss(nextId(world), 1, { size: 1, seed: 0 });
+
+    Object.assign(boss, { pose: 'winding', hp: 120, x: 230, y: 154 });
+    addBoss(world, boss);
+    world.pulse.energy = 48;
+    activePulse(world, 0.45);
+
+    runPass(world, PASS);
+
+    expect([world.boss, world.round, world.phase]).toEqual([null, 2, 'waves']);
+    expect(world.bursts).toMatchObject([{ tone: 'enemy', size: 'large' }]);
+    expect(world.pulse.energy).toBe(48);
+    expect(world.pulse.active).not.toBeNull();
   });
 });
 

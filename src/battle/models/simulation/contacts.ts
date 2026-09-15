@@ -3,6 +3,7 @@ import type { Bullet } from '../bullets';
 import { createBurst } from '../bursts';
 import { type Enemy, damageEnemy } from '../enemies';
 import { isProtected, launchPlayer } from '../player';
+import { endPulse } from '../pulse';
 import { type Collider, type World, nextId, removeCollider } from './world';
 import { wreckBoss, wreckEnemy } from './wrecks';
 
@@ -132,6 +133,7 @@ function killPlayer(resolution: Resolution): void {
   );
 
   launchPlayer(player, world.time);
+  endPulse(world.pulse);
   world.lives = Math.max(0, world.lives - 1);
 
   if (world.lives === 0) {

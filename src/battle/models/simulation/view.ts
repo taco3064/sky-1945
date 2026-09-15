@@ -3,6 +3,7 @@ import type { BulletSide } from '../bullets';
 import type { BurstSize, BurstTone } from '../bursts';
 import type { EnemyKind } from '../enemies';
 import { isProtected, isRolling, isSpent } from '../player';
+import type { PulseDrive } from '../pulse';
 import type { World } from './world';
 
 export interface PlayerView {
@@ -33,11 +34,15 @@ export interface BattleView {
   readonly lives: number;
   readonly round: number;
   readonly gameOver: boolean;
+  /** PULSE energy, 0–100. */
+  readonly energy: number;
   readonly player: PlayerView;
   readonly bullets: readonly { readonly id: number; readonly side: BulletSide }[];
   readonly enemies: readonly { readonly id: number; readonly kind: EnemyKind }[];
   readonly boss: BossView | null;
   readonly beam: { readonly id: number } | null;
+  /** The active Pulse Drive; its radius is placed every frame. */
+  readonly pulse: { readonly id: number } | null;
   readonly bursts: readonly BurstView[];
   /** 0 until the first frame-meter window closes. */
   readonly fps: number;
@@ -59,11 +64,13 @@ export function buildView(
     lives: world.lives,
     round: world.round,
     gameOver: world.gameOver,
+    energy: world.pulse.energy,
     player: keep(previous?.player, playerView(world)),
     bullets: sameList(previous?.bullets, world.bullets),
     enemies: sameList(previous?.enemies, world.enemies),
     boss: keep(previous?.boss, bossView(world.boss)),
     beam: keep(previous?.beam, beamView(world.boss)),
+    pulse: keep(previous?.pulse, pulseView(world.pulse)),
     bursts: sameList(previous?.bursts, world.bursts),
     fps: readings.fps,
     worst: readings.worst,
@@ -94,6 +101,10 @@ function bossView(boss: Boss | null): BossView | null {
 
 function beamView(boss: Boss | null): { id: number } | null {
   return boss?.beam ? { id: boss.beam.id } : null;
+}
+
+function pulseView({ active }: PulseDrive): { id: number } | null {
+  return active && { id: active.id };
 }
 
 /** The previous value when it has the same fields, else the next one. */

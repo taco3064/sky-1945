@@ -42,6 +42,7 @@ describe('createWorld', () => {
       bursts: [],
       lastId: 1,
       random,
+      pulse: { energy: 0, active: null },
     });
 
     const body = world.collisions.bodies.get(1);
@@ -119,6 +120,25 @@ describe('forEachPlacement', () => {
       [{ id: 4, x: 270, y: -52, angle: 180 }],
       [{ id: 5, x: 6, y: 7, angle: 0 }],
       [{ id: 6, x: 8, y: 9, angle: 0 }],
+    ]);
+  });
+
+  it('centres an active Pulse on the aircraft with its radius, after the beam', () => {
+    const world = createWorld(5, Math.random);
+
+    world.boss = createBoss(4, 1, { size: 1, seed: 0 });
+    world.boss.beam = { id: 5, x: 6, y: 7 };
+    world.bursts.push(createBurst(7, { x: 8, y: 9, tone: 'enemy', size: 'small' }));
+    world.time = 10.3;
+    world.pulse.active = { id: 6, startedAt: 10, reached: new Set() };
+    const place = vi.fn();
+
+    forEachPlacement(world, place);
+
+    expect(place.mock.calls.slice(2)).toEqual([
+      [{ id: 5, x: 6, y: 7, angle: 0 }],
+      [{ id: 6, x: 270, y: 1020, angle: 0, radius: expect.closeTo(90, 9) }],
+      [{ id: 7, x: 8, y: 9, angle: 0 }],
     ]);
   });
 

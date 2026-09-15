@@ -1,6 +1,7 @@
 import type { Point } from '../field';
 import { tryRoll } from '../player';
 import { createFrameMeter, recordFrame } from './frameMeter';
+import { tryPulse } from './pulseDrive';
 import { stepDuration, stepWorld } from './step';
 import { type BattleView, buildView } from './view';
 import { type Place, createWorld, forEachPlacement } from './world';
@@ -16,6 +17,8 @@ export interface BattleStore {
   steer(direction: Point): void;
   /** Attempts a barrel roll; it shows at once when it starts. */
   roll(): void;
+  /** Attempts a Pulse Drive; it shows at once when it starts. */
+  pulse(): void;
   /** Visits every entity's centre and angle. */
   forEachPlacement(place: Place): void;
 }
@@ -65,6 +68,11 @@ export function createBattleStore(
     },
     roll() {
       if (tryRoll(world.player, world.time)) {
+        publish();
+      }
+    },
+    pulse() {
+      if (tryPulse(world)) {
         publish();
       }
     },

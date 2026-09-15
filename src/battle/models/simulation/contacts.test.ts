@@ -228,6 +228,20 @@ describe('player contacts', () => {
     expect(world.lives).toBe(2);
   });
 
+  it('ends an active Pulse on death but keeps the stored PULSE energy', () => {
+    const world = setup();
+
+    Object.assign(world.pulse, {
+      energy: 72,
+      active: { id: nextId(world), startedAt: 9.9, reached: new Set() },
+    });
+
+    resolveContacts(world, [[as.player(world), as.bullet(bullet(world, 'enemy'))]]);
+
+    expect(world.pulse).toMatchObject({ energy: 72, active: null });
+    expect([world.lives, world.player.protectedUntil]).toEqual([2, 13]);
+  });
+
   it('does nothing while the player is invulnerable', () => {
     const world = setup();
 
