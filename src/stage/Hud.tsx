@@ -101,7 +101,8 @@ function PulseMeter({ pulse }: { pulse: number }) {
 
 /**
  * Starts a Pulse Drive on pointer down, so a finger can press it while another one steers; a second
- * finger's tap may never become a click. A click from the keyboard (detail 0) presses it too.
+ * finger's tap may never become a click. Only the main button presses it: any touch or pen contact, or a
+ * left click. A click from the keyboard (detail 0) presses it too.
  */
 function PulseButton({ ready, onPulse }: { ready: boolean; onPulse: () => void }) {
   return (
@@ -110,7 +111,9 @@ function PulseButton({ ready, onPulse }: { ready: boolean; onPulse: () => void }
       type="button"
       data-ready={ready || undefined}
       aria-disabled={!ready}
-      onPointerDown={onPulse}
+      onPointerDown={(event) => {
+        if (event.button === 0) onPulse()
+      }}
       onClick={(event) => {
         if (event.detail === 0) onPulse()
       }}
